@@ -2,6 +2,7 @@ package com.back.nbe12142team06.domain.user.entity;
 
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -61,6 +62,12 @@ public class User extends BaseSoftDeleteTimeEntity {
     // 지역
     @Column(nullable = false, length = 50)
     private String region;
+
+    // 계정 활성, 일시 정지, 영구 정지 상태
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus userStatus =  UserStatus.ACTIVE;
+
 
     @Version
     @ColumnDefault("0")
