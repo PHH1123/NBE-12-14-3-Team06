@@ -15,10 +15,12 @@ import com.back.nbe12142team06.domain.user.dto.user.UserProfileUpdateRequest;
 import com.back.nbe12142team06.domain.user.entity.ClientProfile;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.repository.ClientProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import com.back.nbe12142team06.domain.user.repository.UserStatusHistoryRepository;
 import com.back.nbe12142team06.global.exception.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +53,7 @@ public class UserService {
     private final EscortProfileRepository escortProfileRepository;
     private final ClientProfileRepository clientProfileRepository;
     private final ApplicationRepository applicationRepository;
+    private final UserStatusHistoryRepository userStatusHistoryRepository;
     private final EducationService educationService;
 
     // 프로필 삭제, 리프레시 토큰 폐기, 회원 정보 삭제
@@ -107,15 +110,16 @@ public class UserService {
                 request.phoneNum(),
                 request.region()
         );
-
+        User savedUser;
         // 동시성 자체는 유니크로 막혀 있는데 그 때 500번이 나가버리기 때문에 이를 409로 감싸기만 했습니다.
         try {
-            User savedUser = this.userRepository.saveAndFlush(user);
-            log.info("[회원가입] userId={}, role={}", savedUser.getId(), savedUser.getRole());
-            return savedUser;
+            savedUser = this.userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
             throw new DuplicatedException(4, "이미 사용 중인 회원 정보입니다.");
         }
+        this.userStatusHistoryRepository.save(UserStatusHistory.signup(savedUser));
+        log.info("[회원가입] userId={}, role={}, status={}", savedUser.getId(), savedUser.getRole(), savedUser.getUserStatus());
+        return savedUser;
     }
 
     // 로그인
