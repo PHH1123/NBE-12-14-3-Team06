@@ -5,6 +5,7 @@ import com.back.nbe12142team06.domain.auth.entity.RefreshToken;
 import com.back.nbe12142team06.domain.auth.repository.RefreshTokenRepository;
 import com.back.nbe12142team06.domain.education.service.EducationService;
 import com.back.nbe12142team06.domain.user.dto.admin.AdminUserProfileUpdateRequest;
+import com.back.nbe12142team06.domain.user.dto.login.UserLoginRequest;
 import com.back.nbe12142team06.domain.user.dto.profile.ClientProfileModifyRequest;
 import com.back.nbe12142team06.domain.user.dto.profile.ClientProfileRequest;
 import com.back.nbe12142team06.domain.user.dto.profile.EscortProfileModifyRequest;
@@ -31,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -116,7 +118,28 @@ public class UserService {
         }
     }
 
-    
+    // 로그인
+    @Transactional(readOnly = true)
+    public User login(UserLoginRequest request) {
+        Optional<User> opUser = this.userRepository.findByUsername(request.username());
+
+        if (opUser.isEmpty()) {
+            log.warn("[로그인 실패] 존재하지 않는 아이디 username={}", request.username());
+            throw new UnauthorizedException(1, "아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
+
+        User user = opUser.get();
+
+        try {
+            checkPassword(request.password(), user.getPassword());
+        } catch (UnauthorizedException e) {
+            log.warn("[로그인 실패] 비밀번호 불일치 userId={}", user.getId());
+            throw e;
+        }
+
+        log.info("[로그인 성공] userId={}, role={}", user.getId(), user.getRole());
+        return user;
+    }
 
     // 상세정보 조회
     @Transactional(readOnly = true)

@@ -66,7 +66,7 @@ public class User extends BaseSoftDeleteTimeEntity {
 
     // 계정 활성, 일시 정지, 영구 정지 상태
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private UserStatus userStatus =  UserStatus.ACTIVE;
 
 
@@ -111,7 +111,12 @@ public class User extends BaseSoftDeleteTimeEntity {
         return this.getDeletedAt() != null;
     }
 
+    // ACTIVE 계정 여부
+    public boolean isActive() {
+        return this.userStatus == UserStatus.ACTIVE;
+    }
 
+    // 상태 변경
     private void changeStatus(UserStatus newStatus) {
         // 현재 상태
         UserStatus prevStatus = this.getUserStatus();
@@ -133,5 +138,23 @@ public class User extends BaseSoftDeleteTimeEntity {
 
         // 유저 테이블의 상태 변경
         this.userStatus = newStatus;
+    }
+
+    // 기간 정지
+    public UserStatusHistory suspend(Long adminId, String reason) {
+        changeStatus(UserStatus.SUSPENDED);
+        return UserStatusHistory.suspend(this, adminId, reason);
+    }
+
+    // 영구 정지
+    public UserStatusHistory ban(Long adminId, String reason) {
+        changeStatus(UserStatus.BANNED);
+        return UserStatusHistory.ban(this, adminId, reason);
+    }
+
+    // 관리자의 정지 해제
+    public UserStatusHistory release(Long adminId, String reason) {
+        changeStatus(UserStatus.ACTIVE);
+        return UserStatusHistory.release(this, adminId, reason);
     }
 }
