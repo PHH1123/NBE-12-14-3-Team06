@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -108,5 +109,29 @@ public class User extends BaseSoftDeleteTimeEntity {
     // 탈퇴 여부
     public boolean isDeleted() {
         return this.getDeletedAt() != null;
+    }
+
+
+    private void changeStatus(UserStatus newStatus) {
+        // 현재 상태
+        UserStatus prevStatus = this.getUserStatus();
+
+        // 같은 상태로의 변경은 불가
+        if (prevStatus == newStatus) {
+            throw new InvalidException(
+                    1,
+                    "이미 %s 상태인 계정입니다.".formatted(prevStatus.getDescription())
+            );
+        }
+        // BANNED -> SUSPENDED 변경 불가
+        else if (prevStatus == UserStatus.BANNED && newStatus == UserStatus.SUSPENDED) {
+            throw new InvalidException(
+                    2,
+                    "영구 정지된 계정은 해제만 가능합니다."
+            );
+        }
+
+        // 유저 테이블의 상태 변경
+        this.userStatus = newStatus;
     }
 }
