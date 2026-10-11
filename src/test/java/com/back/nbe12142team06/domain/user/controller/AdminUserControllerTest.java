@@ -3,9 +3,12 @@ package com.back.nbe12142team06.domain.user.controller;
 import com.back.nbe12142team06.domain.auth.entity.RefreshToken;
 import com.back.nbe12142team06.domain.auth.repository.RefreshTokenRepository;
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import com.back.nbe12142team06.domain.user.repository.UserStatusHistoryRepository;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.persistence.EntityManager;
 import jakarta.servlet.http.Cookie;
@@ -51,6 +54,9 @@ public class AdminUserControllerTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserStatusHistoryRepository userStatusHistoryRepository;
 
     @Autowired
     private EntityManager em;
@@ -718,5 +724,48 @@ public class AdminUserControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.statusCode").value("404-3"))
                 .andExpect(jsonPath("$.msg").value("동행 매니저 프로필이 존재하지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 기간 정지 요청 - 관리자가 ACTIVE 상태의 유저를 정지 요청 시 유저 상태를 SUSPENDED로 변경 후 200-10 반환")
+    void t20() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+        Long adminId = findUserId(ADMIN_USERNAME);
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/admin/users/{userId}/suspension",  user1Id)
+                        .cookie(adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "reason": "노쇼 3회 누적"
+                                }
+                                """)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-10"))
+                .andExpect(jsonPath("$.msg").value("회원이 기간 정지되었습니다."))
+                .andExpect(jsonPath("$.data.username").value("user1"))
+                .andExpect(jsonPath("$.data.startAt").isNotEmpty())
+                .andExpect(jsonPath("$.data.endAt").isNotEmpty());
+
+        em.flush();
+        em.clear();
+
+        User user = this.userRepository.findById(user1Id).orElseThrow();
+        assertThat(user.getUserStatus()).isEqualTo(UserStatus.SUSPENDED);
+
+        UserStatusHistory history = this.userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElseThrow();
+        assertThat(history.getStatus()).isEqualTo(UserStatus.SUSPENDED);
+        assertThat(history.getAdminId()).isEqualTo(adminId);
+        assertThat(history.getReason()).isEqualTo("노쇼 3회 누적");
+        assertThat(history.getEndAt()).isNotNull();
+        assertThat(history.getEndAt().getMinute()).isZero();
     }
 }
