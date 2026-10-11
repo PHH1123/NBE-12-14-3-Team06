@@ -99,4 +99,13 @@ public class UserStatusHistory {
                 .reason(reason)
                 .build();
     }
+
+    // 기간 정지 기간 만료 시 해제
+    static UserStatusHistory expire(User user){
+        return builder()
+                .user(user)
+                .status(UserStatus.ACTIVE)
+                .reason("기간 정지 만료")
+                .build();
+    }
 }

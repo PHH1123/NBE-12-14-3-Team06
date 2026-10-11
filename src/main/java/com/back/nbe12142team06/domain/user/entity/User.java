@@ -157,4 +157,10 @@ public class User extends BaseSoftDeleteTimeEntity {
         changeStatus(UserStatus.ACTIVE);
         return UserStatusHistory.release(this, adminId, reason);
     }
+
+    // 정지 기간 만료 시 해제
+    public UserStatusHistory expire() {
+        changeStatus(UserStatus.ACTIVE);
+        return UserStatusHistory.expire(this);
+    }
 }
