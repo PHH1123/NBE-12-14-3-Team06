@@ -870,4 +870,17 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.statusCode").value("401-113"))
                 .andExpect(jsonPath("$.msg").value("로그인 후 이용해주세요."));
     }
+
+    @Test
+    @DisplayName("[AdminUserController] 기간 정지 요청 - 일반 회원이 요청 시 403-1 반환")
+    void t26() throws Exception {
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+        Cookie user2Token = signUp("user2");
+
+        requestSuspension(user1Id, user2Token)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-1"))
+                .andExpect(jsonPath("$.msg").value("권한이 없습니다."));
+    }
 }
