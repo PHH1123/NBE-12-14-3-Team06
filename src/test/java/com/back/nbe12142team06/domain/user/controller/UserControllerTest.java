@@ -10,6 +10,7 @@ import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
 import com.back.nbe12142team06.global.security.JwtProvider;
@@ -2308,4 +2309,18 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.data").value("false"));
     }
 
+    @Test
+    @DisplayName("[UserController] 회원가입 시 User의 userStatus가 기본적으로 ACTIVE로 설정")
+    void t62() throws Exception {
+
+        signUp("test1", "ESCORT");
+
+        em.flush();
+        em.clear();
+
+        User test = this.userRepository.findByUsername("test1")
+                .orElseThrow();
+
+        assertThat(test.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+    }
 }

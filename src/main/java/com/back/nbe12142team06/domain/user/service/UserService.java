@@ -123,7 +123,7 @@ public class UserService {
     }
 
     // 로그인
-    @Transactional(readOnly = true)
+    @Transactional
     public User login(UserLoginRequest request) {
         Optional<User> opUser = this.userRepository.findByUsername(request.username());
 
