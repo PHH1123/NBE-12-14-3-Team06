@@ -805,4 +805,25 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.statusCode").value("400-8"))
                 .andExpect(jsonPath("$.msg").value("이미 정지 상태인 계정입니다."));
     }
+
+    @Test
+    @DisplayName("[AdminUserController] 기간 정지 요청 - 영구 정지된 회원을 정지 요청 시 400-9 반환")
+    void t22() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+        Long adminId = findUserId(ADMIN_USERNAME);
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        User user = userRepository.findById(user1Id).orElseThrow();
+        userStatusHistoryRepository.save(user.ban(adminId, "영구 정지 테스트"));
+        em.flush();
+        em.clear();
+
+        requestSuspension(user1Id, adminToken)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value("400-9"))
+                .andExpect(jsonPath("$.msg").value("영구 정지된 계정은 해제만 가능합니다."));
+    }
 }
