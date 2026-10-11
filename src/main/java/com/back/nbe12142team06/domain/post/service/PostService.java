@@ -91,6 +91,12 @@ public class PostService {
         validateTime(request.recruitStartAt(), request.recruitEndAt(),
                 request.escortStartAt(), request.escortEndAt());
 
+        // 미결제 검증
+        boolean isNotPaid = paymentService.validNotPaid(userId);
+        if (!isNotPaid) {
+            throw new InvalidException(20, "미결제 공고가 있습니다.");
+        }
+
         Post post = Post.builder()
                 .client(user)
                 .title(request.title())
@@ -160,6 +166,10 @@ public class PostService {
 
         // 이동 수단 변경
         rideService.updateRide(postId, new RideUpdateRequest(request.rideSelectToHospital(), request.rideSelectToHome()));
+
+        // 수정된 금액과 결제 금액 검증
+        paymentService.validPayment(post);
+
         log.info("[공고 수정] postId={}, userId={}", postId, userId);
     }
     @Transactional
@@ -178,6 +188,10 @@ public class PostService {
                 throw new InvalidException(17, "모집 중이거나 만료 상태에서만 삭제가 가능합니다.");
             }
         }
+
+        // 결제 상태 변경 -> 스케줄러로 삭제된 공고에 대해 결제 취소할 예정
+        paymentService.cancelPostAndPayment(postId);
+
         postRepository.deleteById(postId);
         log.info("[공고 삭제] postId={}, userId={}", postId, userId);
     }
@@ -276,7 +290,7 @@ public class PostService {
         post.complete(arrivedAt);       // escortEndAt 실제값 반영 + 상태 COMPLETED
 
         // 재결제 로직
-        paymentService.validPayment(userId, post, application, post.getEscortEndAt().plusDays(1).toLocalDate());
+        paymentService.validPayment(post, application, post.getEscortEndAt().plusDays(1).toLocalDate());
 
         // 동행 완료 건수 증가 — clearAutomatically 때문에 반드시 마지막에 호출
         int updated = escortProfileRepository.increaseCompletedCount(escortId);

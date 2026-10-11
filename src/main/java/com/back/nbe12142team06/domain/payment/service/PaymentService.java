@@ -1,6 +1,7 @@
 package com.back.nbe12142team06.domain.payment.service;
 
 import com.back.nbe12142team06.domain.application.entity.Application;
+import com.back.nbe12142team06.domain.application.service.ApplicationService;
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient;
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest;
 import com.back.nbe12142team06.domain.payment.dto.PaymentConfirmRequest;
@@ -9,13 +10,9 @@ import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
-import com.back.nbe12142team06.domain.penalty.entity.NoShowPenalty;
-import com.back.nbe12142team06.domain.penalty.service.NoShowPenaltyService;
 import com.back.nbe12142team06.domain.post.entity.Post;
+import com.back.nbe12142team06.domain.post.entity.PostStatus;
 import com.back.nbe12142team06.domain.settlement.service.SettlementService;
-import com.back.nbe12142team06.domain.user.entity.User;
-import com.back.nbe12142team06.domain.user.service.UserService;
-import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InternalServerErrorException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
@@ -23,11 +20,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -38,13 +33,18 @@ public class PaymentService {
     private final PaymentPersistenceService paymentPersistenceService;
     private final TossPaymentClient tossPaymentClient;
     private final SettlementService settlementService;
+    private final ApplicationService applicationService;
 
-    public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId) {
+    public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId, String sessionAmount, String sessionOrderId) {
 
-        Payment payment = this.findById(userId, paymentId);
+        Payment payment = paymentPersistenceService.findById(userId, paymentId);
 
         if (payment.getPaymentStatus().equals(PaymentStatus.DONE)) {
             throw new InvalidException(41, "이미 결제를 완료하셨습니다.");
+        }
+
+        if (payment.getPaymentStatus().equals(PaymentStatus.CANCELED)) {
+            throw new InvalidException(43, "취소된 결제입니다.");
         }
 
         String tossPaymentKey = request.paymentKey();
@@ -52,11 +52,20 @@ public class PaymentService {
         String amount = request.amount();
 
         // 1. 검증 로직
-        verifyAmount(String.valueOf(payment.getAmount()), new SaveAmountRequest(null, null, amount));
-        payment.statusUpdate(PaymentStatus.IN_PROGRESS);
+        verifyAmount(sessionAmount, sessionOrderId, new SaveAmountRequest(payment.getId(), tossOrderId, amount));
+        if (paymentPersistenceService.confirmUpdateStatus(payment.getId()) <= 0) {
+            throw new InvalidException(44, "결제 대기 중인 데이터가 없습니다.");
+        }
+
         // 2. 외부 API 호출
-        ResponseEntity<TossConfirmResponse> response =
-                tossPaymentClient.callApiConfirm(tossPaymentKey, tossOrderId, amount);
+        ResponseEntity<TossConfirmResponse> response;
+        try {
+            response = tossPaymentClient.callApiConfirm(tossPaymentKey, tossOrderId, amount);
+        } catch (InternalServerErrorException e) {
+            // 결제 실패 시 결제 데이터 하드 삭제
+            paymentPersistenceService.failedConfirm(paymentId);
+            throw e;
+        }
         // 3. DB 반영
         try {
             paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId);
@@ -78,19 +87,20 @@ public class PaymentService {
         return paymentRepository.findAllByUserId(userId);
     }
 
-    @Transactional(readOnly = true)
     public Payment findById(Long userId, Long paymentId) {
-        Payment payment = paymentRepository.findByIdFetchJoin(paymentId)
-                .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
-
-        if (!payment.getPost().getClient().getId().equals(userId)) {
-            throw new ForbiddenException(41, "사용자의 결제 정보가 아닙니다.");
-        }
-
-        return payment;
+        return paymentPersistenceService.findById(userId, paymentId);
     }
 
     public Payment cancel(Payment payment, PaymentCancelRequest request, int cancelAmount, Boolean postCompleted) {
+        if (payment.getPaymentStatus().equals(PaymentStatus.CANCELED)) {
+            throw new InvalidException(44, "이미 취소된 결제입니다.");
+        }
+
+        if (!(payment.getPaymentStatus().equals(PaymentStatus.DONE) ||
+                payment.getPaymentStatus().equals(PaymentStatus.PARTIAL_CANCELED))) {
+            throw new InvalidException(45, "결제 완료 상태가 아닙니다.");
+        }
+
         String tossPaymentKey = payment.getPaymentKey();
         String cancelReason = request.cancelReason();
 
@@ -113,29 +123,47 @@ public class PaymentService {
             throw new InternalServerErrorException(42, "결제 취소 도중 서버 에러가 발생했습니다.");
         }
 
-        // [로그 정리] 토스 응답 객체 전체(결제·카드 정보 포함 가능)가 로그에 남아서 주석 처리하고, 아래에 ID 만 남기도록 대체
-        // log.info("결제 취소 성공, %s".formatted(response));
         log.info("결제 취소 성공 - paymentId: {}, cancelAmount: {}", payment.getId(), cancelAmount);
 
         return payment;
     }
 
     public Payment cancel(Long userId, Long paymentId, PaymentCancelRequest request) {
-        Payment payment = findById(userId, paymentId);
+        Payment payment = paymentPersistenceService.findById(userId, paymentId);
+
+        // 매칭되었거나 동행 완료인 경우 결제 취소 불가
+        Post post = payment.getPost();
+        if (!(post.getPostStatus().equals(PostStatus.OPEN) ||
+                post.getPostStatus().equals(PostStatus.EXPIRED))) {
+            throw new InvalidException(46, "이미 종료된 동행이거나 매칭되었기 때문에 결제를 취소할 수 없습니다.");
+        }
+
         int amount = payment.getAmount();
-        return this.cancel(payment, request, amount, null);
+        Payment canceledPayment = this.cancel(payment, request, amount, null);
+
+        // 지원한 사용자 모두 거절
+        applicationService.rejectAllByPost(post);
+
+        return canceledPayment;
     }
 
-    /**
-     * DB 에 저장된 결제 금액과 요청 금액을 대조한다.
-     * 결제 정보가 없거나 본인 결제가 아니면 findById 가 404/403 으로 거른다.
-     */
+    /// deprecated
     public void verifyAmount(Long userId, SaveAmountRequest request) {
-        Payment payment = findById(userId, request.paymentId());
+        Payment payment = paymentPersistenceService.findById(userId, request.paymentId());
 
         verifyAmount(String.valueOf(payment.getAmount()), request);
     }
 
+    public void verifyAmount(String amount, String orderId, SaveAmountRequest request) {
+        if (!amount.equals(request.amount())
+                || !orderId.equals(request.orderId())) {
+            log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 요청 orderId: {}, 저장된 amount: {}, 저장된 orderId: {}",
+                    request.amount(), request.orderId(), amount, orderId);
+            throw new InvalidException(42, "결제 금액 정보가 유효하지 않습니다.");
+        }
+    }
+
+    /// deprecated
     public void verifyAmount(String amount, SaveAmountRequest request) {
         if (amount == null || !amount.equals(request.amount())) {
             log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 저장된 amount: {}", request.amount(), amount);
@@ -143,9 +171,21 @@ public class PaymentService {
         }
     }
 
-    // userId 삭제 예정
-    public void validPayment(Long userId, Post post, Application application, LocalDate settledDate) {
+    public void validPayment(Post post, Application application, LocalDate settledDate) {
+        int payoutAmount = validPayment(post);
+        // 정산 데이터 생성
+        settlementService.createSettlement(payoutAmount, application, application.getEscort(), settledDate);
+    }
+
+    public int validPayment(Post post) {
+        // 결제 완료를 모두 가져옴
         List<Payment> payments = paymentPersistenceService.findByPostId(post.getId());
+
+        // 결제 완료된 결제가 없는 경우
+        if (payments.isEmpty()) {
+            paymentPersistenceService.updateAmountForModifyPost(post.getId(), post);
+            return post.getTotalPay().intValue();
+        }
 
         int balanceAmount = 0;
         for (Payment payment : payments) {
@@ -177,8 +217,7 @@ public class PaymentService {
             );
         }
 
-        // 정산 데이터 생성
-        settlementService.createSettlement(payoutAmount, application, application.getEscort(), settledDate);
+        return payoutAmount;
     }
 
     public Payment createPayment(Post post) {
@@ -192,10 +231,59 @@ public class PaymentService {
     }
 
     public Payment findByPostIdAndReady(Long postId, Long userId) {
-        return paymentRepository.findByPostIdAndUserId(postId, userId).orElse(null);
+        return paymentRepository.findByPostIdAndUserIdAndReady(postId, userId).orElse(null);
     }
 
     public void updateAmount(Long paymentId, String amount) {
         paymentPersistenceService.updateAmount(paymentId, amount);
+    }
+
+    // 결제 - 공고 삭제 상태 변경
+    public Payment cancelPostAndPayment(Long postId) {
+        return paymentPersistenceService.updateDeleteStatus(postId);
+    }
+
+    public int[] cancelPostAndPaymentCallApi() {
+        List<Payment> payments = paymentPersistenceService.findDeletedAll();
+        int succeedCount = 0;
+        int failedCount = 0;
+
+        for (Payment payment : payments) {
+            String tossPaymentKey = payment.getPaymentKey();
+            String cancelReason = "공고 삭제로 인한 결제 취소";
+
+            // 외부 API 요청
+            try {
+                ResponseEntity<TossConfirmResponse> response =
+                        tossPaymentClient.callApiCancel(cancelReason, tossPaymentKey, String.valueOf(payment.getBalanceAmount()));
+            } catch (RuntimeException e) {
+                failedCount++;
+                continue;
+            }
+
+            // DB 반영
+            try {
+                paymentPersistenceService.paymentCancelDb(payment.getId(), cancelReason, true);
+            } catch (NotFoundException e) {
+                log.error("결제 취소 - DB 저장 실패", e);
+                failedCount++;
+                continue;
+            } catch (RuntimeException ex) {
+                log.error("결제 취소 - DB 저장 실패", ex);
+                failedCount++;
+                continue;
+            }
+
+            succeedCount++;
+            log.info("결제 취소 성공 - paymentId: {}, cancelAmount: {}", payment.getId(), payment.getBalanceAmount());
+        }
+
+        return new int[]{succeedCount + failedCount, succeedCount, failedCount};
+    }
+
+    public boolean validNotPaid(Long userId) {
+        List<Payment> payments = paymentPersistenceService.getNotPaid(userId);
+
+        return payments.isEmpty();
     }
 }
