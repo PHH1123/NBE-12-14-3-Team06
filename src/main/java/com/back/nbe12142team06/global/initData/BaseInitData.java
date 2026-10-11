@@ -12,11 +12,13 @@ import com.back.nbe12142team06.domain.post.repository.PostRepository;
 import com.back.nbe12142team06.domain.user.entity.ClientProfile;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.repository.ClientProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import com.back.nbe12142team06.domain.user.repository.UserStatusHistoryRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -71,6 +73,7 @@ public class BaseInitData {
     private final EscortProfileRepository escortProfileRepository;
     private final EducationService educationService;
     private final ClientProfileRepository clientProfileRepository;
+    private final UserStatusHistoryRepository userStatusHistoryRepository;
 
     @PersistenceContext
     private EntityManager em;
@@ -86,6 +89,12 @@ public class BaseInitData {
                 initPosts();
             });
         };
+    }
+
+    private User saveUserWithHistory(User user) {
+        User savedUser = userRepository.save(user);
+        this.userStatusHistoryRepository.save(UserStatusHistory.signup(savedUser));
+        return savedUser;
     }
 
     void initPosts() {
@@ -368,7 +377,7 @@ public class BaseInitData {
                 .phoneNum(phoneNum)
                 .region(region)
                 .build();
-        return userRepository.save(client);
+        return saveUserWithHistory(client);
     }
 
     // 의뢰인 회원 + 프로필(보호자 정보) 생성
@@ -393,7 +402,8 @@ public class BaseInitData {
                 .phoneNum(phoneNum)
                 .region(region)
                 .build();
-        return userRepository.save(escort);
+
+        return saveUserWithHistory(escort);
     }
 
     // 동행 매니저 회원 + 프로필 + 교육 진행 상황 생성
@@ -422,7 +432,8 @@ public class BaseInitData {
                 .phoneNum(phoneNum)
                 .region(region)
                 .build();
-        return userRepository.save(admin);
+
+        return saveUserWithHistory(admin);
     }
 
     private static BigDecimal bd(String value) {
