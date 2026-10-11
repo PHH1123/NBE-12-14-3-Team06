@@ -426,4 +426,26 @@ public class UserService {
 
         return released;
     }
+    // [관리자] 회원 계정에 기간 정지 패널티 부여
+    @Transactional
+    public UserStatusHistory suspendUser(Long adminId, Long userId, String reason) {
+        // 패널티 대상이 존재하는 회원인지 확인
+        User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        1,
+                        "회원 정보를 찾을 수 없습니다."
+                ));
+
+        // 관리자에게 정지 불가
+        if (user.getRole() == Role.ADMIN){
+            throw new InvalidException(
+                    6,
+                    "관리자의 계정을 정지시킬 수 없습니다."
+            );
+        }
+
+        UserStatusHistory history = this.userStatusHistoryRepository.save(user.suspend(adminId, reason));
+        log.info("[회원 정지] adminId={}, userId={}", adminId, userId);
+        return history;
+    }
 }

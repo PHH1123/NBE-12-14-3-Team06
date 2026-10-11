@@ -67,7 +67,7 @@ public class User extends BaseSoftDeleteTimeEntity {
     // 계정 활성, 일시 정지, 영구 정지 상태
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private UserStatus userStatus =  UserStatus.ACTIVE;
+    private UserStatus userStatus = UserStatus.ACTIVE;
 
 
     @Version
@@ -124,14 +124,14 @@ public class User extends BaseSoftDeleteTimeEntity {
         // 같은 상태로의 변경은 불가
         if (prevStatus == newStatus) {
             throw new InvalidException(
-                    1,
+                    8,
                     "이미 %s 상태인 계정입니다.".formatted(prevStatus.getDescription())
             );
         }
         // BANNED -> SUSPENDED 변경 불가
         else if (prevStatus == UserStatus.BANNED && newStatus == UserStatus.SUSPENDED) {
             throw new InvalidException(
-                    2,
+                    9,
                     "영구 정지된 계정은 해제만 가능합니다."
             );
         }
@@ -160,6 +160,13 @@ public class User extends BaseSoftDeleteTimeEntity {
 
     // 정지 기간 만료 시 해제
     public UserStatusHistory expire() {
+
+        if (this.userStatus == UserStatus.BANNED) {
+            throw new InvalidException(
+                    9,
+                    "영구 정지된 계정은 해제만 가능합니다."
+            );
+        }
         changeStatus(UserStatus.ACTIVE);
         return UserStatusHistory.expire(this);
     }
