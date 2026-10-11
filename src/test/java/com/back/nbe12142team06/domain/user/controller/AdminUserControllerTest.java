@@ -858,4 +858,16 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.statusCode").value("404-1"))
                 .andExpect(jsonPath("$.msg").value("회원 정보를 찾을 수 없습니다."));
     }
+
+    @Test
+    @DisplayName("[AdminUserController] 기간 정지 요청 - 로그인 없이 요청 시 401-113 반환")
+    void t25() throws Exception {
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        requestSuspension(user1Id, null)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.statusCode").value("401-113"))
+                .andExpect(jsonPath("$.msg").value("로그인 후 이용해주세요."));
+    }
 }
