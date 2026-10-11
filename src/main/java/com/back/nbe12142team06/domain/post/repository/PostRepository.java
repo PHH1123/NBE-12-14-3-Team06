@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -75,12 +74,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     //상태코드 만료처리
     List<Post> findAllByPostStatusAndRecruitEndAtBefore(PostStatus postStatus, LocalDateTime dateTime);
 
-
-    // 회원 이용 제한 시 정리할 공고, 상태 변경이 목적이라 락 걸었습니다.
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT p FROM Post p " +
-            "WHERE p.client.id = :clientId " +
-            "AND p.postStatus IN :statuses")
-    List<Post> findAllByClientIdAndStatusesWithLock(@Param("clientId") Long clientId,
-                                                    @Param("statuses") Collection<PostStatus> statuses);
+    
 }

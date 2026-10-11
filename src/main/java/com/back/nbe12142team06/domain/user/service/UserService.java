@@ -245,6 +245,7 @@ public class UserService {
         if (user.getRole() == Role.ADMIN) {
             throw new InvalidException(3, "관리자는 자신의 계정을 탈퇴시킬 수 없습니다.");
         }
+        // TODO: 지원 취소, 공고 취소 로직 추가
 
         // 회원 정보, 프로필, 토큰 전부 삭제
         withdraw(user);
@@ -399,6 +400,7 @@ public class UserService {
         if (user.isDeleted()) {
             throw new InvalidException(5, "이미 탈퇴한 회원입니다.");
         }
+        // TODO: 지원 취소, 공고 취소 로직 추가
 
         // 회원 정보, 프로필, 토큰 전부 삭제
         withdraw(user);
