@@ -846,4 +846,16 @@ public class AdminUserControllerTest {
         User admin = userRepository.findById(adminId).orElseThrow();
         assertThat(admin.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
     }
+
+    @Test
+    @DisplayName("[AdminUserController] 기간 정지 요청 - 존재하지 않는 회원을 정지 요청 시 404-1 반환")
+    void t24() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        requestSuspension(Long.MAX_VALUE, adminToken)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.statusCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("회원 정보를 찾을 수 없습니다."));
+    }
 }
