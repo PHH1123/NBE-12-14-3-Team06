@@ -10,6 +10,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Entity
 @Getter
@@ -76,7 +77,7 @@ public class UserStatusHistory {
                 .adminId(adminId)
                 .status(UserStatus.SUSPENDED)
                 .reason(reason)
-                .endAt(LocalDateTime.now().plusDays(SUSPENSION_DAYS))
+                .endAt(LocalDateTime.now().plusDays(SUSPENSION_DAYS).truncatedTo(ChronoUnit.HOURS))
                 .build();
     }
 

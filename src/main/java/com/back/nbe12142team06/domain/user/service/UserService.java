@@ -17,6 +17,7 @@ import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.ClientProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
@@ -32,6 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -403,5 +405,25 @@ public class UserService {
     }
 
     @Transactional
-    public int 
+    public int releaseExpiredSuspensions(LocalDateTime now) {
+        List<User> suspendedUsers = this.userRepository.findAllByUserStatus(UserStatus.SUSPENDED);
+        int released = 0;
+
+        for (User user : suspendedUsers) {
+            Optional<UserStatusHistory> lastHistory = this.userStatusHistoryRepository.findTopByUserOrderByIdDesc(user);
+            // 기록이 없는 유저, 기간 정지인데 만료기간이 없는 기록 체크
+            if (lastHistory.isEmpty() || lastHistory.get().getEndAt() == null) {
+                log.warn("[정지 만료 해제] 이력 불일치 userId={}", user.getId());
+                continue;
+            }
+            // 정지 기간이 만료 시 해제 (user의 상태 -> ACTIVE, userStatusHistory에 해당 유저 ACTIVE로 변경 기록 생성)
+            if (lastHistory.get().getEndAt().isBefore(now)) {
+                this.userStatusHistoryRepository.save(user.expire());
+                released++;
+            }
+        }
+        log.info("[정지 만료 해제] {}명", released);
+
+        return released;
+    }
 }
