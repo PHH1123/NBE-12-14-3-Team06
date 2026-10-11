@@ -444,6 +444,8 @@ public class UserService {
             );
         }
 
+        // TODO: 지원 취소, 공고 취소 로직 추가
+
         UserStatusHistory history = this.userStatusHistoryRepository.save(user.suspend(adminId, reason));
         log.info("[회원 정지] adminId={}, userId={}", adminId, userId);
         return history;
