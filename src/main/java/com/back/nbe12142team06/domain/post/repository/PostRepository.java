@@ -74,5 +74,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     //상태코드 만료처리
     List<Post> findAllByPostStatusAndRecruitEndAtBefore(PostStatus postStatus, LocalDateTime dateTime);
 
-    
+
 }
