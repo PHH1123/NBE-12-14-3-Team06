@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -37,8 +38,9 @@ public class ChatService {
         User receiver = userService.myProfile(receiverId);
 
         // 이미 해당 유저들의 채팅방이 있는지 검사
-        if (chatRoomRepository.findByUser(sender, receiver).isPresent()) {
-            throw new DuplicatedException(121, "이미 존재하는 채팅방입니다.");
+        Optional<ChatRoom> findChatRoom = chatRoomRepository.findByUser(sender, receiver);
+        if (findChatRoom.isPresent()) {
+            return findChatRoom.get();
         }
 
         ChatRoom chatRoom = ChatRoom.builder()

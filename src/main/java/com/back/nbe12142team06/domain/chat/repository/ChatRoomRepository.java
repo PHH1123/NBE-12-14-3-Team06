@@ -11,10 +11,19 @@ import java.util.Optional;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 
-    @Query("select cr from ChatRoom cr join cr.chatParts cp where cp.user IN(:user1, :user2) group by cr.id having count(distinct cp.user) = 2")
+    @Query("select cr from ChatRoom cr " +
+            "join fetch cr.chatParts cp " +
+            "join fetch cp.user " +
+            "where cr.id in" +
+            "(select cr2.id from ChatRoom cr2 join cr2.chatParts cp2 " +
+            "where cp2.user in(:user1, :user2) group by cr2.id having count(distinct cp2.user) = 2)")
     Optional<ChatRoom> findByUser(@Param("user1") User user1,
                                     @Param("user2") User user2);
 
-    @Query("select cr from ChatRoom cr join cr.chatParts cp where cp.user.id=:userId")
+    @Query("select cr from ChatRoom cr " +
+            "join fetch cr.chatParts cp " +
+            "join fetch cp.user u " +
+            "where cr.id in" +
+            "(select cr2.id from ChatRoom cr2 join cr2.chatParts cp2 where cp2.user.id=:userId)")
     List<ChatRoom> findByUser(@Param("userId") Long userId);
 }

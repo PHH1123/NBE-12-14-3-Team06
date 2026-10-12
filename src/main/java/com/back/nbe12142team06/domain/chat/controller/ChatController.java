@@ -42,12 +42,13 @@ public class ChatController {
 
     @PostMapping("/api/v1/chat")
     @ResponseBody
-    public RsData<?> createChatRoom(@AuthenticationPrincipal SecurityUser user,
+    public RsData<ChatRoomResponse> createChatRoom(@AuthenticationPrincipal SecurityUser user,
                                  @RequestParam(name = "user-id") Long receiverId) {
         Long senderId = user.getId();
-        chatService.createChatRoom(senderId, receiverId);
+        ChatRoom chatRoom = chatService.createChatRoom(senderId, receiverId);
 
-        return new RsData<>("201-121", "채팅방이 생성되었습니다.");
+        return new RsData<>("201-121", "채팅방이 생성되었습니다.",
+                new ChatRoomResponse(chatRoom, user.getId()));
     }
 
     @GetMapping("/api/v1/chat")
@@ -58,7 +59,7 @@ public class ChatController {
         List<ChatRoom> chatRoomList = chatService.getChatRoomList(userId);
 
         return new RsData<>("200-121", "채팅방 목록을 조회했습니다.",
-                chatRoomList.stream().map(ChatRoomResponse::new).toList());
+                chatRoomList.stream().map(chatRoom -> new ChatRoomResponse(chatRoom, userId)).toList());
     }
 
     @GetMapping("/api/v1/chat/{chatRoomId}")

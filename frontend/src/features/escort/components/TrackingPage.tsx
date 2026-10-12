@@ -8,6 +8,7 @@ import { AppShell } from '@/components/layout';
 import { Container, InfoRow, SectionHeading } from '@/components/ui';
 import { PROGRESS_ORDER, advanceProgress } from '@/features/application';
 import { useRequireAuth } from '@/features/auth';
+import { useChatWidget } from '@/features/chat';
 import { StatusLabel } from '@/features/post';
 import { fetchReport } from '@/features/report';
 import { cn } from '@/lib/cn';
@@ -36,6 +37,7 @@ type CaseResult =
  */
 export default function TrackingPage() {
   const { loading: authLoading, user } = useRequireAuth('ESCORT');
+  const { openChat } = useChatWidget();
   const params = useParams<{ applicationId: string }>();
   const applicationId = Number(params.applicationId);
 
@@ -264,9 +266,8 @@ export default function TrackingPage() {
                     </>
                   ) : (
                     <>
-                      {showUnimplemented() && (
-                        <button type="button" className={cn(BUTTON, 'border border-line bg-white text-brand hover:bg-line-soft')}>의뢰인 연락하기</button>
-                      )}
+                      {/* TODO: 채팅방 생성·조회 API 가 붙으면 이 의뢰인과의 방을 바로 열도록 roomId 를 넘기세요. */}
+                      <button type="button" onClick={() => openChat()} className={cn(BUTTON, 'border border-line bg-white text-brand hover:bg-line-soft')}>의뢰인 연락하기</button>
                       <Link href={detailHref} className={cn(BUTTON, 'border border-line bg-white text-brand hover:bg-line-soft')}>{info.third}</Link>
                     </>
                   )}
