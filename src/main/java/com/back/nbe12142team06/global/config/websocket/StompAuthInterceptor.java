@@ -33,6 +33,9 @@ public class StompAuthInterceptor implements ChannelInterceptor {
     public @Nullable Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
+        // 앱에서 사용할 경우를 대비해 아래를 남겨둡니다.
+        // 앱에서는 cookie가 아니라 header 기반으로 해야 합니다.
+        // 아니면 Spring Security에서 Header 기반으로 검증하면 아래 없어도 됩니다.
         if (accessor.getUser() == null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authorization = accessor.getFirstNativeHeader("Authorization");
             if (authorization == null || !authorization.startsWith("Bearer ")) {
