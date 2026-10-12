@@ -18,6 +18,7 @@ import com.back.nbe12142team06.domain.ride.dto.RideUpdateRequest;
 import com.back.nbe12142team06.domain.ride.service.RideService;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
@@ -85,6 +86,9 @@ public class PostService {
     @Transactional
     public PostWriteResponse write(Long userId, PostWriteRequest request) {
         User user = getUser(userId);
+        if(user.getUserStatus() != UserStatus.ACTIVE){
+            throw new ForbiddenException(11, "공고 등록 권한이 없습니다.");
+        }
         if (user.getRole() != Role.CLIENT && user.getRole() != Role.ADMIN) {
             throw new ForbiddenException(11, "공고 등록 권한이 없습니다. 의뢰인으로 로그인 해주세요.");
         }
@@ -299,5 +303,40 @@ public class PostService {
         }
 
         log.info("[동행 완료] postId={}, escortId={}, userId={}", postId, escortId, userId);
+    }
+    /**
+     * 회원 탈퇴·정지 시, 그 의뢰인의 모집 중(OPEN)·매칭된(MATCHED) 공고를 모두 취소한다.
+     * 호출하는 쪽(UserService)에서 회원을 탈퇴 처리(withdraw)하기 전에 불러야 한다. (탈퇴하면 공고의 의뢰인을 불러올 수 없다)
+     */
+    @Transactional
+    public void cancelAllByClient(Long clientId) {
+        List<Post> posts = postRepository.findAllByClientIdAndPostStatusIn(
+                clientId, List.of(PostStatus.OPEN, PostStatus.MATCHED));
+
+        // 공고마다 cancel 을 태워서 잠금과 상태 검증을 그대로 쓴다.
+        for (Post post : posts) {
+            cancel(post.getId(), clientId);
+        }
+
+        if (!posts.isEmpty()) {
+            log.info("[회원 탈퇴/정지로 공고 취소] clientId={}, {}건", clientId, posts.size());
+        }
+    }
+
+    //공고 취소(OPEN,MATCHED상태)
+    @Transactional
+    public void cancel(Long postId, Long userId) {
+        User user = getUser(userId);
+
+        Post post = postRepository.findByIdWithLock(postId)
+                .orElseThrow(() -> new NotFoundException(11, postId + "번 공고가 없습니다."));
+
+        // 모집 중(OPEN)이거나 매칭된(MATCHED) 공고만 취소할 수 있다.
+        if (post.getPostStatus() != PostStatus.OPEN && post.getPostStatus() != PostStatus.MATCHED) {
+            throw new InvalidException(18, "공고모집중 이거나 매칭된 상태에서만 취소할 수 있습니다.");
+        }
+
+        post.cancel();
+        log.info("[공고 취소] postId={}, userId={}", postId, userId);
     }
 }

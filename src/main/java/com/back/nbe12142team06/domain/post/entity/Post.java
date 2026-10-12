@@ -158,6 +158,11 @@ public class Post extends BaseSoftDeleteTimeEntity {  // createdAt, updatedAt, d
     public void matchedCancel() {
         this.postStatus = PostStatus.CANCELED;
     }
+    // 공고 취소 처리 (OPEN, MATCHED -> CANCELED). 회원 탈퇴·정지 등으로 공고를 취소할 때 쓴다.
+    // 취소할 수 있는 상태인지는 서비스(PostService.cancel)에서 검증한다.
+    public void cancel() {
+        this.postStatus = PostStatus.CANCELED;
+    }
     // 모집마감시간 초과 처리 (OPEN -> EXPIRED)
     public void expire() {
         this.postStatus = PostStatus.EXPIRED;
