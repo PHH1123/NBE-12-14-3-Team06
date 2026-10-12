@@ -398,7 +398,7 @@ class PaymentServiceTest {
 
     @Test
     @DisplayName("[PaymentService] 지원 취소 시 모집 기한 종료이면 해당 공고 결제 취소 - 결제 DONE 1개")
-    void cancelPaymentWithApplicationCancel() {
+    void cancelPaymentStatusDoneWithApplicationCancel() {
         // given
         User client = createClient(false);
         Post post = createPost(client, null);
@@ -413,8 +413,29 @@ class PaymentServiceTest {
         paymentService.cancel(post);
 
         // then
+        verify(tossPaymentClient, times(1)).callApiCancel(any(), any(), any());
         verify(paymentPersistenceService, times(1)).paymentCancelDb(any(), any(), any(boolean.class));
+    }
 
+    @Test
+    @DisplayName("[PaymentService] 지원 취소 시 모집 기한 종료이면 해당 공고 결제 취소 - 결제 DONE 1개, PARTIAL_CANCELED 1개")
+    void cancelPaymentStatusDoneAndPartialCanceledWithApplicationCancel() {
+        // given
+        User client = createClient(false);
+        Post post = createPost(client, null);
+        Payment donePayment = createPayment(post, PaymentStatus.DONE);
+        Payment partialCanceledPayment = createPayment(post, PaymentStatus.PARTIAL_CANCELED);
 
+        doReturn(List.of(donePayment, partialCanceledPayment))
+                .when(paymentPersistenceService).findByPostId(any());
+        doReturn(null)
+                .when(paymentPersistenceService).paymentCancelDb(any(), any(), any(boolean.class));
+
+        //when
+        paymentService.cancel(post);
+
+        // then
+        verify(tossPaymentClient, times(2)).callApiCancel(any(), any(), any());
+        verify(paymentPersistenceService, times(2)).paymentCancelDb(any(), any(), any(boolean.class));
     }
 }
