@@ -1,6 +1,8 @@
 package com.back.nbe12142team06.domain.payment.service;
 
 import com.back.nbe12142team06.domain.application.entity.Application;
+import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
+import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.application.service.ApplicationService;
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient;
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest;
@@ -20,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -33,7 +36,7 @@ public class PaymentService {
     private final PaymentPersistenceService paymentPersistenceService;
     private final TossPaymentClient tossPaymentClient;
     private final SettlementService settlementService;
-    private final ApplicationService applicationService;
+    private final ApplicationRepository applicationRepository;
 
     public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId, String sessionAmount, String sessionOrderId) {
 
@@ -91,7 +94,7 @@ public class PaymentService {
         return paymentPersistenceService.findById(userId, paymentId);
     }
 
-    public Payment cancel(Payment payment, PaymentCancelRequest request, int cancelAmount, Boolean postCompleted) {
+    public Payment cancel(Payment payment, PaymentCancelRequest request, int cancelAmount, boolean isPartialCancel, boolean createNewPayment) {
         if (payment.getPaymentStatus().equals(PaymentStatus.CANCELED)) {
             throw new InvalidException(44, "이미 취소된 결제입니다.");
         }
@@ -110,10 +113,10 @@ public class PaymentService {
 
         // DB 반영
         try {
-            if (payment.getBalanceAmount() > cancelAmount || (postCompleted != null && postCompleted)) {
+            if (payment.getBalanceAmount() > cancelAmount || isPartialCancel) {
                 paymentPersistenceService.paymentPartialCancelDb(payment.getId(), cancelReason, cancelAmount);
             } else {
-                paymentPersistenceService.paymentCancelDb(payment.getId(), cancelReason);
+                paymentPersistenceService.paymentCancelDb(payment.getId(), cancelReason, createNewPayment);
             }
         } catch (NotFoundException e) {
             log.error("결제 취소 실패", e);
@@ -128,6 +131,7 @@ public class PaymentService {
         return payment;
     }
 
+    @Transactional
     public Payment cancel(Long userId, Long paymentId, PaymentCancelRequest request) {
         Payment payment = paymentPersistenceService.findById(userId, paymentId);
 
@@ -139,10 +143,11 @@ public class PaymentService {
         }
 
         int amount = payment.getAmount();
-        Payment canceledPayment = this.cancel(payment, request, amount, null);
+        Payment canceledPayment = this.cancel(payment, request, amount, false, true);
 
         // 지원한 사용자 모두 거절
-        applicationService.rejectAllByPost(post);
+        applicationRepository.findAllByPostAndStatus(post, ApplicationStatus.PENDING)
+                .forEach(Application::reject);
 
         return canceledPayment;
     }
@@ -156,7 +161,7 @@ public class PaymentService {
                     payment,
                     new PaymentCancelRequest("노쇼로 인해 동행 취소, 공고 모집 기한이 만료되어 취소되었습니다."),
                     payment.getBalanceAmount(),
-                    null
+                    false, false
             );
         }
     }
@@ -227,7 +232,7 @@ public class PaymentService {
             cancel(
                     payments.getFirst(),
                     new PaymentCancelRequest("결제 금액: %s, 이용 금액: %s".formatted(balanceAmount + payoutAmount, payoutAmount)),
-                    balanceAmount, true
+                    balanceAmount, true, false
             );
         }
 
@@ -277,7 +282,7 @@ public class PaymentService {
 
             // DB 반영
             try {
-                paymentPersistenceService.paymentCancelDb(payment.getId(), cancelReason, true);
+                paymentPersistenceService.paymentCancelDb(payment.getId(), cancelReason, false);
             } catch (NotFoundException e) {
                 log.error("결제 취소 - DB 저장 실패", e);
                 failedCount++;

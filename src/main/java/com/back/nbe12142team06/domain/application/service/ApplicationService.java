@@ -500,11 +500,4 @@ public class ApplicationService {
       //  log.info("[실시간 위치 조회] applicationId={}, userId={}", applicationId, userId);
         return new ApplicationLocationResponse(application);
     }
-  
-    // 결제 서비스에서 사용합니다.
-    @Transactional
-    public void rejectAllByPost(Post post) {
-        applicationRepository.findAllByPostAndStatus(post, ApplicationStatus.PENDING)
-                .forEach(Application::reject);
-    }
 }
