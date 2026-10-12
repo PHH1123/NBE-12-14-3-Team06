@@ -22,6 +22,7 @@ export type ChatRoomDto = {
 
 /** GET /api/v1/chat/{chatRoomId} 페이지의 한 줄 (백엔드 ChatMessageResponse) */
 export type ChatMessageDto = {
+  chatMessageId: number;
   senderId: number;
   senderName: string;
   content: string;
@@ -49,8 +50,8 @@ export type ChatRoomSummary = {
 
 /** 말풍선 하나 */
 export type ChatMessage = {
-  /** 백엔드 ChatMessageResponse 에 id 가 없어서 화면에서만 쓰는 key 입니다. */
-  key: string;
+  /** 백엔드 ChatMessage 의 id. React key 이자 과거 메시지를 붙일 때 중복 제거 기준입니다. */
+  id: number;
   senderId: number;
   senderName: string;
   content: string;

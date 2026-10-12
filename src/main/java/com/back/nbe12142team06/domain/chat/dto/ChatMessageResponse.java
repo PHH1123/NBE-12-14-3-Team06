@@ -6,6 +6,7 @@ import com.back.nbe12142team06.domain.chat.entity.MessageType;
 import java.time.LocalDateTime;
 
 public record ChatMessageResponse(
+        Long chatMessageId,
         Long senderId,
         String senderName,
         String content,
@@ -13,7 +14,9 @@ public record ChatMessageResponse(
         MessageType type
 ) {
     public ChatMessageResponse(ChatMessage chatMessage) {
-        this(chatMessage.getChatPart().getUser().getId(),
+        this(
+                chatMessage.getId(),
+                chatMessage.getChatPart().getUser().getId(),
                 chatMessage.getChatPart().getUser().getName(),
                 chatMessage.getContent(),
                 chatMessage.getSentAt(),

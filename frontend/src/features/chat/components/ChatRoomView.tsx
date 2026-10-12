@@ -27,7 +27,7 @@ export default function ChatRoomView({ messages }: Props) {
         const previous = messages[index - 1];
 
         return (
-          <div key={message.key} className="flex flex-col gap-2">
+          <div key={message.id} className="flex flex-col gap-2">
             {isNewDay(message.sentAt, previous?.sentAt) && (
               <p className="my-1 text-center text-[11px] text-brand-muted">{formatMessageDate(message.sentAt)}</p>
             )}

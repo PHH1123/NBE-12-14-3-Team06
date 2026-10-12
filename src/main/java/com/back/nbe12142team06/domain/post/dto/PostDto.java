@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 public record PostDto(
         Long id,
+        Long clientUserId,
         String client_id,
         String title,
         String content,
@@ -33,6 +34,7 @@ public record PostDto(
     public PostDto(Post post) {
         this(
                 post.getId(),
+                post.getClient().getId(),
                 post.getClient().getUsername(),
                 post.getTitle(),
                 post.getContent(),

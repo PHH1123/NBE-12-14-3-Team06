@@ -650,20 +650,9 @@ function PostDetailPageBody({ viewer }: Props) {
                   )}
                 </>
               ) : (
-                <>
-                  {canContactAuthor && (
-                    <button
-                      type="button"
-                      onClick={() => openChatWith(post.clientUserId)}
-                      className={cn(BUTTON, 'h-14 flex-1 border border-line bg-white text-xl text-brand hover:bg-line-soft')}
-                    >
-                      연락하기
-                    </button>
-                  )}
-                  <button type="button" onClick={handleApply} disabled={applyDisabled} className={cn(BUTTON, 'h-14 flex-1 bg-brand text-xl text-white hover:bg-brand-hover')}>
-                    {applyLabel}
-                  </button>
-                </>
+                <button type="button" onClick={handleApply} disabled={applyDisabled} className={cn(BUTTON, 'h-14 flex-1 bg-brand text-xl text-white hover:bg-brand-hover')}>
+                  {applyLabel}
+                </button>
               )}
             </div>
           </div>
@@ -706,6 +695,16 @@ function PostDetailPageBody({ viewer }: Props) {
               ) : (
                 <button type="button" onClick={handleApply} disabled={applyDisabled} className={cn(BUTTON, 'h-11 bg-brand text-base text-white hover:bg-brand-hover')}>
                   {applyLabel}
+                </button>
+              )}
+              {/* 지원 전에 궁금한 걸 물어볼 수 있게, 지원하기 바로 아래에 둡니다. */}
+              {canContactAuthor && (
+                <button
+                  type="button"
+                  onClick={() => openChatWith(post.clientUserId)}
+                  className={cn(BUTTON, 'h-11 border border-line bg-white text-base text-brand hover:bg-line-soft')}
+                >
+                  의뢰인에게 연락하기
                 </button>
               )}
               <Link href={listHref} className={cn(BUTTON, 'h-11 border border-line bg-white text-base text-brand hover:bg-line-soft')}>

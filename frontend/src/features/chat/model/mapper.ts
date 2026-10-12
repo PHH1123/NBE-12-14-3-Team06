@@ -20,7 +20,7 @@ export function toChatRoomSummary(dto: ChatRoomDto): ChatRoomSummary {
  */
 export function toChatMessage(dto: ChatMessageDto, partnerId: number): ChatMessage {
   return {
-    key: messageKey(dto),
+    id: dto.chatMessageId,
     senderId: dto.senderId,
     senderName: dto.senderName,
     content: dto.content,
@@ -31,12 +31,13 @@ export function toChatMessage(dto: ChatMessageDto, partnerId: number): ChatMessa
 }
 
 /**
- * 말풍선 목록의 React key.
+ * 과거 메시지를 앞에 붙입니다.
  *
- * ⚠️ 백엔드 ChatMessageResponse 에 메시지 id 가 없어서 내용으로 키를 만듭니다.
- *    같은 사람이 같은 초에 똑같은 내용을 두 번 보내면 키가 겹칩니다(실제로는 드묾).
- *    응답에 id 가 추가되면 이 함수만 바꾸면 됩니다.
+ * 서버가 offset 페이징(page=N)이라, 읽는 도중 새 메시지가 오면 창이 밀려서
+ * 이미 받은 메시지가 다음 페이지에 또 딸려옵니다. id 로 걸러냅니다.
+ * (메시지 삭제 기능이 없어 id 는 증가만 하므로, 밀림은 중복만 만들고 누락은 만들지 않습니다)
  */
-export function messageKey(dto: ChatMessageDto): string {
-  return `${dto.senderId}-${dto.sentAt}-${dto.content}`;
+export function prependOlder(older: ChatMessage[], current: ChatMessage[]): ChatMessage[] {
+  const seen = new Set(current.map((message) => message.id));
+  return [...older.filter((message) => !seen.has(message.id)), ...current];
 }

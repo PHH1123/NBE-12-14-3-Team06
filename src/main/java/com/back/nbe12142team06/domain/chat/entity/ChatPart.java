@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Builder
 @AllArgsConstructor
@@ -35,5 +37,8 @@ public class ChatPart extends BaseTimeEntity {
 
     @Builder.Default
     private Boolean isActive = true;
+
+    @Builder.Default
+    private LocalDateTime lastReadAt = LocalDateTime.now();
 
 }
