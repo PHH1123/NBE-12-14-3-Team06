@@ -9,6 +9,7 @@ import com.back.nbe12142team06.domain.chat.entity.ChatMessage;
 import com.back.nbe12142team06.domain.chat.entity.ChatRoom;
 import com.back.nbe12142team06.domain.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

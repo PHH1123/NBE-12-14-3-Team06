@@ -9,6 +9,7 @@ import com.back.nbe12142team06.domain.chat.repository.ChatMessageRepository;
 import com.back.nbe12142team06.domain.chat.repository.ChatRoomRepository;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -29,7 +30,7 @@ public class ChatMessageService {
     private static final String CHAT_SUBSCRIBE_PATH = "/topic/chat/";
 
     @Transactional
-    public void sendMessage(Long chatRoomId, String content, ChatPart chatPart) {
+    public ChatMessage sendMessage(Long chatRoomId, String content, ChatPart chatPart) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
                 .orElseThrow(() -> new NotFoundException(122, "존재하지 않는 채팅방입니다."));
 
@@ -41,11 +42,13 @@ public class ChatMessageService {
                 .build();
 
         chatMessage = chatMessageRepository.save(chatMessage);
-        chatRoom.updateLastChat(content);
+        chatRoom.updateLastChat(chatMessage.getContent(), chatMessage.getSentAt());
 
         // 메시지 전송
         messagingTemplate.convertAndSend(CHAT_SUBSCRIBE_PATH + chatRoomId,
                 new ChatMessageResponse(chatMessage));
+
+        return chatMessage;
     }
 
     public Page<ChatMessage> getMessages(Long chatRoomId, Pageable pageable) {
@@ -53,13 +56,13 @@ public class ChatMessageService {
     }
 
     @Transactional
-    public void createRoomMessage(String content, ChatPart chatPart) {
+    public ChatMessage createRoomMessage(String content, ChatPart chatPart) {
         // 채팅방 생성 안내 메시지 저장
         ChatMessage chatMessage = ChatMessage.builder()
                 .chatPart(chatPart)
                 .content(content)
                 .type(MessageType.ENTER)
                 .build();
-        chatMessageRepository.save(chatMessage);
+        return chatMessageRepository.save(chatMessage);
     }
 }

@@ -41,18 +41,20 @@ public class ChatRoom extends BaseTimeEntity {
         ChatPart chatPart = ChatPart.builder()
                 .user(sender)
                 .chatRoom(this)
+                .role(sender.getRole())
                 .build();
         chatParts.add(chatPart);
         chatParts.add(ChatPart.builder()
                 .user(receiver)
                 .chatRoom(this)
+                .role(receiver.getRole())
                 .build());
         return chatPart;
     }
 
     // 마지막 채팅 업데이트
-    public void updateLastChat(String content) {
+    public void updateLastChat(String content, LocalDateTime sentAt) {
         this.lastChatContent = content;
-        this.lastChatSentAt = LocalDateTime.now();
+        this.lastChatSentAt = sentAt;
     }
 }

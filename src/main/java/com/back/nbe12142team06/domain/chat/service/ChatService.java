@@ -10,6 +10,7 @@ import com.back.nbe12142team06.domain.user.service.UserService;
 import com.back.nbe12142team06.global.exception.DuplicatedException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class ChatService {
 
     // 채팅방 생성
     @Transactional
-    public void createChatRoom(Long senderId, Long receiverId) {
+    public ChatRoom createChatRoom(Long senderId, Long receiverId) {
         User sender = userService.myProfile(senderId);
         User receiver = userService.myProfile(receiverId);
 
@@ -46,10 +47,13 @@ public class ChatService {
                 .build();
         ChatPart chatPart = chatRoom.addChatPart(sender, receiver);
 
-        chatRoomRepository.save(chatRoom);
-
         // 채팅방 개설 메시지 저장
-        chatMessageService.createRoomMessage(sender.getName() + CREATE_ROOM_MESSAGE, chatPart);
+        ChatMessage chatMessage = chatMessageService.createRoomMessage(sender.getName() + CREATE_ROOM_MESSAGE, chatPart);
+        chatRoom.updateLastChat(chatMessage.getContent(), chatMessage.getSentAt());
+
+        chatRoom = chatRoomRepository.save(chatRoom);
+
+        return chatRoom;
     }
 
     // 채팅방 나가기
@@ -59,11 +63,11 @@ public class ChatService {
 
     // 채팅 보내기
     @Transactional
-    public void sendMessage(Long chatRoomId, Long senderId, String content) {
+    public ChatMessage sendMessage(Long chatRoomId, Long senderId, String content) {
         // TODO: Fetch Join 적용
         ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(senderId, chatRoomId)
                 .orElseThrow(() -> new NotFoundException(121, "채팅 입장 내역이 없습니다."));
-        chatMessageService.sendMessage(chatRoomId, content, chatPart);
+        return chatMessageService.sendMessage(chatRoomId, content, chatPart);
     }
 
     // 채팅방 목록 조회
