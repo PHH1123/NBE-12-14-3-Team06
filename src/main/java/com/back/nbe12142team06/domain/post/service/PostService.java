@@ -87,7 +87,7 @@ public class PostService {
     public PostWriteResponse write(Long userId, PostWriteRequest request) {
         User user = getUser(userId);
         if(user.getUserStatus() != UserStatus.ACTIVE){
-            throw new ForbiddenException(11, "공고 등록 권한이 없습니다.");
+            throw new ForbiddenException(31, "공고 등록 권한이 없습니다.");
         }
         if (user.getRole() != Role.CLIENT && user.getRole() != Role.ADMIN) {
             throw new ForbiddenException(11, "공고 등록 권한이 없습니다. 의뢰인으로 로그인 해주세요.");
@@ -315,7 +315,14 @@ public class PostService {
 
         // 공고마다 cancel 을 태워서 잠금과 상태 검증을 그대로 쓴다.
         for (Post post : posts) {
-            cancel(post.getId(), clientId);
+            try {
+                cancel(post.getId(), clientId);
+            } catch (InvalidException e) {
+                // 목록을 읽은 뒤 동행이 시작되는 등 공고 상태가 바뀐 경우.
+                // 일부 공고만 취소된 채로 끝나지 않도록 예외를 던져 호출한 쪽의 트랜잭션(탈퇴·정지)을 통째로 롤백한다.
+                log.warn("[회원 탈퇴/정지로 공고 취소 실패] clientId={}, postId={}, 사유={}", clientId, post.getId(), e.getMessage());
+                throw new InvalidException(36, "공고 상태가 변경되어 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+            }
         }
 
         if (!posts.isEmpty()) {
@@ -333,7 +340,7 @@ public class PostService {
 
         // 모집 중(OPEN)이거나 매칭된(MATCHED) 공고만 취소할 수 있다.
         if (post.getPostStatus() != PostStatus.OPEN && post.getPostStatus() != PostStatus.MATCHED) {
-            throw new InvalidException(18, "공고모집중 이거나 매칭된 상태에서만 취소할 수 있습니다.");
+            throw new InvalidException(35, "공고모집중 이거나 매칭된 상태에서만 취소할 수 있습니다.");
         }
 
         post.cancel();
