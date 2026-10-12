@@ -8,6 +8,7 @@ import com.back.nbe12142team06.domain.chat.repository.ChatRoomRepository;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.service.UserService;
 import com.back.nbe12142team06.global.exception.DuplicatedException;
+import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
@@ -81,6 +82,8 @@ public class ChatService {
     // 채팅 메시지 조회
     @Transactional(readOnly = true)
     public Page<ChatMessage> getMessages(Long userId, Long chatRoomId, Pageable pageable) {
+        chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+                .orElseThrow(() -> new ForbiddenException(121, "채팅방에 접속하실 권한이 없습니다."));
         return chatMessageService.getMessages(chatRoomId, pageable);
     }
 }

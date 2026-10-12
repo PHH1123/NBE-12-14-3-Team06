@@ -70,6 +70,7 @@ public class SecurityConfig {
 
                     // 위에서 안 걸린 나머지 API 는 로그인만 하면 통과 (역할 무관)
                     .requestMatchers("/api/**").authenticated()
+                    .requestMatchers("/ws/**").authenticated()
                     .anyRequest().permitAll()
             )
             .csrf(csrf -> csrf.disable())

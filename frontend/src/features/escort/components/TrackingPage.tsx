@@ -37,7 +37,7 @@ type CaseResult =
  */
 export default function TrackingPage() {
   const { loading: authLoading, user } = useRequireAuth('ESCORT');
-  const { openChat } = useChatWidget();
+  const { openChatWith } = useChatWidget();
   const params = useParams<{ applicationId: string }>();
   const applicationId = Number(params.applicationId);
 
@@ -266,8 +266,7 @@ export default function TrackingPage() {
                     </>
                   ) : (
                     <>
-                      {/* TODO: 채팅방 생성·조회 API 가 붙으면 이 의뢰인과의 방을 바로 열도록 roomId 를 넘기세요. */}
-                      <button type="button" onClick={() => openChat()} className={cn(BUTTON, 'border border-line bg-white text-brand hover:bg-line-soft')}>의뢰인 연락하기</button>
+                      <button type="button" onClick={() => openChatWith(escort.clientId)} className={cn(BUTTON, 'border border-line bg-white text-brand hover:bg-line-soft')}>의뢰인 연락하기</button>
                       <Link href={detailHref} className={cn(BUTTON, 'border border-line bg-white text-brand hover:bg-line-soft')}>{info.third}</Link>
                     </>
                   )}

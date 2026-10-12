@@ -1,7 +1,9 @@
 package com.back.nbe12142team06.global.config.websocket;
 
+import com.back.nbe12142team06.domain.chat.repository.ChatPartRepository;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.service.AuthTokenService;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -25,12 +27,13 @@ import java.util.Map;
 public class StompAuthInterceptor implements ChannelInterceptor {
 
     private final AuthTokenService authTokenService;
+    private final ChatPartRepository chatPartRepository;
 
     @Override
     public @Nullable Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+        if (accessor.getUser() == null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authorization = accessor.getFirstNativeHeader("Authorization");
             if (authorization == null || !authorization.startsWith("Bearer ")) {
                 throw new MessagingException("인증 토큰이 없습니다.");
@@ -47,6 +50,14 @@ public class StompAuthInterceptor implements ChannelInterceptor {
 
             // 웹소켓 세션에 JWT 토큰 정보 등록
             accessor.setUser(principal);
+        }
+
+        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand()) && accessor.getDestination().startsWith("/topic/chat/")) {
+            Long roomId = Long.valueOf(accessor.getDestination().split("/topic/chat/")[1]);
+            UsernamePasswordAuthenticationToken authToken = (UsernamePasswordAuthenticationToken) accessor.getUser();
+            SecurityUser user = (SecurityUser) authToken.getPrincipal();
+            chatPartRepository.findByUserIdAndChatRoomId(user.getId(), roomId)
+                    .orElseThrow(() -> new InvalidException(121, "잘못된 채팅방에 접속하셨습니다."));
         }
 
         return message;

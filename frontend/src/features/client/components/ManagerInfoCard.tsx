@@ -19,7 +19,7 @@ const CARD = 'rounded-[30px] border border-line bg-white px-6 py-8 shadow-card';
  * 소개글이 버튼 바로 위에 이미 나와서 "프로필 보기" 버튼은 두지 않습니다.
  */
 export default function ManagerInfoCard({ manager, size, title }: Props) {
-  const { openChat } = useChatWidget();
+  const { openChatWith } = useChatWidget();
   const large = size === 'lg';
   const button = cn(
     'flex w-full items-center justify-center border border-line bg-white font-semibold text-brand transition-colors hover:bg-line-soft',
@@ -33,8 +33,7 @@ export default function ManagerInfoCard({ manager, size, title }: Props) {
       <div className={cn('flex flex-col', large ? 'gap-[22px] px-[25px] pt-[27px] pb-1' : 'mt-3 gap-[25px]')}>
         <ManagerProfile manager={manager} size={size} />
         <div className={cn('flex gap-[4.25px]', large ? 'flex-col gap-2.5 sm:flex-row' : 'flex-col')}>
-          {/* TODO: 채팅방 생성·조회 API 가 붙으면 이 매니저와의 방을 바로 열도록 roomId 를 넘기세요. */}
-          <button type="button" onClick={() => openChat()} className={button}>
+          <button type="button" onClick={() => openChatWith(manager.userId)} className={button}>
             연락하기
           </button>
         </div>

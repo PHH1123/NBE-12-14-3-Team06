@@ -4,6 +4,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 // 배럴(@/features/auth)로 가져오면 auth → LoginPage → AppShell → chat 으로 순환 import 가 생겨서
 // 모듈 경로로 직접 가져옵니다. (AppShell 이 같은 이유로 그렇게 하고 있습니다)
 import { useAuth } from '@/features/auth/lib/AuthProvider';
+import { openChatRoom } from '../api';
 import ChatLauncher from '../components/ChatLauncher';
 import ChatPanel from '../components/ChatPanel';
 
@@ -14,6 +15,12 @@ type ChatWidgetValue = {
    * roomId 를 주면 그 방을 바로 열고, 없으면 채팅방 목록을 보여 줍니다.
    */
   openChat: (roomId?: number) => void;
+  /**
+   * 그 사람과의 채팅방을 엽니다. 방이 없으면 만들고, 있으면 기존 방을 씁니다
+   * (POST /api/v1/chat 이 멱등이라 한 번만 부르면 됩니다).
+   * 각 화면의 "연락하기" 버튼이 쓰는 함수입니다.
+   */
+  openChatWith: (partnerUserId: number) => void;
   closeChat: () => void;
 };
 
@@ -52,6 +59,15 @@ export function ChatWidgetProvider({ children }: { children: ReactNode }) {
       openChat: (roomId?: number) => {
         if (!enabled) return;
         setState({ open: true, roomId: roomId ?? null });
+      },
+      // 방을 먼저 확보한 뒤에 패널을 엽니다 — 그래야 패널이 띄우는 채팅방 목록 조회에
+      // 이 방이 반드시 포함됩니다(열고 나서 만들면 목록에 없어서 빈 화면이 됩니다).
+      openChatWith: (partnerUserId: number) => {
+        if (!enabled) return;
+        openChatRoom(partnerUserId)
+          .then((room) => setState({ open: true, roomId: room.roomId }))
+          // 방을 못 열면 적어도 채팅 목록은 띄워 줍니다.
+          .catch(() => setState({ open: true, roomId: null }));
       },
       closeChat: () => setState(CLOSED),
     }),

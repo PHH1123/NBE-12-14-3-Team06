@@ -47,7 +47,7 @@ function MultilineText({ text }: { text: string }) {
  */
 export default function ReportDetailPage() {
   const { loading: authLoading, user } = useRequireAuth('ESCORT');
-  const { openChat } = useChatWidget();
+  const { openChatWith } = useChatWidget();
   const params = useParams<{ applicationId: string }>();
   const applicationId = Number(params.applicationId);
 
@@ -247,8 +247,7 @@ export default function ReportDetailPage() {
                     <Image src="/icons/escort/back-arrow.svg" alt="" width={11.3} height={9.3} />
                     동행 내역으로 돌아가기
                   </Link>
-                  {/* TODO: 채팅방 생성·조회 API 가 붙으면 이 의뢰인과의 방을 바로 열도록 roomId 를 넘기세요. */}
-                  <button type="button" onClick={() => openChat()} className={MENU_BUTTON}>
+                  <button type="button" onClick={() => openChatWith(escort.clientId)} className={MENU_BUTTON}>
                     <Image src="/icons/escort/chat.svg" alt="" width={14.3} height={12.3} />
                     의뢰인에게 메시지 보내기
                   </button>

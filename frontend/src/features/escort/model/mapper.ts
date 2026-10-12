@@ -10,10 +10,15 @@ import type { ReportTarget, TrackingCase } from '../types';
  *    실명이 아니라 로그인 아이디입니다. 조회 화면은 ReportDto.clientName 으로 따로 채우고,
  *    작성 화면은 그 줄이 빠져 있습니다. MyApplicationResponse 에 clientName 이 생기면 여기로 모으세요.
  */
-export function toReportTarget(application: MyApplicationDto, post: PostDto): ReportTarget {
+export function toReportTarget(
+  application: MyApplicationDto,
+  post: PostDto,
+  clientProfile: ClientProfileDto,
+): ReportTarget {
   return {
     applicationId: application.applicationId,
     postId: application.postId,
+    clientId: clientProfile.clientId,
     title: application.title,
     hospitalName: application.hospitalName,
     dateLabel: formatDotDate(application.escortStartAt),
@@ -52,6 +57,7 @@ export function toTrackingCase(
     endAt: formatDateTime(application.escortEndAt),
     transport,
     note: post.patientNote?.trim() || '없음',
+    clientId: clientProfile.clientId,
     clientName: clientProfile.clientName,
     clientPhone: clientProfile.clientPhone,
     emergencyContactName: clientProfile.emergencyContactName,
