@@ -283,6 +283,64 @@ public class ApplicationService {
         throw new InvalidException(28, "취소할 수 없는 지원 상태입니다.");
     }
 
+    // 회원 탈퇴·정지 시 패널티 없이 지원 일괄 취소
+    @Transactional
+    public void cancelAllByEscort(Long escortId) {
+
+        // 취소 가능한 지원 목록 조회
+        List<Application> applications =
+                applicationRepository.findAllCancelableByEscortId(
+                        escortId,
+                        ApplicationStatus.PENDING,
+                        ApplicationStatus.ACCEPTED,
+                        PostStatus.OPEN,
+                        PostStatus.MATCHED
+                );
+
+        for (Application candidate : applications) {
+
+            // 공고 상태가 변경될 수 있으므로 잠금 후 재확인
+            Post post = postRepository.findByIdWithLock(
+                    candidate.getPost().getId()
+            ).orElseThrow(() ->
+                    new NotFoundException(11, "공고가 없습니다."));
+
+            Application application = applicationRepository
+                    .findByIdWithLock(candidate.getId())
+                    .orElseThrow(() ->
+                            new NotFoundException(24, "지원을 찾을 수 없습니다."));
+
+            // PENDING + OPEN
+            if (application.getStatus() == ApplicationStatus.PENDING
+                    && post.getPostStatus() == PostStatus.OPEN) {
+
+                application.cancelWithoutPenalty();
+                continue;
+            }
+
+            // ACCEPTED + MATCHED
+            if (application.getStatus() == ApplicationStatus.ACCEPTED
+                    && post.getPostStatus() == PostStatus.MATCHED) {
+
+                application.cancelWithoutPenalty();
+
+                // 매칭된 공고 취소
+                post.matchedCancel();
+
+                // 취소된 공고의 결제 환불
+                paymentService.cancel(post);
+                continue;
+            }
+
+            // 조회 이후 상태가 변경된 경우
+            throw new InvalidException(
+                    35, "지원 또는 공고 상태가 변경되어 취소할 수 없습니다.");
+        }
+
+        log.info("[회원 탈퇴·정지 지원 일괄 취소] escortId={}, count={}",
+                escortId, applications.size());
+    }
+
     @Transactional
     public void updateProgress(Long applicationId, Long userId, EscortProgress progress) {
 

@@ -205,6 +205,70 @@ public class ApplicationControllerTest {
                 .andExpect(jsonPath("$.data.status").value("PENDING"));
     }
 
+
+    @Test
+    @DisplayName("[ApplicationController] 지원하기 - 일시 정지 회원은 지원할 수 없다")
+    void t1_1() throws Exception {
+
+        // given: 정상 회원을 일시 정지 상태로 변경
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        escort.suspend(1L, "테스트용 일시 정지");
+        userRepository.saveAndFlush(escort);
+
+        // when: 일시 정지된 회원이 지원 시도
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/applications/{postId}", testPostId)
+                        .cookie(escortAccessTokenCookie)
+        ).andDo(print());
+
+        // then: 지원 거부
+        resultActions
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-31"))
+                .andExpect(jsonPath("$.msg")
+                        .value("활성 상태의 회원만 지원할 수 있습니다."));
+
+        // 실제 지원 내역도 생성되지 않아야 함
+        assertEquals(
+                0,
+                applicationRepository.findAllByPostIdWithEscort(testPostId).size()
+        );
+    }
+
+
+    @Test
+    @DisplayName("[ApplicationController] 지원하기 - 영구 정지 회원은 지원할 수 없다")
+    void t1_2() throws Exception {
+
+        // given: 로그인한 동행매니저를 영구 정지
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        escort.ban(1L, "테스트용 영구 정지");
+        userRepository.saveAndFlush(escort);
+
+        // when: 기존 로그인 쿠키로 지원 시도
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/applications/{postId}", testPostId)
+                        .cookie(escortAccessTokenCookie)
+        ).andDo(print());
+
+        // then: 지원 거부
+        resultActions
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-31"))
+                .andExpect(jsonPath("$.msg")
+                        .value("활성 상태의 회원만 지원할 수 있습니다."));
+
+        // 지원 데이터가 생성되지 않았는지 확인
+        assertEquals(
+                0,
+                applicationRepository.findAllByPostIdWithEscort(testPostId).size()
+        );
+    }
+
     @Test
     @DisplayName("[ApplicationController] 지원하기 - 중복 지원 시 409 반환")
     void t2() throws Exception {
