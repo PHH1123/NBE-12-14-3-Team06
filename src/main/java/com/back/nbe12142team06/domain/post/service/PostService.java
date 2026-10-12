@@ -323,6 +323,7 @@ public class PostService {
                 log.warn("[회원 탈퇴/정지로 공고 취소 실패] clientId={}, postId={}, 사유={}", clientId, post.getId(), e.getMessage());
                 throw new InvalidException(36, "공고 상태가 변경되어 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.");
             }
+            paymentService.cancel(post);
         }
 
         if (!posts.isEmpty()) {

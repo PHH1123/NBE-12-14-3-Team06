@@ -41,6 +41,7 @@ export function toClientEscortCase(
   applicationId: number,
   manager: Manager,
   transport: string,
+  rideSelect: ClientEscortCase['rideSelect'],
   progress: EscortProgress,
   reviewed: boolean,
 ): ClientEscortCase {
@@ -61,6 +62,7 @@ export function toClientEscortCase(
     startAt: formatDotDateTime(post.escortStartAt),
     endAt: formatDotDateTime(post.escortEndAt),
     transport,
+    rideSelect,
     meetingPlace: post.pickupAddress,
     pickupPoint: { name: '집', lat: post.pickupLat, lng: post.pickupLng },
     hospitalPoint: { name: post.hospitalName, lat: post.hospitalLat, lng: post.hospitalLng },

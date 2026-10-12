@@ -189,13 +189,18 @@ export default function ClientTrackingPage() {
   const rows = summaryRows(escort);
   const base = `/client/escort/${escort.applicationId}`;
 
-  const [from, to] = GOING_HOME[escort.stage]
-    ? [escort.hospitalPoint, escort.pickupPoint]
-    : [escort.pickupPoint, escort.hospitalPoint];
+  const goingHome = GOING_HOME[escort.stage];
+  const [from, to] = goingHome ? [escort.hospitalPoint, escort.pickupPoint] : [escort.pickupPoint, escort.hospitalPoint];
+  /**
+   * 이 방향의 이동수단이 택시가 아니면 부를 택시가 없어 버튼을 잠급니다.
+   * 아직 고르기 전(null)이거나 이동 정보를 못 받았으면 그대로 열어 둡니다.
+   */
+  const rideSelect = escort.rideSelect?.[goingHome ? 'TO_HOME' : 'TO_HOSPITAL'] ?? null;
+  const notTaxi = rideSelect !== null && rideSelect !== 'TAXI';
   // 동행이 끝나면 부를 택시가 없으므로 호출 버튼도 숨깁니다.
   const kakaoT =
     escort.stage !== 'done' && from && to
-      ? { href: buildKakaoTCallUrl(from, to), label: `${from.name} → ${to.name}` }
+      ? { href: buildKakaoTCallUrl(from, to), label: `${from.name} → ${to.name}`, disabled: notTaxi }
       : undefined;
   const hasStageButtons = escort.stage !== 'ready';
 
@@ -335,18 +340,25 @@ export default function ClientTrackingPage() {
                         </Link>
                       </>
                     )}
-                    {kakaoT && (
-                      <a
-                        href={kakaoT.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={`카카오 T 호출하기 (${kakaoT.label})`}
-                        className={cn(BUTTON, GHOST)}
-                      >
-                        카카오 T 호출하기
-                        <span className="ml-2 text-sm font-medium text-[#6796db]">{kakaoT.label}</span>
-                      </a>
-                    )}
+                    {kakaoT &&
+                      (kakaoT.disabled ? (
+                        /* 택시 이동이 아니면 링크가 아니라 잠긴 버튼으로 둡니다 (리뷰 작성 완료 버튼과 같은 모양). */
+                        <button type="button" disabled className={cn(BUTTON, GHOST, 'cursor-not-allowed opacity-60 hover:bg-white')}>
+                          카카오 T 호출하기
+                          <span className="ml-2 text-sm font-medium text-[#6796db]">택시 이동이 아닙니다</span>
+                        </button>
+                      ) : (
+                        <a
+                          href={kakaoT.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={`카카오 T 호출하기 (${kakaoT.label})`}
+                          className={cn(BUTTON, GHOST)}
+                        >
+                          카카오 T 호출하기
+                          <span className="ml-2 text-sm font-medium text-[#6796db]">{kakaoT.label}</span>
+                        </a>
+                      ))}
                   </div>
                 )}
               </section>
