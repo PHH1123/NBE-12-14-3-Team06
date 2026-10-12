@@ -22,8 +22,8 @@ public class ChatMessage {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-            @JoinColumn(name = "user_id", referencedColumnName = "user_id"),
-            @JoinColumn(name = "chat_room_id", referencedColumnName = "chat_room_id")
+            @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false),
+            @JoinColumn(name = "chat_room_id", referencedColumnName = "chat_room_id", nullable = false)
     })
     private ChatPart chatPart;
 

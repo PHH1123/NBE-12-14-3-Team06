@@ -48,7 +48,7 @@ public class ChatController {
         ChatRoom chatRoom = chatService.createChatRoom(senderId, receiverId);
 
         return new RsData<>("201-121", "채팅방이 생성되었습니다.",
-                new ChatRoomResponse(chatRoom, user.getId()));
+                new ChatRoomResponse(chatRoom, user.getId(), 0));
     }
 
     @GetMapping("/api/v1/chat")
@@ -59,7 +59,10 @@ public class ChatController {
         List<ChatRoom> chatRoomList = chatService.getChatRoomList(userId);
 
         return new RsData<>("200-121", "채팅방 목록을 조회했습니다.",
-                chatRoomList.stream().map(chatRoom -> new ChatRoomResponse(chatRoom, userId)).toList());
+                chatRoomList.stream().map(chatRoom -> {
+                    int unReadCounts = chatService.getUnReadCounts(userId, chatRoom.getId());
+                    return new ChatRoomResponse(chatRoom, userId, unReadCounts);
+                }).toList());
     }
 
     @GetMapping("/api/v1/chat/{chatRoomId}")

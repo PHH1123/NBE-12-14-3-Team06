@@ -50,14 +50,24 @@ export default function ChatRoomList({ rooms, onSelect }: Props) {
               <span
                 className={cn(
                   'mt-0.5 block truncate text-[12px]',
-                  room.lastMessage ? 'text-brand-muted' : 'text-brand-muted italic',
+                  // 안 읽은 게 있으면 마지막 대화를 진하게 — 배지와 함께 눈에 띄게 합니다.
+                  room.unreadCount > 0 ? 'font-medium text-brand' : 'text-brand-muted',
+                  !room.lastMessage && 'italic',
                 )}
               >
                 {room.lastMessage || '대화를 시작해보세요'}
               </span>
             </span>
-            <span className="shrink-0 self-start pt-0.5 text-[10.5px] text-brand-muted">
-              {formatRoomTime(room.lastSentAt)}
+            <span className="flex shrink-0 flex-col items-end gap-1 self-start pt-0.5">
+              <span className="text-[10.5px] text-brand-muted">{formatRoomTime(room.lastSentAt)}</span>
+              {room.unreadCount > 0 && (
+                <span
+                  className="grid min-w-[18px] place-items-center rounded-full bg-brand px-1.5 py-0.5 text-[10px] leading-none font-semibold text-white"
+                  aria-label={`안 읽은 메시지 ${room.unreadCount}개`}
+                >
+                  {room.unreadCount > 99 ? '99+' : room.unreadCount}
+                </span>
+              )}
             </span>
           </button>
         </li>

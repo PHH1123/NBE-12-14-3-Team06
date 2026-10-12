@@ -41,6 +41,13 @@ public class ChatService {
         // 이미 해당 유저들의 채팅방이 있는지 검사
         Optional<ChatRoom> findChatRoom = chatRoomRepository.findByUser(sender, receiver);
         if (findChatRoom.isPresent()) {
+            ChatRoom chatRoom = findChatRoom.get();
+            chatRoom.getChatParts()
+                    .forEach(part -> {
+                        if (part.getUser().getId().equals(senderId)) {
+                            part.read();
+                        }
+                    });
             return findChatRoom.get();
         }
 
@@ -49,12 +56,12 @@ public class ChatService {
                 .lastChatSentAt(LocalDateTime.now())
                 .build();
         ChatPart chatPart = chatRoom.addChatPart(sender, receiver);
+        chatRoom = chatRoomRepository.save(chatRoom);
 
         // 채팅방 개설 메시지 저장
         ChatMessage chatMessage = chatMessageService.createRoomMessage(sender.getName() + CREATE_ROOM_MESSAGE, chatPart);
         chatRoom.updateLastChat(chatMessage.getContent(), chatMessage.getSentAt());
 
-        chatRoom = chatRoomRepository.save(chatRoom);
 
         return chatRoom;
     }
@@ -80,10 +87,18 @@ public class ChatService {
     }
 
     // 채팅 메시지 조회
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<ChatMessage> getMessages(Long userId, Long chatRoomId, Pageable pageable) {
-        chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+        ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
                 .orElseThrow(() -> new ForbiddenException(121, "채팅방에 접속하실 권한이 없습니다."));
+        chatPart.read();
         return chatMessageService.getMessages(chatRoomId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public int getUnReadCounts(Long userId, Long chatRoomId) {
+        ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+                .orElseThrow(() -> new ForbiddenException(121, "채팅방에 접속하실 권한이 없습니다."));
+        return chatMessageService.getUnReadCounts(userId, chatRoomId, chatPart.getLastReadAt());
     }
 }

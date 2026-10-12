@@ -18,6 +18,8 @@ export type ChatRoomDto = {
   /** 아직 대화가 없으면 null */
   lastChatContent: string | null;
   lastChatSentAt: string | null;
+  /** 내가 마지막으로 방을 연 뒤에 상대가 보낸 메시지 수 */
+  unReadCount: number;
 };
 
 /** GET /api/v1/chat/{chatRoomId} 페이지의 한 줄 (백엔드 ChatMessageResponse) */
@@ -46,6 +48,8 @@ export type ChatRoomSummary = {
   /** 마지막 대화. 아직 없으면 빈 문자열 */
   lastMessage: string;
   lastSentAt: string | null;
+  /** 안 읽은 메시지 수. 0 이면 배지를 숨깁니다. */
+  unreadCount: number;
 };
 
 /** 말풍선 하나 */

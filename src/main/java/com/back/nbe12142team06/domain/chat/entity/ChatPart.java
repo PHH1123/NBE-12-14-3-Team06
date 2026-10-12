@@ -24,21 +24,28 @@ public class ChatPart extends BaseTimeEntity {
 
     @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @MapsId("chatRoomId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chat_room_id")
+    @JoinColumn(name = "chat_room_id", nullable = false)
     private ChatRoom chatRoom;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role;
 
     @Builder.Default
+    @Column(nullable = false)
     private Boolean isActive = true;
 
     @Builder.Default
+    @Column(nullable = false)
     private LocalDateTime lastReadAt = LocalDateTime.now();
+
+    public void read() {
+        this.lastReadAt = LocalDateTime.now();
+    }
 
 }

@@ -65,4 +65,8 @@ public class ChatMessageService {
                 .build();
         return chatMessageRepository.save(chatMessage);
     }
+
+    public int getUnReadCounts(Long userId, Long chatRoomId, LocalDateTime lastReadAt) {
+        return chatMessageRepository.getUnReadCounts(userId, chatRoomId, lastReadAt);
+    }
 }

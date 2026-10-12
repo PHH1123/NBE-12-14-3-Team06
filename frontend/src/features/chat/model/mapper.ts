@@ -9,6 +9,7 @@ export function toChatRoomSummary(dto: ChatRoomDto): ChatRoomSummary {
     partnerRole: dto.partnerRole,
     lastMessage: dto.lastChatContent ?? '',
     lastSentAt: dto.lastChatSentAt,
+    unreadCount: dto.unReadCount,
   };
 }
 
