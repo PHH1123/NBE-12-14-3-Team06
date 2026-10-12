@@ -2,9 +2,12 @@ package com.back.nbe12142team06.domain.user.controller;
 
 import com.back.nbe12142team06.domain.user.dto.admin.AdminUserProfileUpdateRequest;
 import com.back.nbe12142team06.domain.user.dto.admin.AdminUserResponse;
+import com.back.nbe12142team06.domain.user.dto.admin.AdminUserSuspendRequest;
+import com.back.nbe12142team06.domain.user.dto.admin.AdminUserSuspendResponse;
 import com.back.nbe12142team06.domain.user.dto.profile.EscortProfileResponse;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.service.UserService;
 import com.back.nbe12142team06.global.response.RsData;
 import com.back.nbe12142team06.global.security.SecurityUser;
@@ -110,6 +113,25 @@ public class AdminUserController {
                 "200-9",
                 "동행 매니저 프로필 조회를 완료했습니다.",
                 new EscortProfileResponse(escortProfile)
+        );
+    }
+
+    @Operation(
+            summary = "회원 기간 정지",
+            description = "관리자가 회원에게 기간 정지 패널티를 부여합니다."
+    )
+    @PostMapping("/users/{userId}/suspension")
+    public RsData<AdminUserSuspendResponse> suspendUserByAdmin(
+            @PathVariable Long userId,
+            @Valid @RequestBody AdminUserSuspendRequest request,
+            @AuthenticationPrincipal SecurityUser admin
+    ){
+        UserStatusHistory userStatusHistory = this.userService.suspendUser(admin.getId(), userId, request.reason());
+
+        return new RsData<>(
+                "200-10",
+                "회원이 기간 정지되었습니다.",
+                new AdminUserSuspendResponse(userStatusHistory)
         );
     }
 }

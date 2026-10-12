@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,5 +74,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     //상태코드 만료처리
     List<Post> findAllByPostStatusAndRecruitEndAtBefore(PostStatus postStatus, LocalDateTime dateTime);
+
+    // 회원 탈퇴·정지 시 취소할 공고 조회
+    List<Post> findAllByClientIdAndPostStatusIn(Long clientId, Collection<PostStatus> statuses);
 
 }

@@ -38,16 +38,14 @@ public class PaymentPersistenceService {
     }
 
     @Transactional
-    public Payment paymentCancelDb(Long paymentId, String cancelReason) {
-        Payment newPayment = paymentCancelDb(paymentId, cancelReason, false);
-        return paymentRepository.save(newPayment);
-    }
-
-    @Transactional
-    public Payment paymentCancelDb(Long paymentId, String cancelReason, boolean postDeleted) {
+    public Payment paymentCancelDb(Long paymentId, String cancelReason, boolean createNewPayment) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
-        return payment.cancelPayment(cancelReason);
+        Payment newPayment = payment.cancelPayment(cancelReason);
+        if (createNewPayment) {
+            return paymentRepository.save(newPayment);
+        }
+        return payment;
     }
 
     @Transactional

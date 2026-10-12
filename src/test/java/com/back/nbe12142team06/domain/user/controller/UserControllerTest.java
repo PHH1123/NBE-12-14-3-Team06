@@ -8,10 +8,13 @@ import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.post.repository.PostRepository;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import com.back.nbe12142team06.domain.user.repository.UserStatusHistoryRepository;
 import com.back.nbe12142team06.global.security.JwtProvider;
 import jakarta.persistence.EntityManager;
 import jakarta.servlet.http.Cookie;
@@ -61,6 +64,9 @@ public class UserControllerTest {
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    private UserStatusHistoryRepository userStatusHistoryRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -2308,4 +2314,41 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.data").value("false"));
     }
 
+    @Test
+    @DisplayName("[UserController] 회원가입 시 User의 userStatus가 기본적으로 ACTIVE로 설정")
+    void t62() throws Exception {
+
+        signUp("test1", "ESCORT");
+
+        em.flush();
+        em.clear();
+
+        User test = this.userRepository.findByUsername("test1")
+                .orElseThrow();
+
+        assertThat(test.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("[UserController] 회원가입 시 UserStatusHistory가 ACTIVE로 기록 생성")
+    void t63() throws Exception {
+
+        signUp("test1", "ESCORT");
+
+        em.flush();
+        em.clear();
+
+        User test = this.userRepository.findByUsername("test1")
+                .orElseThrow();
+
+        List<UserStatusHistory> histories = this.userStatusHistoryRepository.findAllByUserId(test.getId());
+
+        UserStatusHistory history = histories.get(0);
+        assertThat(history.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(history.getReason()).isEqualTo("회원가입");
+        assertThat(history.getAdminId()).isNull();
+        assertThat(history.getEndAt()).isNull();
+        assertThat(history.getCreatedAt()).isNotNull();
+
+    }
 }
