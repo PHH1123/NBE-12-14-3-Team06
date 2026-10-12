@@ -341,6 +341,16 @@ public class ApplicationService {
                 escortId, applications.size());
     }
 
+    // 회원 탈퇴 제한: 진행 중인 동행이 있는지 확인
+    @Transactional(readOnly = true)
+    public boolean hasInProgressEscort(Long escortId) {
+        return applicationRepository.existsInProgressByEscortId(
+                escortId,
+                ApplicationStatus.ACCEPTED,
+                PostStatus.IN_PROGRESS
+        );
+    }
+
     @Transactional
     public void updateProgress(Long applicationId, Long userId, EscortProgress progress) {
 

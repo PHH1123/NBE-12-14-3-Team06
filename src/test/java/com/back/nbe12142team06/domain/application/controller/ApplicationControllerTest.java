@@ -5,6 +5,7 @@ import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.enums.EscortProgress;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository;
+import com.back.nbe12142team06.domain.application.service.ApplicationService;
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
@@ -37,6 +38,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -63,6 +66,9 @@ public class ApplicationControllerTest {
 
     @Autowired
     private ApplicationRepository applicationRepository;
+
+    @Autowired
+    private ApplicationService applicationService;
 
     @Autowired
     private PaymentRepository paymentRepository;
@@ -267,6 +273,130 @@ public class ApplicationControllerTest {
                 0,
                 applicationRepository.findAllByPostIdWithEscort(testPostId).size()
         );
+    }
+
+    @Test
+    @DisplayName("[ApplicationService] 진행 중인 동행이 있으면 탈퇴 제한 대상")
+    void t1_3() {
+
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        Post post = postRepository.findById(testPostId)
+                .orElseThrow();
+
+        // 승인된 지원 생성
+        Application application = Application.builder()
+                .post(post)
+                .escort(escort)
+                .build();
+
+        application.accept();
+        applicationRepository.save(application);
+
+        // 공고를 매칭 완료 → 동행 진행 중 상태로 변경
+        post.match();
+        post.startProgress(LocalDateTime.now());
+
+        // 진행 중 동행이 있으므로 true
+        boolean result = applicationService.hasInProgressEscort(escort.getId());
+
+        assertTrue(result);
+    }
+
+    @Test
+    @DisplayName("[ApplicationService] 매칭만 완료된 경우 탈퇴 제한 대상이 아님")
+    void t1_4() {
+
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        Post post = postRepository.findById(testPostId)
+                .orElseThrow();
+
+        Application application = Application.builder()
+                .post(post)
+                .escort(escort)
+                .build();
+
+        application.accept();
+        applicationRepository.save(application);
+
+        // 매칭만 완료된 상태
+        post.match();
+
+        // 아직 동행이 시작되지 않았으므로 false
+        boolean result = applicationService.hasInProgressEscort(escort.getId());
+
+        assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("[ApplicationService] 대기 중인 지원만 있으면 진행 중 동행이 아니다")
+    void t1_5() {
+
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        Post post = postRepository.findById(testPostId)
+                .orElseThrow();
+
+        // PENDING 지원 생성 (기본 상태)
+        Application application = Application.builder()
+                .post(post)
+                .escort(escort)
+                .build();
+
+        applicationRepository.save(application);
+
+        // PENDING + OPEN 상태에서는 false
+        boolean result = applicationService.hasInProgressEscort(escort.getId());
+
+        assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("[ApplicationService] 다른 동행매니저의 진행 중 동행은 조회되지 않는다")
+    void t1_6() {
+
+        User escort1 = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        // 두 번째 동행매니저 생성
+        User escort2 = new User(
+                "escort2",
+                passwordEncoder.encode("testPassword"),
+                "escort2@test.com",
+                "동행인2",
+                Role.ESCORT,
+                Gender.MALE,
+                LocalDate.of(1996, 1, 1),
+                "010-3333-3333",
+                "서울"
+        );
+
+        userRepository.save(escort2);
+
+        Post post = postRepository.findById(testPostId)
+                .orElseThrow();
+
+        // escort2의 동행을 진행 중 상태로 생성
+        Application application = Application.builder()
+                .post(post)
+                .escort(escort2)
+                .build();
+
+        application.accept();
+        applicationRepository.save(application);
+
+        post.match();
+        post.startProgress(LocalDateTime.now());
+
+        // escort2는 진행 중인 동행이 존재
+        assertTrue(applicationService.hasInProgressEscort(escort2.getId()));
+
+        // escort1은 진행 중인 동행이 없음
+        assertFalse(applicationService.hasInProgressEscort(escort1.getId()));
     }
 
     @Test

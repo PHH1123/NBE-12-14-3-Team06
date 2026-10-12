@@ -126,4 +126,18 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("open") PostStatus open,
             @Param("matched") PostStatus matched
     );
+
+    // 회원 탈퇴 제한: 진행 중인 동행이 있는지 확인
+    @Query("""
+        SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END
+        FROM Application a
+        WHERE a.escort.id = :escortId
+          AND a.status = :accepted
+          AND a.post.postStatus = :inProgress
+        """)
+    boolean existsInProgressByEscortId(
+            @Param("escortId") Long escortId,
+            @Param("accepted") ApplicationStatus accepted,
+            @Param("inProgress") PostStatus inProgress
+    );
 }
