@@ -400,6 +400,88 @@ public class ApplicationControllerTest {
     }
 
     @Test
+    @DisplayName("[ApplicationController] 지원 승인 - 일시 정지된 동행매니저는 승인할 수 없다")
+    void t1_7() throws Exception {
+
+        // given: 정상 회원일 때 공고에 지원
+        mvc.perform(
+                post("/api/v1/applications/{postId}", testPostId)
+                        .cookie(escortAccessTokenCookie)
+        ).andExpect(status().isCreated());
+
+        Application application = applicationRepository
+                .findAllByPostIdWithEscort(testPostId)
+                .get(0);
+
+        // 지원 이후 동행매니저 일시 정지
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        escort.suspend(1L, "테스트용 일시 정지");
+        userRepository.saveAndFlush(escort);
+
+        // when: 의뢰인이 정지된 동행매니저의 지원을 승인 시도
+        mvc.perform(
+                        patch("/api/v1/applications/{applicationId}/accept", application.getId())
+                                .cookie(clientAccessTokenCookie)
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-32"))
+                .andExpect(jsonPath("$.msg")
+                        .value("활성 상태의 동행매니저만 승인할 수 있습니다."));
+
+        // then: 지원과 공고 상태는 변경되지 않아야 함
+        assertEquals(ApplicationStatus.PENDING,
+                applicationRepository.findById(application.getId())
+                        .orElseThrow().getStatus());
+
+        assertEquals(PostStatus.OPEN,
+                postRepository.findById(testPostId)
+                        .orElseThrow().getPostStatus());
+    }
+
+    @Test
+    @DisplayName("[ApplicationController] 지원 승인 - 영구 정지된 동행매니저는 승인할 수 없다")
+    void t1_8() throws Exception {
+
+        // given: 정상 회원일 때 공고에 지원
+        mvc.perform(
+                post("/api/v1/applications/{postId}", testPostId)
+                        .cookie(escortAccessTokenCookie)
+        ).andExpect(status().isCreated());
+
+        Application application = applicationRepository
+                .findAllByPostIdWithEscort(testPostId)
+                .get(0);
+
+        // 지원 이후 동행매니저 영구 정지
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        escort.ban(1L, "테스트용 영구 정지");
+        userRepository.saveAndFlush(escort);
+
+        // when: 의뢰인이 영구 정지된 회원의 지원을 승인 시도
+        mvc.perform(
+                        patch("/api/v1/applications/{applicationId}/accept", application.getId())
+                                .cookie(clientAccessTokenCookie)
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-32"))
+                .andExpect(jsonPath("$.msg")
+                        .value("활성 상태의 동행매니저만 승인할 수 있습니다."));
+
+        // then: 지원은 PENDING, 공고는 OPEN 유지
+        assertEquals(ApplicationStatus.PENDING,
+                applicationRepository.findById(application.getId())
+                        .orElseThrow().getStatus());
+
+        assertEquals(PostStatus.OPEN,
+                postRepository.findById(testPostId)
+                        .orElseThrow().getPostStatus());
+    }
+
+    @Test
     @DisplayName("[ApplicationController] 지원하기 - 중복 지원 시 409 반환")
     void t2() throws Exception {
 

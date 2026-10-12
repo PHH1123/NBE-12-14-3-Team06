@@ -142,6 +142,12 @@ public class ApplicationService {
             throw new InvalidException(24, "대기 중인 지원만 승인할 수 있습니다.");
         }
 
+        // 정지·차단된 동행매니저는 승인 불가 (새로 추가)
+        if (escort.getUserStatus() != UserStatus.ACTIVE) {
+            throw new ForbiddenException(
+                    32, "활성 상태의 동행매니저만 승인할 수 있습니다.");
+        }
+
         // 모집 중인 공고만 매칭 가능
         if (post.getPostStatus() != PostStatus.OPEN) {
             throw new InvalidException(25, "모집 중인 공고만 승인할 수 있습니다.");
