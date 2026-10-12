@@ -147,6 +147,20 @@ public class PaymentService {
         return canceledPayment;
     }
 
+    // 공고 기반 결제 취소
+    public void cancel(Post post) {
+        List<Payment> payments = paymentPersistenceService.findByPostId(post.getId());
+
+        for (Payment payment : payments) {
+            cancel(
+                    payment,
+                    new PaymentCancelRequest("노쇼로 인해 동행 취소, 공고 모집 기한이 만료되어 취소되었습니다."),
+                    payment.getBalanceAmount(),
+                    null
+            );
+        }
+    }
+
     /// deprecated
     public void verifyAmount(Long userId, SaveAmountRequest request) {
         Payment payment = paymentPersistenceService.findById(userId, request.paymentId());

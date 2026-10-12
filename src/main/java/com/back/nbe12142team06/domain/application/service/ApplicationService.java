@@ -8,6 +8,7 @@ import com.back.nbe12142team06.domain.application.enums.EscortProgress;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository;
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
+import com.back.nbe12142team06.domain.payment.service.PaymentService;
 import com.back.nbe12142team06.domain.penalty.service.NoShowPenaltyService;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.post.entity.PostStatus;
@@ -49,6 +50,7 @@ public class ApplicationService {
     private final NoShowPenaltyService noShowPenaltyService;
     private final ClientProfileRepository clientProfileRepository;
     private final PaymentRepository paymentRepository;
+    private final PaymentService paymentService;
     private final RideService rideService;
 
     @Transactional
@@ -263,6 +265,8 @@ public class ApplicationService {
             } else {
                 // 모집 마감 후라면 공고 취소
                 post.matchedCancel();
+                // 공고 취소되었으므로 결제 금액 환불
+                paymentService.cancel(post);
             }
             // 매칭 확정 후 동행인이 취소하면 노쇼로 처리되므로 warn
             log.warn("[노쇼 취소] applicationId={}, postId={}, escortId={}", applicationId, post.getId(), userId);
