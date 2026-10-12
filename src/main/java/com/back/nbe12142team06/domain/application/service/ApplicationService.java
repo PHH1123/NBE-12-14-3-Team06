@@ -18,6 +18,7 @@ import com.back.nbe12142team06.domain.user.entity.ClientProfile;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.ClientProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
@@ -67,6 +68,12 @@ public class ApplicationService {
 
         User escort = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(1, "회원 정보를 찾을 수 없습니다."));
+
+        // ACTIVE 상태인 회원만 지원 가능
+        if (escort.getUserStatus() != UserStatus.ACTIVE) {
+            throw new ForbiddenException(
+                    31, "활성 상태의 회원만 지원할 수 있습니다.");
+        }
 
         // 동행인만 지원 가능
         if (escort.getRole() != Role.ESCORT) {
