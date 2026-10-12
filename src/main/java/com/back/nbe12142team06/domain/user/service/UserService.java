@@ -15,10 +15,13 @@ import com.back.nbe12142team06.domain.user.dto.user.UserProfileUpdateRequest;
 import com.back.nbe12142team06.domain.user.entity.ClientProfile;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.ClientProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import com.back.nbe12142team06.domain.user.repository.UserStatusHistoryRepository;
 import com.back.nbe12142team06.global.exception.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +55,7 @@ public class UserService {
     private final EscortProfileRepository escortProfileRepository;
     private final ClientProfileRepository clientProfileRepository;
     private final ApplicationRepository applicationRepository;
+    private final UserStatusHistoryRepository userStatusHistoryRepository;
     private final EducationService educationService;
 
     // 프로필 삭제, 리프레시 토큰 폐기, 회원 정보 삭제
@@ -107,19 +112,20 @@ public class UserService {
                 request.phoneNum(),
                 request.region()
         );
-
+        User savedUser;
         // 동시성 자체는 유니크로 막혀 있는데 그 때 500번이 나가버리기 때문에 이를 409로 감싸기만 했습니다.
         try {
-            User savedUser = this.userRepository.saveAndFlush(user);
-            log.info("[회원가입] userId={}, role={}", savedUser.getId(), savedUser.getRole());
-            return savedUser;
+            savedUser = this.userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
             throw new DuplicatedException(4, "이미 사용 중인 회원 정보입니다.");
         }
+        this.userStatusHistoryRepository.save(UserStatusHistory.signup(savedUser));
+        log.info("[회원가입] userId={}, role={}, status={}", savedUser.getId(), savedUser.getRole(), savedUser.getUserStatus());
+        return savedUser;
     }
 
     // 로그인
-    @Transactional(readOnly = true)
+    @Transactional
     public User login(UserLoginRequest request) {
         Optional<User> opUser = this.userRepository.findByUsername(request.username());
 
@@ -398,4 +404,26 @@ public class UserService {
         withdraw(user);
     }
 
+    @Transactional
+    public int releaseExpiredSuspensions(LocalDateTime now) {
+        List<User> suspendedUsers = this.userRepository.findAllByUserStatus(UserStatus.SUSPENDED);
+        int released = 0;
+
+        for (User user : suspendedUsers) {
+            Optional<UserStatusHistory> lastHistory = this.userStatusHistoryRepository.findTopByUserOrderByIdDesc(user);
+            // 기록이 없는 유저, 기간 정지인데 만료기간이 없는 기록 체크
+            if (lastHistory.isEmpty() || lastHistory.get().getEndAt() == null) {
+                log.warn("[정지 만료 해제] 이력 불일치 userId={}", user.getId());
+                continue;
+            }
+            // 정지 기간이 만료 시 해제 (user의 상태 -> ACTIVE, userStatusHistory에 해당 유저 ACTIVE로 변경 기록 생성)
+            if (lastHistory.get().getEndAt().isBefore(now)) {
+                this.userStatusHistoryRepository.save(user.expire());
+                released++;
+            }
+        }
+        log.info("[정지 만료 해제] {}명", released);
+
+        return released;
+    }
 }

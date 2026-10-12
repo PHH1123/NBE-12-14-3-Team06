@@ -1,13 +1,16 @@
 package com.back.nbe12142team06.domain.user.service;
 
-import com.back.nbe12142team06.domain.user.dto.signup.common.UserSignUpRequest;
 import com.back.nbe12142team06.domain.user.dto.profile.EscortProfileRequest;
+import com.back.nbe12142team06.domain.user.dto.signup.common.UserSignUpRequest;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import com.back.nbe12142team06.domain.user.repository.UserStatusHistoryRepository;
 import com.back.nbe12142team06.global.exception.DuplicatedException;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -37,7 +41,35 @@ public class UserServiceTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
+    private UserStatusHistoryRepository userStatusHistoryRepository;
+    @Autowired
     private EscortProfileRepository escortProfileRepository;
+
+    // 회원 생성 헬퍼
+    private User createUser(String username, String email, String phoneNum) {
+        User user = User.builder()
+                .username(username)
+                .password("password1!")
+                .email(email)
+                .name("테스트")
+                .role(Role.CLIENT)
+                .gender(Gender.FEMALE)
+                .birthDate(LocalDate.of(1960, 1, 1))
+                .phoneNum(phoneNum)
+                .region("서울")
+                .build();
+        User savedUser = userRepository.save(user);
+        userStatusHistoryRepository.save(UserStatusHistory.signup(savedUser));
+        return savedUser;
+    }
+
+    // 정지 종료 시각 직접 수정
+    private void updateEndAt(Long historyId, LocalDateTime endAt) {
+        em.createNativeQuery("UPDATE user_status_history SET end_at = :endAt WHERE id = :id")
+                .setParameter("endAt", endAt)
+                .setParameter("id", historyId)
+                .executeUpdate();
+    }
 
 
     @Test
@@ -261,5 +293,39 @@ public class UserServiceTest {
 
         assertThat(profileCheck.getBankName()).isEqualTo("오픈은행");
         assertThat(profileCheck.getAccountNumber()).isEqualTo("123-000000-123");
+    }
+
+    @Test
+    @DisplayName("[UserService] 정지 기간이 지나면 ACTIVE로 변경")
+    void t7() {
+        User user = createUser("expired01", "expired01@test.com", "010-7000-0001");
+        userStatusHistoryRepository.save(user.suspend(1L, "만료 테스트"));
+        em.flush();
+        em.clear();
+
+        int released = userService.releaseExpiredSuspensions(LocalDateTime.now().plusDays(8));
+        em.flush();
+        em.clear();
+
+        assertThat(released).isEqualTo(1);
+        User found = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(found.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("[UserService] 정지 기간이 유효하면 SUSPEND 유지")
+    void t8() {
+        User user = createUser("suspended01", "suspended01@test.com", "010-7000-0002");
+        userStatusHistoryRepository.save(user.suspend(1L, "미만료 테스트"));
+        em.flush();
+        em.clear();
+
+        int released = userService.releaseExpiredSuspensions(LocalDateTime.now().plusDays(6));
+        em.flush();
+        em.clear();
+
+        assertThat(released).isZero();
+        User found = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(found.getUserStatus()).isEqualTo(UserStatus.SUSPENDED);
     }
 }

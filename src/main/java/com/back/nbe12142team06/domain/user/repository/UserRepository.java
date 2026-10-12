@@ -2,6 +2,7 @@ package com.back.nbe12142team06.domain.user.repository;
 
 
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -41,4 +42,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             nativeQuery = true
     )
     Page<User> findAllIncludingDeleted(Pageable pageable);
+
+    // 상태별 조회
+    List<User> findAllByUserStatus(UserStatus userStatus);
 }

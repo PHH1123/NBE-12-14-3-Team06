@@ -2,7 +2,9 @@ package com.back.nbe12142team06.domain.user.entity;
 
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -62,6 +64,12 @@ public class User extends BaseSoftDeleteTimeEntity {
     @Column(nullable = false, length = 50)
     private String region;
 
+    // 계정 활성, 일시 정지, 영구 정지 상태
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserStatus userStatus =  UserStatus.ACTIVE;
+
+
     @Version
     @ColumnDefault("0")
     @Column(nullable = false)
@@ -101,5 +109,58 @@ public class User extends BaseSoftDeleteTimeEntity {
     // 탈퇴 여부
     public boolean isDeleted() {
         return this.getDeletedAt() != null;
+    }
+
+    // ACTIVE 계정 여부
+    public boolean isActive() {
+        return this.userStatus == UserStatus.ACTIVE;
+    }
+
+    // 상태 변경
+    private void changeStatus(UserStatus newStatus) {
+        // 현재 상태
+        UserStatus prevStatus = this.getUserStatus();
+
+        // 같은 상태로의 변경은 불가
+        if (prevStatus == newStatus) {
+            throw new InvalidException(
+                    1,
+                    "이미 %s 상태인 계정입니다.".formatted(prevStatus.getDescription())
+            );
+        }
+        // BANNED -> SUSPENDED 변경 불가
+        else if (prevStatus == UserStatus.BANNED && newStatus == UserStatus.SUSPENDED) {
+            throw new InvalidException(
+                    2,
+                    "영구 정지된 계정은 해제만 가능합니다."
+            );
+        }
+
+        // 유저 테이블의 상태 변경
+        this.userStatus = newStatus;
+    }
+
+    // 기간 정지
+    public UserStatusHistory suspend(Long adminId, String reason) {
+        changeStatus(UserStatus.SUSPENDED);
+        return UserStatusHistory.suspend(this, adminId, reason);
+    }
+
+    // 영구 정지
+    public UserStatusHistory ban(Long adminId, String reason) {
+        changeStatus(UserStatus.BANNED);
+        return UserStatusHistory.ban(this, adminId, reason);
+    }
+
+    // 관리자의 정지 해제
+    public UserStatusHistory release(Long adminId, String reason) {
+        changeStatus(UserStatus.ACTIVE);
+        return UserStatusHistory.release(this, adminId, reason);
+    }
+
+    // 정지 기간 만료 시 해제
+    public UserStatusHistory expire() {
+        changeStatus(UserStatus.ACTIVE);
+        return UserStatusHistory.expire(this);
     }
 }
