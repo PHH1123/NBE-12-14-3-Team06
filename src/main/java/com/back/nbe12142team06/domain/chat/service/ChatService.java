@@ -1,0 +1,80 @@
+package com.back.nbe12142team06.domain.chat.service;
+
+import com.back.nbe12142team06.domain.chat.entity.ChatMessage;
+import com.back.nbe12142team06.domain.chat.entity.ChatPart;
+import com.back.nbe12142team06.domain.chat.entity.ChatRoom;
+import com.back.nbe12142team06.domain.chat.repository.ChatPartRepository;
+import com.back.nbe12142team06.domain.chat.repository.ChatRoomRepository;
+import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.service.UserService;
+import com.back.nbe12142team06.global.exception.DuplicatedException;
+import com.back.nbe12142team06.global.exception.NotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class ChatService {
+
+    private final ChatRoomRepository chatRoomRepository;
+    private final UserService userService;
+    private final ChatMessageService chatMessageService;
+    private final ChatPartRepository chatPartRepository;
+
+    private final String CREATE_ROOM_MESSAGE = "님이 채팅방을 개설했습니다.";
+
+    // 채팅방 생성
+    @Transactional
+    public void createChatRoom(Long senderId, Long receiverId) {
+        User sender = userService.myProfile(senderId);
+        User receiver = userService.myProfile(receiverId);
+
+        // 이미 해당 유저들의 채팅방이 있는지 검사
+        if (chatRoomRepository.findByUser(sender, receiver).isPresent()) {
+            throw new DuplicatedException(121, "이미 존재하는 채팅방입니다.");
+        }
+
+        ChatRoom chatRoom = ChatRoom.builder()
+                .lastChatContent(sender.getName() + CREATE_ROOM_MESSAGE)
+                .lastChatSentAt(LocalDateTime.now())
+                .build();
+        ChatPart chatPart = chatRoom.addChatPart(sender, receiver);
+
+        chatRoomRepository.save(chatRoom);
+
+        // 채팅방 개설 메시지 저장
+        chatMessageService.createRoomMessage(sender.getName() + CREATE_ROOM_MESSAGE, chatPart);
+    }
+
+    // 채팅방 나가기
+    public void leaveChatRoom() {
+        // TODO: 채팅방 나가기
+    }
+
+    // 채팅 보내기
+    @Transactional
+    public void sendMessage(Long chatRoomId, Long senderId, String content) {
+        // TODO: Fetch Join 적용
+        ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(senderId, chatRoomId)
+                .orElseThrow(() -> new NotFoundException(121, "채팅 입장 내역이 없습니다."));
+        chatMessageService.sendMessage(chatRoomId, content, chatPart);
+    }
+
+    // 채팅방 목록 조회
+    @Transactional(readOnly = true)
+    public List<ChatRoom> getChatRoomList(Long userId) {
+        return chatRoomRepository.findByUser(userId);
+    }
+
+    // 채팅 메시지 조회
+    @Transactional(readOnly = true)
+    public Page<ChatMessage> getMessages(Long userId, Long chatRoomId, Pageable pageable) {
+        return chatMessageService.getMessages(chatRoomId, pageable);
+    }
+}
