@@ -2,6 +2,7 @@ package com.back.nbe12142team06.domain.report.service;
 
 import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
+import com.back.nbe12142team06.domain.notification.service.NoticeService;
 import com.back.nbe12142team06.domain.report.dto.ReportDto;
 import com.back.nbe12142team06.domain.report.dto.ReportWriteRequest;
 import com.back.nbe12142team06.domain.report.entity.Report;
@@ -18,6 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_REPORT_WRITE;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_REVIEW_WRITE;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_REPORT_WRITE;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_REVIEW_WRITE;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,6 +35,7 @@ public class ReportService {
 
     private final ReportRepository reportRepository;
     private final ApplicationRepository applicationRepository;
+    private final NoticeService noticeService;
 
     @Transactional // 쓰기 작업을 수행하는 메서드에는 readOnly 해제
     public Report write(Long applicationId, Long actorId, ReportWriteRequest request) {
@@ -62,6 +69,12 @@ public class ReportService {
                             .build()
             );
             log.info("[보고서 작성] reportId={}, applicationId={}, escortId={}", savedReport.getId(), applicationId, actorId);
+
+            // 알림
+            noticeService.send(application.getEscort(),
+                    C_REPORT_WRITE.of(application.getPost().getTitle()),
+                    U_REPORT_WRITE.of(applicationId));
+
             return savedReport;
         } catch (DataIntegrityViolationException e) {
             throw new DuplicatedException(51, "이미 보고서가 작성된 동행 건입니다.", e);

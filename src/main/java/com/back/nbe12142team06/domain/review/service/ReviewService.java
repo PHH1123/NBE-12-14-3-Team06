@@ -3,6 +3,7 @@ package com.back.nbe12142team06.domain.review.service;
 import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
+import com.back.nbe12142team06.domain.notification.service.NoticeService;
 import com.back.nbe12142team06.domain.post.entity.PostStatus;
 import com.back.nbe12142team06.domain.review.dto.ReviewDto;
 import com.back.nbe12142team06.domain.review.dto.ReviewWriteRequest;
@@ -24,6 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_REVIEW_WRITE;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_REVIEW_WRITE;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,6 +38,7 @@ public class ReviewService {
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
     private final EscortProfileRepository escortProfileRepository;
+    private final NoticeService noticeService;
 
     @Transactional // 쓰기 작업을 수행하는 메서드에는 readOnly 해제
     public Review write(Long applicationId, Long actorId, ReviewWriteRequest request) {
@@ -77,6 +82,12 @@ public class ReviewService {
         }
 
         log.info("[리뷰 작성] applicationId={}, clientId={}, rating={}", applicationId, actorId, request.rating());
+
+        // 알림
+        noticeService.send(application.getEscort(),
+                C_REVIEW_WRITE.of(application.getPost().getTitle()),
+                U_REVIEW_WRITE.of());
+
         return review;
     }
 

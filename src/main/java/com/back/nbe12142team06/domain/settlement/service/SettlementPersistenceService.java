@@ -40,4 +40,9 @@ public class SettlementPersistenceService {
     public int processingSettlement(Long settlementId) {
         return settlementRepository.updateProcessing(settlementId);
     }
+
+    public Settlement findById(Long settlementId) {
+        return settlementRepository.findById(settlementId)
+                .orElseThrow(() -> new NotFoundException(71, "정산 데이터를 찾을 수 없습니다."));
+    }
 }

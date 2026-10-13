@@ -1,6 +1,7 @@
 package com.back.nbe12142team06.domain.settlement.service;
 
 import com.back.nbe12142team06.domain.application.entity.Application;
+import com.back.nbe12142team06.domain.notification.service.NoticeService;
 import com.back.nbe12142team06.domain.penalty.entity.NoShowPenalty;
 import com.back.nbe12142team06.domain.penalty.service.NoShowPenaltyService;
 import com.back.nbe12142team06.domain.settlement.client.SettlementClient;
@@ -28,6 +29,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_PAYMENT_PARTIAL_CANCELED;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_SETTLEMENT_DONE;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_PAYMENT_PARTIAL_CANCELED;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_SETTLEMENT_DONE;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -36,6 +42,7 @@ public class SettlementService {
     private final SettlementPersistenceService settlementPersistenceService;
     private final SettlementRepository settlementRepository;
     private final NoShowPenaltyService noShowPenaltyService;
+    private final NoticeService noticeService;
 
     // 정산 API
     private final SettlementClient settlementClient;
@@ -78,6 +85,12 @@ public class SettlementService {
             log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", settlementId, e);
             throw new InternalServerErrorException(72, "정산에 실패했습니다.");
         }
+
+        // 알림
+        Settlement settlement = settlementPersistenceService.findById(settlementId);
+        noticeService.send(settlement.getEscort(),
+                C_SETTLEMENT_DONE.of(String.valueOf(settlement.getPayoutAmount())),
+                U_SETTLEMENT_DONE.of(settlement.getApplication().getId()));
     }
 
     // 정산 외부 API 로직(목으로 대체)

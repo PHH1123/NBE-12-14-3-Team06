@@ -39,6 +39,9 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.List;
 
+import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.*;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.*;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -99,7 +102,8 @@ public class ApplicationService {
 
         // 알림
         noticeService.send(post.getClient(),
-                "%s님이 %s 공고에 지원하셨습니다.".formatted(escort.getName(), post.getTitle()), null);
+                C_APPLICATION_APPLY.of(escort.getName(), post.getTitle()),
+                U_APPLICATION_APPLY.of(post.getId()));
 
         return new ApplicationApplyResponse(savedApplication);
     }
@@ -202,6 +206,12 @@ public class ApplicationService {
 
         log.info("[지원 수락] applicationId={}, postId={}, escortId={}, clientId={}",
                 applicationId, post.getId(), escort.getId(), userId);
+
+        // 알림
+        noticeService.send(escort,
+                C_APPLICATION_ACCEPT.of(post.getTitle()),
+                U_APPLICATION_ACCEPT.of(applicationId));
+
         return new ApplicationAcceptResponse(application);
     }
 
@@ -225,6 +235,11 @@ public class ApplicationService {
 
         application.reject();
         log.info("[지원 거절] applicationId={}, clientId={}", applicationId, userId);
+
+        // 알림
+        noticeService.send(application.getEscort(),
+                C_APPLICATION_REJECT.of(post.getTitle()),
+                U_APPLICATION_REJECT.of());
     }
 
     private boolean isTimeOverlapping(Post firstPost, Post secondPost) {
@@ -277,6 +292,12 @@ public class ApplicationService {
             }
             // 매칭 확정 후 동행인이 취소하면 노쇼로 처리되므로 warn
             log.warn("[노쇼 취소] applicationId={}, postId={}, escortId={}", applicationId, post.getId(), userId);
+
+            // 알림
+            noticeService.send(post.getClient(),
+                    C_APPLICATION_CANCELED.of(application.getEscort().getName(), post.getTitle()),
+                    U_APPLICATION_CANCELED.of(post.getId()));
+
             return;
         }
 
@@ -337,7 +358,29 @@ public class ApplicationService {
         if (progress == EscortProgress.DEPARTED) {
             application.getPost().startProgress(occurredAt);
         }
+
         log.info("[동행 진행상태 변경] applicationId={}, progress={}, escortId={}", applicationId, progress, userId);
+
+        if (progress == EscortProgress.AT_HOSPITAL) {
+            // 알림 - 동행 매니저
+            noticeService.send(application.getEscort(),
+                    C_APPLICATION_PROGRESS_AT_HOSPITAL.of(application.getPost().getHospitalName()),
+                    U_APPLICATION_PROGRESS_AT_HOSPITAL.of(applicationId));
+        } else if (progress == EscortProgress.ARRIVED_HOME) {
+            // 알림 - 의뢰인
+            noticeService.send(application.getPost().getClient(),
+                    C_APPLICATION_PROGRESS_ARRIVED_HOME.of(application.getPost().getHospitalName()),
+                    U_APPLICATION_PROGRESS_ARRIVED_HOME.of(applicationId, application.getPost().getId()));
+        } else {
+            // 알림 - 의뢰인
+            noticeService.send(application.getPost().getClient(),
+                    C_APPLICATION_UPDATED_PROGRESS.of(progress.getDescription()),
+                    U_APPLICATION_UPDATED_PROGRESS_CLIENT.of(applicationId, application.getPost().getId()));
+            // 알림 - 동행 매니저
+            noticeService.send(application.getEscort(),
+                    C_APPLICATION_UPDATED_PROGRESS.of(progress.getDescription()),
+                    U_APPLICATION_UPDATED_PROGRESS_ESCORT.of(applicationId));
+        }
     }
 
     // 이 지원의 현재 동행 진행 단계 조회. 본인(동행인) 또는 이 공고를 작성한 의뢰인만 볼 수 있다.
