@@ -17,7 +17,7 @@ public interface EmitterRepository {
 
     void deleteById(String emitterId);
 
-    void deleteAllEmitterStartWithUserId(Long userId);
+    void deleteEmitterStartWithUserId(Long userId);
 
     void deleteAllEventCacheStartWithUserId(Long userId);
 }

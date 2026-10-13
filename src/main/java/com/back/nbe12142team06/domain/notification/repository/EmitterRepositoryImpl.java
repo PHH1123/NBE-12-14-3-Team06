@@ -44,7 +44,7 @@ public class EmitterRepositoryImpl implements EmitterRepository {
     }
 
     @Override
-    public void deleteAllEmitterStartWithUserId(Long userId) {
+    public void deleteEmitterStartWithUserId(Long userId) {
         emitterMap.forEach((key, emitter) -> {
             if (key.startsWith(userId + "_")) emitterMap.remove(key);
         });

@@ -40,7 +40,7 @@ public class NoticeService {
         sendToClient(sseEmitter, emitterId, "connect");
 
         // 연결 종료 시 인메모리 해시맵에서 제거 예약
-        sseEmitter.onCompletion(() -> emitterRepository.deleteAllEmitterStartWithUserId(userId));
+        sseEmitter.onCompletion(() -> emitterRepository.deleteEmitterStartWithUserId(userId));
 
         return sseEmitter;
     }
@@ -56,19 +56,6 @@ public class NoticeService {
         Notification savedNotification = notificationRepository.save(notification);
 
         eventPublisher.publishEvent(new NotificationEvent(content, url, receiver, savedNotification));
-//        Notification notification = Notification.builder()
-//                .content(content)
-//                .url(url)
-//                .receiver(receiver)
-//                .build();
-//        Notification savedNotification = notificationRepository.save(notification);
-//
-//        Map<String, SseEmitter> emitterMap = emitterRepository.findAllEmitterStartWithByUserId(receiver.getId());
-//
-//        emitterMap.forEach((key, emitter) ->
-//                sendToClient(emitter, key,
-//                        new RsData<>("200-132", "알림이 전송되었습니다.",
-//                        new NotificationResponse(savedNotification))));
     }
 
     private void sendToClient(SseEmitter sseEmitter, String emitterId, Object data) {
