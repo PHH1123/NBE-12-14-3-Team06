@@ -10,7 +10,7 @@ public enum NotificationUrl {
     U_APPLICATION_ACCEPT("/escort/%d"),
     U_APPLICATION_REJECT("/mypage/applications"),
     U_APPLICATION_CANCELED("/client/posts/%d"),
-    U_APPLICATION_UPDATED_PROGRESS_CLIENT("/client/escort/%d?=postId=%d"),
+    U_APPLICATION_UPDATED_PROGRESS_CLIENT("/client/escort/%d?postId=%d"),
     U_APPLICATION_UPDATED_PROGRESS_ESCORT("/escort/%d"),
     U_APPLICATION_PROGRESS_AT_HOSPITAL("/escort/%d/report/new"),
     U_APPLICATION_PROGRESS_ARRIVED_HOME("/client/escort/%d/review?postId=%d"),
