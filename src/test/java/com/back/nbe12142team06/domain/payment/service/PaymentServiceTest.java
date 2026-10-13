@@ -316,7 +316,7 @@ class PaymentServiceTest {
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.CANCELED);
 
-        assertThatThrownBy(() -> paymentService.cancel(payment, null, 0, null))
+        assertThatThrownBy(() -> paymentService.cancel(payment, null, 0, false, true))
                 .isInstanceOf(InvalidException.class)
                 .hasMessage("이미 취소된 결제입니다.");
     }
@@ -328,7 +328,7 @@ class PaymentServiceTest {
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.READY);
 
-        assertThatThrownBy(() -> paymentService.cancel(payment, null, 0, null))
+        assertThatThrownBy(() -> paymentService.cancel(payment, null, 0, false, true))
                 .isInstanceOf(InvalidException.class)
                 .hasMessage("결제 완료 상태가 아닙니다.");
     }
@@ -394,5 +394,48 @@ class PaymentServiceTest {
         em.clear();
 
         assertThat(paymentRepository.findById(payment.getId()).isEmpty()).isTrue();
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 지원 취소 시 모집 기한 종료이면 해당 공고 결제 취소 - 결제 DONE 1개")
+    void cancelPaymentStatusDoneWithApplicationCancel() {
+        // given
+        User client = createClient(false);
+        Post post = createPost(client, null);
+        Payment payment = createPayment(post, PaymentStatus.DONE);
+
+        doReturn(List.of(payment))
+                .when(paymentPersistenceService).findByPostId(any());
+        doReturn(null)
+                .when(paymentPersistenceService).paymentCancelDb(any(), any(), any(boolean.class));
+
+        //when
+        paymentService.cancel(post);
+
+        // then
+        verify(tossPaymentClient, times(1)).callApiCancel(any(), any(), any());
+        verify(paymentPersistenceService, times(1)).paymentCancelDb(any(), any(), any(boolean.class));
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 지원 취소 시 모집 기한 종료이면 해당 공고 결제 취소 - 결제 DONE 1개, PARTIAL_CANCELED 1개")
+    void cancelPaymentStatusDoneAndPartialCanceledWithApplicationCancel() {
+        // given
+        User client = createClient(false);
+        Post post = createPost(client, null);
+        Payment donePayment = createPayment(post, PaymentStatus.DONE);
+        Payment partialCanceledPayment = createPayment(post, PaymentStatus.PARTIAL_CANCELED);
+
+        doReturn(List.of(donePayment, partialCanceledPayment))
+                .when(paymentPersistenceService).findByPostId(any());
+        doReturn(null)
+                .when(paymentPersistenceService).paymentCancelDb(any(), any(), any(boolean.class));
+
+        //when
+        paymentService.cancel(post);
+
+        // then
+        verify(tossPaymentClient, times(2)).callApiCancel(any(), any(), any());
+        verify(paymentPersistenceService, times(2)).paymentCancelDb(any(), any(), any(boolean.class));
     }
 }
