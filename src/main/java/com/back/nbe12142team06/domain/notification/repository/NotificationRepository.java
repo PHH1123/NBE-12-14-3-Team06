@@ -15,4 +15,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     Page<Notification> findByReceiverId(@Param("receiverId") Long receiverId, Pageable pageable);
 
     List<Notification> findByReceiverId(Long receiverId);
+
+    List<Notification> findByReceiverIdAndId(Long receiverId, Long id);
 }

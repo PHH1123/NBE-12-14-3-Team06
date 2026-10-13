@@ -5,7 +5,9 @@ import com.back.nbe12142team06.domain.notification.event.NotificationEvent;
 import com.back.nbe12142team06.domain.notification.repository.EmitterRepository;
 import com.back.nbe12142team06.domain.notification.repository.NotificationRepository;
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InvalidException;
+import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -86,9 +88,23 @@ public class NoticeService {
     }
 
     @Transactional
-    public Page<Notification> read(Long userId, Pageable pageable) {
+    public Page<Notification> readList(Long userId, Pageable pageable) {
         Page<Notification> notifications = notificationRepository.findByReceiverId(userId, pageable);
         notifications.getContent().forEach(Notification::read);
         return notifications;
+    }
+
+    @Transactional
+    public Notification read(Long userId, Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new NotFoundException(131, "알림을 찾을 수 없습니다."));
+
+        if (!notification.getReceiver().getId().equals(userId)) {
+            throw new ForbiddenException(131, "알림을 읽을 권한이 없습니다");
+        }
+
+        notification.read();
+
+        return notification;
     }
 }
