@@ -99,7 +99,7 @@ public class NoticeService {
     }
 
     @Transactional
-    public void removeNotification(Long userId, Long notificationId) {
+    public Notification removeNotification(Long userId, Long notificationId) {
         Notification notification = notificationRepository.findByIdAndDeletedAtIsNull(notificationId)
                 .orElseThrow(() -> new NotFoundException(131, "알림을 찾을 수 없습니다."));
 
@@ -108,5 +108,7 @@ public class NoticeService {
         }
 
         notification.delete();
+
+        return notification;
     }
 }
