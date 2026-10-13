@@ -6,7 +6,7 @@ export { ChatWidgetProvider, useChatWidget } from './lib/ChatWidgetProvider';
 export { useChatSocket, type ChatSocketStatus } from './lib/useChatSocket';
 export { default as ChatPanel } from './components/ChatPanel';
 export { default as ChatLauncher } from './components/ChatLauncher';
-export { fetchChatRooms, fetchChatMessages, openChatRoom, type ChatMessagePage } from './api';
+export { fetchChatRooms, fetchChatMessages, openChatRoom, leaveChatRoom, type ChatMessagePage } from './api';
 export type {
   ChatMessage,
   ChatMessageDto,

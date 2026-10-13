@@ -43,7 +43,7 @@ public class ChatController {
     @PostMapping("/api/v1/chat")
     @ResponseBody
     public RsData<ChatRoomResponse> createChatRoom(@AuthenticationPrincipal SecurityUser user,
-                                 @RequestParam(name = "user-id") Long receiverId) {
+                                                   @RequestParam(name = "user-id") Long receiverId) {
         Long senderId = user.getId();
         ChatRoom chatRoom = chatService.createChatRoom(senderId, receiverId);
 
@@ -80,5 +80,15 @@ public class ChatController {
 
         return new RsData<>("200-122", "채팅 메시지를 조회했습니다.",
                 messages.map(ChatMessageResponse::new));
+    }
+
+    @PatchMapping("/api/v1/chat/{chatRoomId}")
+    @ResponseBody
+    public RsData<?> leaveChatRoom(@AuthenticationPrincipal SecurityUser user,
+                                   @PathVariable Long chatRoomId) {
+
+        chatService.leaveChatRoom(user.getId(), chatRoomId);
+
+        return new RsData<>("204-121", "채팅방을 떠났습니다.");
     }
 }

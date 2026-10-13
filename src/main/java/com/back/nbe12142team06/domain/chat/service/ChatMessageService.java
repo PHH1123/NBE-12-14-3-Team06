@@ -69,4 +69,21 @@ public class ChatMessageService {
     public int getUnReadCounts(Long userId, Long chatRoomId, LocalDateTime lastReadAt) {
         return chatMessageRepository.getUnReadCounts(userId, chatRoomId, lastReadAt);
     }
+
+    @Transactional
+    public ChatMessage leaveRoomMessage(String content, ChatPart chatPart, Long chatRoomId) {
+        // 채팅방 나가기 안내 메시지 저장
+        ChatMessage chatMessage = ChatMessage.builder()
+                .chatPart(chatPart)
+                .content(content)
+                .type(MessageType.LEAVE)
+                .build();
+        chatMessage = chatMessageRepository.save(chatMessage);
+
+        // 채팅방 나갔을 때는 상대방이 채팅 중일 수 있으므로 메시지 전송
+        messagingTemplate.convertAndSend(CHAT_SUBSCRIBE_PATH + chatRoomId,
+                new ChatMessageResponse(chatMessage));
+
+        return chatMessage;
+    }
 }
