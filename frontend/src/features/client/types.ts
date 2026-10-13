@@ -46,6 +46,8 @@ export type ClientPost = {
  * ⚠️ 태그(tags)는 백엔드 지원자 프로필 API(escort-profile)에 없어서, 실제 데이터로 채울 땐 빠집니다.
  */
 export type Manager = {
+  /** 이 매니저의 userId — "연락하기"로 채팅방을 열 때 씁니다. */
+  userId: number;
   name: string;
   rating: number;
   completedCount: number;

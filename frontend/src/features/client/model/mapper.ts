@@ -26,6 +26,7 @@ export function topReviewTags(reviews: ReviewDto[], limit = 3): string[] {
  */
 export function toManager(profile: EscortProfileDto, tags: string[]): Manager {
   return {
+    userId: profile.escortId,
     name: profile.name,
     rating: profile.rating,
     completedCount: profile.completedCount,

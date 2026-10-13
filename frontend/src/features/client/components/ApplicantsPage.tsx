@@ -181,6 +181,7 @@ export default function ApplicantsPage() {
                 const rejected = applicant.status === 'REJECTED' || applicant.status === 'CANCELED';
                 const locked = acceptedId !== undefined && acceptedId !== applicant.applicationId;
                 const manager = {
+                  userId: applicant.escortId,
                   name: applicant.name,
                   rating: applicant.profile?.rating ?? 0,
                   completedCount: applicant.profile?.completedCount ?? 0,

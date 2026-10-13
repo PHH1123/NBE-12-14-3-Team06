@@ -54,6 +54,9 @@ dependencies {
 
     //모니터링
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+
+    // 웹소켓
+    implementation ("org.springframework.boot:spring-boot-starter-websocket")
 }
 
 tasks.named('test', Test) {

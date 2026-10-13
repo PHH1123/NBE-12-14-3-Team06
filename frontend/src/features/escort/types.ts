@@ -18,6 +18,8 @@ export type TimelineStep = {
 export type ReportTarget = {
   applicationId: number;
   postId: number;
+  /** 의뢰인 userId — "메시지 보내기"로 채팅방을 열 때 씁니다. (GET .../client-profile 에서 옵니다) */
+  clientId: number;
   title: string;
   hospitalName: string;
   /** "2026.09.22(화)" */
@@ -52,6 +54,8 @@ export type TrackingCase = {
   transport: string;
   /** 환자 특이사항. 의뢰인이 안 썼으면 "없음" */
   note: string;
+  /** 의뢰인 userId — "의뢰인 연락하기"로 채팅방을 열 때 씁니다. */
+  clientId: number;
   clientName: string;
   clientPhone: string;
   emergencyContactName: string;

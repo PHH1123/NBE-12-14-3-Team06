@@ -7,10 +7,10 @@ import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout';
 import { Container, InfoRow, SectionHeading } from '@/components/ui';
 import { useRequireAuth } from '@/features/auth';
+import { useChatWidget } from '@/features/chat';
 import { StatusLabel } from '@/features/post';
 import { aiSummaryItems, fetchReport, isReportNotFoundError, parseAiSummary, type ReportDto } from '@/features/report';
 import { cn } from '@/lib/cn';
-import { showUnimplemented } from '@/lib/unimplemented';
 import { fetchReportTarget } from '../api';
 import { formatDateTime } from '../lib/date';
 import type { ReportTarget } from '../types';
@@ -47,6 +47,7 @@ function MultilineText({ text }: { text: string }) {
  */
 export default function ReportDetailPage() {
   const { loading: authLoading, user } = useRequireAuth('ESCORT');
+  const { openChatWith } = useChatWidget();
   const params = useParams<{ applicationId: string }>();
   const applicationId = Number(params.applicationId);
 
@@ -246,13 +247,10 @@ export default function ReportDetailPage() {
                     <Image src="/icons/escort/back-arrow.svg" alt="" width={11.3} height={9.3} />
                     동행 내역으로 돌아가기
                   </Link>
-                  {/* TODO: 메시지 기능 연결 */}
-                  {showUnimplemented() && (
-                    <button type="button" className={MENU_BUTTON}>
-                      <Image src="/icons/escort/chat.svg" alt="" width={14.3} height={12.3} />
-                      의뢰인에게 메시지 보내기
-                    </button>
-                  )}
+                  <button type="button" onClick={() => openChatWith(escort.clientId)} className={MENU_BUTTON}>
+                    <Image src="/icons/escort/chat.svg" alt="" width={14.3} height={12.3} />
+                    의뢰인에게 메시지 보내기
+                  </button>
                 </div>
               </section>
             </div>
