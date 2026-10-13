@@ -7,6 +7,7 @@ import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.enums.EscortProgress;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository;
+import com.back.nbe12142team06.domain.notification.service.NoticeService;
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
 import com.back.nbe12142team06.domain.payment.service.PaymentService;
 import com.back.nbe12142team06.domain.penalty.service.NoShowPenaltyService;
@@ -52,6 +53,7 @@ public class ApplicationService {
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
     private final RideService rideService;
+    private final NoticeService noticeService;
 
     @Transactional
     public ApplicationApplyResponse apply(Long postId, Long userId) {
@@ -94,6 +96,11 @@ public class ApplicationService {
 
         Application savedApplication = applicationRepository.save(application);
         log.info("[지원] applicationId={}, postId={}, escortId={}", savedApplication.getId(), postId, userId);
+
+        // 알림
+        noticeService.send(post.getClient(),
+                "%s님이 %s 공고에 지원하셨습니다.".formatted(escort.getName(), post.getTitle()), null);
+
         return new ApplicationApplyResponse(savedApplication);
     }
 
