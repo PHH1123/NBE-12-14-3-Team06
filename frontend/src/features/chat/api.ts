@@ -1,4 +1,4 @@
-import { api, apiPost, type SpringPage } from '@/lib/api';
+import { api, apiPatch, apiPost, type SpringPage } from '@/lib/api';
 import { toChatMessage, toChatRoomSummary } from './model/mapper';
 import type { ChatMessage, ChatMessageDto, ChatRoomDto, ChatRoomSummary } from './types';
 
@@ -27,6 +27,17 @@ export async function fetchChatRooms(): Promise<ChatRoomSummary[]> {
 export async function openChatRoom(partnerUserId: number): Promise<ChatRoomSummary> {
   const room = await apiPost<ChatRoomDto>(`/api/v1/chat?user-id=${partnerUserId}`);
   return toChatRoomSummary(room);
+}
+
+/**
+ * 채팅방 나가기 — PATCH /api/v1/chat/{chatRoomId}
+ *
+ * 내 참여 기록만 비활성화합니다. 방과 메시지는 남고, 상대 화면에는
+ * "○○님이 채팅방을 떠났습니다" 안내가 보입니다.
+ * 나간 방은 목록에서 사라지지만, 상대가 다시 메시지를 보내면 되살아납니다.
+ */
+export function leaveChatRoom(roomId: number): Promise<void> {
+  return apiPatch<void>(`/api/v1/chat/${roomId}`);
 }
 
 /**
