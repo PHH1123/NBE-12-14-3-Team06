@@ -5,7 +5,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 
-@Repository
 public interface EmitterRepository {
 
     SseEmitter save(String emitterId, SseEmitter sseEmitter);

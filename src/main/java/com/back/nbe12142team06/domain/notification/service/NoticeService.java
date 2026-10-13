@@ -1,26 +1,23 @@
 package com.back.nbe12142team06.domain.notification.service;
 
-import com.back.nbe12142team06.domain.application.entity.Application;
-import com.back.nbe12142team06.domain.notification.dto.NotificationResponse;
 import com.back.nbe12142team06.domain.notification.entity.Notification;
 import com.back.nbe12142team06.domain.notification.event.NotificationEvent;
 import com.back.nbe12142team06.domain.notification.repository.EmitterRepository;
-import com.back.nbe12142team06.domain.notification.repository.EmitterRepositoryImpl;
 import com.back.nbe12142team06.domain.notification.repository.NotificationRepository;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.global.exception.InvalidException;
-import com.back.nbe12142team06.global.response.RsData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.Map;
 
-import static org.springframework.web.servlet.mvc.method.annotation.SseEmitter.*;
+import static org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event;
 
 @Service
 @RequiredArgsConstructor
@@ -80,5 +77,13 @@ public class NoticeService {
         } catch (IOException e) {
             throw new InvalidException(131, "SSE 전송에 실패했습니다.");
         }
+    }
+
+    @Transactional
+    public Page<Notification> getPage(Long userId, Pageable pageable) {
+        Page<Notification> notifications = notificationRepository.findByReceiverId(userId, pageable);
+        notifications.getContent().forEach(Notification::read);
+
+        return notifications;
     }
 }
