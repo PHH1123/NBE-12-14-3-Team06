@@ -56,4 +56,7 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             "where s.id=:settlementId " +
             "and (s.settlementStatus=SettlementStatus.PENDING or s.settlementStatus=SettlementStatus.FAILED)")
     int updateProcessing(@Param("settlementId") Long settlementId);
+
+    @Query("select s from Settlement s join fetch s.application join fetch s.escort where s.id=:id")
+    Optional<Settlement> findJoinFetchById(@Param("id") Long id);
 }

@@ -42,7 +42,7 @@ public class SettlementPersistenceService {
     }
 
     public Settlement findById(Long settlementId) {
-        return settlementRepository.findById(settlementId)
+        return settlementRepository.findJoinFetchById(settlementId)
                 .orElseThrow(() -> new NotFoundException(71, "정산 데이터를 찾을 수 없습니다."));
     }
 }
