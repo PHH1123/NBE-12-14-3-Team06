@@ -65,4 +65,13 @@ public class NotificationController {
         return new RsData<>("200-133", "알림을 읽음 처리했습니다.",
                 new NotificationResponse(notification));
     }
+
+    @DeleteMapping("/{notificationId}")
+    public RsData<?> removeNotification(@AuthenticationPrincipal SecurityUser user,
+                                        @PathVariable Long notificationId) {
+        Long userId = user.getId();
+        noticeService.removeNotification(userId, notificationId);
+
+        return new RsData<>("204-131", "알림을 삭제했습니다.");
+    }
 }

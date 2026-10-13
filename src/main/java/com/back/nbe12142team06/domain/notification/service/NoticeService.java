@@ -34,13 +34,16 @@ public class NoticeService {
         // 5분
         String emitterId = userId + "_" + System.currentTimeMillis();
         SseEmitter sseEmitter = new SseEmitter(300_000L);
-        sseEmitter = emitterRepository.save(emitterId, sseEmitter);
+        emitterRepository.save(emitterId, sseEmitter);
 
         // 연결 전송
         sendToClient(sseEmitter, emitterId, "connect");
 
         // 연결 종료 시 인메모리 해시맵에서 제거 예약
-        sseEmitter.onCompletion(() -> emitterRepository.deleteEmitterStartWithUserId(userId));
+        sseEmitter.onCompletion(() -> emitterRepository.deleteById(emitterId));
+
+        sseEmitter.onTimeout(sseEmitter::complete);
+        sseEmitter.onError(e -> sseEmitter.complete());
 
         return sseEmitter;
     }
@@ -83,7 +86,7 @@ public class NoticeService {
 
     @Transactional
     public Notification read(Long userId, Long notificationId) {
-        Notification notification = notificationRepository.findById(notificationId)
+        Notification notification = notificationRepository.findByIdAndDeletedAtIsNull(notificationId)
                 .orElseThrow(() -> new NotFoundException(131, "알림을 찾을 수 없습니다."));
 
         if (!notification.getReceiver().getId().equals(userId)) {
@@ -93,5 +96,17 @@ public class NoticeService {
         notification.read();
 
         return notification;
+    }
+
+    @Transactional
+    public void removeNotification(Long userId, Long notificationId) {
+        Notification notification = notificationRepository.findByIdAndDeletedAtIsNull(notificationId)
+                .orElseThrow(() -> new NotFoundException(131, "알림을 찾을 수 없습니다."));
+
+        if (!notification.getReceiver().getId().equals(userId)) {
+            throw new ForbiddenException(131, "알림을 읽을 권한이 없습니다");
+        }
+
+        notification.delete();
     }
 }
