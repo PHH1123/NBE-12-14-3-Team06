@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.List;
 
 import static org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event;
 
@@ -79,11 +80,15 @@ public class NoticeService {
         }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Page<Notification> getPage(Long userId, Pageable pageable) {
+        return notificationRepository.findByReceiverId(userId, pageable);
+    }
+
+    @Transactional
+    public Page<Notification> read(Long userId, Pageable pageable) {
         Page<Notification> notifications = notificationRepository.findByReceiverId(userId, pageable);
         notifications.getContent().forEach(Notification::read);
-
         return notifications;
     }
 }
