@@ -2,7 +2,7 @@ import { fetchApplicants, fetchEscortProfile, fetchProgress } from '@/features/a
 import { fetchUnpaidByPost, type PaymentDto } from '@/features/payment';
 import { fetchMyPostsRaw, fetchPostRaw } from '@/features/post';
 import { fetchUserReviews } from '@/features/review';
-import { fetchRidesByPost, formatTransport } from '@/features/ride';
+import { fetchRidesByPost, formatTransport, selectedByDirection } from '@/features/ride';
 import { api, apiPatch } from '@/lib/api';
 import { toClientEscortCase } from './model/escort';
 import { toManager, topReviewTags } from './model/mapper';
@@ -31,7 +31,15 @@ export async function fetchClientEscortCase(postId: number, applicationId: numbe
   // "이 글의 리뷰" 조회 API 없이 판정할 수 있습니다.
   const reviewed = reviews.some((review) => review.applicationId === applicationId);
 
-  return toClientEscortCase(post, applicationId, manager, formatTransport(rides), progress.progress, reviewed);
+  return toClientEscortCase(
+    post,
+    applicationId,
+    manager,
+    formatTransport(rides),
+    selectedByDirection(rides),
+    progress.progress,
+    reviewed,
+  );
 }
 
 /**

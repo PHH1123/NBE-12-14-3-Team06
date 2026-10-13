@@ -77,6 +77,7 @@ export default function ApplicantProfilePage() {
   }
 
   const manager = {
+    userId: profile.escortId,
     name: profile.name,
     rating: profile.rating,
     completedCount: profile.completedCount,

@@ -1,6 +1,7 @@
 import type { TimelineStep } from '@/features/escort';
 import type { PostStatusKey } from '@/features/post';
 import type { EscortGrade } from '@/features/application';
+import type { RideDirection, RideSelect } from '@/features/ride';
 import type { RoutePoint } from '@/lib/kakaoT';
 
 /**
@@ -45,6 +46,8 @@ export type ClientPost = {
  * ⚠️ 태그(tags)는 백엔드 지원자 프로필 API(escort-profile)에 없어서, 실제 데이터로 채울 땐 빠집니다.
  */
 export type Manager = {
+  /** 이 매니저의 userId — "연락하기"로 채팅방을 열 때 씁니다. */
+  userId: number;
   name: string;
   rating: number;
   completedCount: number;
@@ -118,6 +121,12 @@ export type ClientEscortCase = {
   /** 종료 확정 시간 (finishing 단계에서만) */
   confirmedEndAt?: string;
   transport: string;
+  /**
+   * 방향별로 고른 이동수단(ENUM 그대로). transport 는 표시용 문구라 분기에 쓸 수 없어 따로 들고 있습니다.
+   * 택시가 아니면 카카오 T 호출 버튼을 잠그는 데 씁니다 — 아직 고르기 전(null)이거나
+   * 이 값 자체가 없으면 잠그지 않습니다.
+   */
+  rideSelect?: Record<RideDirection, RideSelect | null>;
   meetingPlace: string;
   /** 카카오 T 호출 링크에 쓰는 집(픽업)·병원 좌표. 둘 다 있어야 버튼을 보여줍니다. */
   pickupPoint?: RoutePoint;

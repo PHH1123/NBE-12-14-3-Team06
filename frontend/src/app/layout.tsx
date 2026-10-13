@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/features/auth";
+import { ChatWidgetProvider } from "@/features/chat";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,7 +30,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         {/* 로그인 세션을 앱 전체에서 한 번만 불러와 나눠 씁니다. */}
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {/* 우하단 플로팅 채팅 위젯. 화면마다 따로 띄우지 않고 여기서 한 번만 감쌉니다. */}
+          <ChatWidgetProvider>{children}</ChatWidgetProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -8,6 +8,7 @@ import { AppShell } from '@/components/layout';
 import { Container, InfoRow } from '@/components/ui';
 import { applyToPost, fetchMyApplications } from '@/features/application';
 import { useCurrentUser, useRequireAuth, type CurrentUser } from '@/features/auth';
+import { useChatWidget } from '@/features/chat';
 // 배럴(@/features/education)로 가져오면 education 화면 → @/features/post → 이 파일로 순환 import 가 생겨서 api 모듈을 직접 가져옵니다.
 import { isEducationRequiredError } from '@/features/education/api';
 import {
@@ -120,6 +121,7 @@ function PostDetailPageBody({ viewer }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, unauthenticated } = useCurrentUser();
+  const { openChatWith } = useChatWidget();
   const postId = Number(params.postId);
 
   // result.postId 로 "지금 postId 의 결과인지"를 판단합니다. (postId 가 바뀐 직후에는 이전 결과를 버리고 loading 으로 봅니다)
@@ -207,6 +209,16 @@ function PostDetailPageBody({ viewer }: Props) {
   const loadError = loading ? undefined : result?.error;
 
   const isClient = viewer === 'client';
+
+  /**
+   * 작성자에게 "연락하기"를 보여 줄지.
+   * 로그인한 의뢰인·동행 매니저에게만, 그리고 자기 공고가 아닐 때만 보여 줍니다
+   * (자기 자신과는 채팅방을 만들 수 없고, 관리자는 채팅 대상이 아닙니다).
+   */
+  const canContactAuthor =
+    !!post &&
+    (user?.role === 'CLIENT' || user?.role === 'ESCORT') &&
+    user.username !== post.clientId;
 
   const listHref =
     viewer === 'client'
@@ -683,6 +695,16 @@ function PostDetailPageBody({ viewer }: Props) {
               ) : (
                 <button type="button" onClick={handleApply} disabled={applyDisabled} className={cn(BUTTON, 'h-11 bg-brand text-base text-white hover:bg-brand-hover')}>
                   {applyLabel}
+                </button>
+              )}
+              {/* 지원 전에 궁금한 걸 물어볼 수 있게, 지원하기 바로 아래에 둡니다. */}
+              {canContactAuthor && (
+                <button
+                  type="button"
+                  onClick={() => openChatWith(post.clientUserId)}
+                  className={cn(BUTTON, 'h-11 border border-line bg-white text-base text-brand hover:bg-line-soft')}
+                >
+                  의뢰인에게 연락하기
                 </button>
               )}
               <Link href={listHref} className={cn(BUTTON, 'h-11 border border-line bg-white text-base text-brand hover:bg-line-soft')}>
