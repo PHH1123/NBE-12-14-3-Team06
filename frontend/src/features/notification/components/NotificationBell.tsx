@@ -76,8 +76,9 @@ export default function NotificationBell() {
         )}
       </button>
 
+      {/* 패널 너비는 좌우 버튼 자리를 빼고도 본문이 충분히 들어가도록 340px 보다 조금 넓게 잡았습니다. */}
       {open && (
-        <div className="absolute top-full right-0 z-20 mt-3 w-[340px] overflow-hidden rounded-[20px] border border-line bg-white shadow-card">
+        <div className="absolute top-full right-0 z-20 mt-3 w-[380px] overflow-hidden rounded-[20px] border border-line bg-white shadow-card">
           <div className="flex items-center justify-between gap-2 border-b border-line px-5 py-3.5">
             <p className="text-base leading-5 font-semibold text-brand">알림</p>
             {unreadCount > 0 && (
@@ -109,8 +110,20 @@ export default function NotificationBell() {
 
                   {/*
                     행 전체가 button/Link 라서 그 안에 버튼을 넣을 수 없습니다(중첩 불가).
-                    형제로 두고 겹쳐 올립니다 — 행의 pr-10 이 글자와 겹치지 않게 자리를 비워 둡니다.
+                    형제로 두고 겹쳐 올립니다 — 행의 pl-[58px]·pr-10 이 글자와 겹치지 않게 자리를 비워 둡니다.
                   */}
+                  {!item.read && (
+                    // 안 읽은 알림에만 나옵니다. 행을 눌러도 읽음이 되지만 그때는 링크를 타고 이동해 버려서,
+                    // "이동하지 않고 읽음만" 하려면 이 버튼이 필요합니다.
+                    <button
+                      type="button"
+                      onClick={() => markRead(item.id)}
+                      className="absolute top-3.5 left-4 cursor-pointer rounded-full border border-line bg-white px-2 py-[3px] text-[11px] leading-[14px] font-semibold text-brand-muted transition-colors hover:border-brand-muted hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                    >
+                      읽음
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => remove(item.id)}
@@ -137,28 +150,23 @@ function NotificationRow({ notification, onRead }: { notification: AppNotificati
   const time = formatNotificationTime(notification.createdAt);
 
   const body = (
-    <>
+    <span className="block">
       <span
-        aria-hidden="true"
-        className={cn('mt-1.5 size-1.5 shrink-0 rounded-full', notification.read ? 'bg-transparent' : 'bg-[#b91d1d]')}
-      />
-      <span className="flex-1">
-        <span
-          className={cn(
-            'block text-sm leading-5 break-keep',
-            notification.read ? 'text-brand-muted' : 'font-medium text-brand',
-          )}
-        >
-          {notification.content}
-        </span>
-        {time && <span className="mt-1 block text-xs leading-4 text-brand-muted">{time}</span>}
+        className={cn(
+          'block text-sm leading-5 break-keep',
+          notification.read ? 'text-brand-muted' : 'font-medium text-brand',
+        )}
+      >
+        {notification.content}
       </span>
-    </>
+      {time && <span className="mt-1 block text-xs leading-4 text-brand-muted">{time}</span>}
+    </span>
   );
 
-  // pr-10 은 오른쪽 위 삭제 버튼 자리입니다 (NotificationBell 의 주석 참고).
+  // 좌우 여백은 겹쳐 올린 버튼 자리입니다 — 왼쪽은 "읽음", 오른쪽은 삭제(NotificationBell 의 주석 참고).
+  // 읽은 알림은 왼쪽 버튼이 없지만, 줄이 밀리지 않도록 같은 여백을 유지합니다.
   const className =
-    'flex w-full cursor-pointer gap-2 py-3.5 pr-10 pl-5 text-left transition-colors hover:bg-line-soft';
+    'block w-full cursor-pointer py-3.5 pr-10 pl-[58px] text-left transition-colors hover:bg-line-soft';
 
   return notification.href ? (
     <Link href={notification.href} onClick={onRead} className={className}>
