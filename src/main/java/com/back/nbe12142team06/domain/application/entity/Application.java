@@ -106,4 +106,11 @@ public class Application extends BaseTimeEntity {
         this.acceptedPostId = null;
         syncActivePostId();
     }
+
+    // 회원 탈퇴·정지로 인한 패널티 없는 지원취소
+    public void cancelWithoutPenalty() {
+        this.status = ApplicationStatus.CANCELED;
+        this.acceptedPostId = null;
+        syncActivePostId();
+    }
 }
