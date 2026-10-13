@@ -218,6 +218,10 @@ class ChatServiceTest {
                 .when(chatPartRepository).findByUserIdAndChatRoomId(eq(escort.getId()), any());
         doReturn(Optional.of(clientChatPart))
                 .when(chatPartRepository).findByUserIdAndChatRoomId(eq(client.getId()), any());
+        doReturn(List.of(clientChatPart))
+                .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(escort.getId()), any());
+        doReturn(List.of(escortChatPart))
+                .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(client.getId()), any());
         doReturn(Optional.of(chatRoom))
                 .when(chatRoomRepository).findById(any());
         doAnswer(invocation -> invocation.getArgument(0))
