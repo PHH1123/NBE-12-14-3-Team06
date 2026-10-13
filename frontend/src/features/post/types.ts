@@ -25,8 +25,10 @@ export type PostSummary = {
   region: string;
   /** 구/군 */
   district: string;
-  /** 작성자(의뢰인) 아이디 */
+  /** 작성자(의뢰인) 아이디 (로그인 username) */
   clientId: string;
+  /** 작성자(의뢰인) userId — "연락하기"로 채팅방을 열 때 씁니다. */
+  clientUserId: number;
   /** 백엔드 postStatus 원문 ("모집 중" · "매칭 완료" · "동행 진행 중" · "동행 완료" · "취소됨" · "마감 기한 초과") */
   postStatus: string;
   /** "2시간 전" */
@@ -81,6 +83,7 @@ export type PostFilters = {
 export type PostDto = {
   id: number;
   client_id: string;            // 작성자 아이디 (username)
+  clientUserId: number;         // 작성자 userId — 채팅방을 열 때 필요합니다
   title: string;
   content: string;
   patientNote: string | null;   // 선택 항목이라 비어 있을 수 있음

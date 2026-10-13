@@ -39,7 +39,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         throws ServletException, IOException {
 
         // /api로 시작하는 요청이 아니면 전부 통과
-        if (!request.getRequestURI().startsWith("/api/")) {
+        // 웹소켓 연결 - 시큐리티에 인증 정보 채우기
+        if (!request.getRequestURI().startsWith("/api/")
+            && !request.getRequestURI().startsWith("/ws/")) {
             filterChain.doFilter(request, response);
             return;
         }

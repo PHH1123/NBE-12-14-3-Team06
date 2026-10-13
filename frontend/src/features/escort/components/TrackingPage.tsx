@@ -8,6 +8,7 @@ import { AppShell } from '@/components/layout';
 import { Container, InfoRow, SectionHeading } from '@/components/ui';
 import { PROGRESS_ORDER, advanceProgress } from '@/features/application';
 import { useRequireAuth } from '@/features/auth';
+import { useChatWidget } from '@/features/chat';
 import { useShareLocation } from '@/features/location';
 import { StatusLabel } from '@/features/post';
 import { fetchReport } from '@/features/report';
@@ -37,6 +38,7 @@ type CaseResult =
  */
 export default function TrackingPage() {
   const { loading: authLoading, user } = useRequireAuth('ESCORT');
+  const { openChatWith } = useChatWidget();
   const params = useParams<{ applicationId: string }>();
   const applicationId = Number(params.applicationId);
 
@@ -276,9 +278,7 @@ export default function TrackingPage() {
                     </>
                   ) : (
                     <>
-                      {showUnimplemented() && (
-                        <button type="button" className={cn(BUTTON, 'border border-line bg-white text-brand hover:bg-line-soft')}>의뢰인 연락하기</button>
-                      )}
+                      <button type="button" onClick={() => openChatWith(escort.clientId)} className={cn(BUTTON, 'border border-line bg-white text-brand hover:bg-line-soft')}>의뢰인 연락하기</button>
                       <Link href={detailHref} className={cn(BUTTON, 'border border-line bg-white text-brand hover:bg-line-soft')}>{info.third}</Link>
                     </>
                   )}

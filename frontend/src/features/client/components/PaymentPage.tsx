@@ -14,7 +14,7 @@ import { fetchSaveAmount } from '../api';
 // SDK 가 Amount 타입을 export 하지 않으므로 setAmount 의 파라미터에서 가져옵니다.
 type Amount = Parameters<TossPaymentsWidgets["setAmount"]>[0];
 
-const clientKey = "test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm";
+const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
 
 function generateRandomString() {
   return btoa(Math.random().toString()).slice(0, 20);
@@ -59,6 +59,10 @@ export default function PaymentPage() {
 
     async function fetchPaymentWidgets(customerKey: string) {
       try {
+        if (clientKey == null) {
+          throw new Error('토스페이먼츠 클라이언트 키(NEXT_PUBLIC_TOSS_CLIENT_KEY)가 설정되지 않았습니다.');
+        }
+
         // ------  SDK 초기화 ------
         // @docs https://docs.tosspayments.com/sdk/v2/js#토스페이먼츠-초기화
         const tossPayments = await loadTossPayments(clientKey);
@@ -152,7 +156,8 @@ export default function PaymentPage() {
         {/* 이용약관 UI */}
         <div id="agreement" />
         {/* 쿠폰 체크박스 — 추가 결제는 백엔드가 계산한 차액을 그대로 내야 해서 금액을 바꿀 수 없게 숨깁니다. */}
-        {!isExtra && (
+        {/* 나중에 쿠폰 기능을 추가할 수 있어 주석처리 했습니다. */}
+        {/* {!isExtra && (
           <div style={{ paddingLeft: "24px" }}>
             <div className="checkable typography--p">
               <label
@@ -180,7 +185,7 @@ export default function PaymentPage() {
               </label>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* 결제하기 버튼 */}
         <button

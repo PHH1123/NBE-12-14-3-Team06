@@ -25,6 +25,7 @@ export function toPostSummary(dto: PostDto): PostSummary {
     region: dto.region,
     district: dto.hospitalAddress.split(' ')[1] ?? '',
     clientId: dto.client_id,
+    clientUserId: dto.clientUserId,
     postStatus: dto.postStatus,
     postedAgo: formatAgo(dto.createdAt),
     startsInDays: daysUntil(dto.escortStartAt),
