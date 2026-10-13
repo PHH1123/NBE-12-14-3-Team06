@@ -9,6 +9,7 @@ import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.service.UserService;
 import com.back.nbe12142team06.global.exception.DuplicatedException;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
@@ -31,6 +32,7 @@ public class ChatService {
     private final ChatPartRepository chatPartRepository;
 
     private final String CREATE_ROOM_MESSAGE = "님이 채팅방을 개설했습니다.";
+    private final String LEAVE_ROOM_MESSAGE = "님이 채팅방을 떠났습니다.";
 
     // 채팅방 생성
     @Transactional
@@ -67,8 +69,21 @@ public class ChatService {
     }
 
     // 채팅방 나가기
-    public void leaveChatRoom() {
-        // TODO: 채팅방 나가기
+    @Transactional
+    public void leaveChatRoom(Long userId, Long chatRoomId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new NotFoundException(122, "존재하지 않는 채팅방입니다."));
+        ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+                .orElseThrow(() -> new NotFoundException(121, "채팅 입장 내역이 없습니다."));
+
+        if (!chatPart.getIsActive()) {
+            throw new InvalidException(122, "이미 떠난 채팅방입니다.");
+        }
+
+        chatPart.leave();
+        ChatMessage chatMessage = chatMessageService.leaveRoomMessage(chatPart.getUser().getName() + LEAVE_ROOM_MESSAGE, chatPart, chatRoomId);
+
+        chatRoom.updateLastChat(chatMessage.getContent(), chatMessage.getSentAt());
     }
 
     // 채팅 보내기
@@ -77,6 +92,12 @@ public class ChatService {
         // TODO: Fetch Join 적용
         ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(senderId, chatRoomId)
                 .orElseThrow(() -> new NotFoundException(121, "채팅 입장 내역이 없습니다."));
+
+        ChatPart receiverChatPart = chatPartRepository.findByUserIdNotAndChatRoomId(senderId, chatRoomId).getFirst();
+        if (!receiverChatPart.getIsActive()) {
+            receiverChatPart.join();
+        }
+
         return chatMessageService.sendMessage(chatRoomId, content, chatPart);
     }
 
@@ -91,6 +112,11 @@ public class ChatService {
     public Page<ChatMessage> getMessages(Long userId, Long chatRoomId, Pageable pageable) {
         ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
                 .orElseThrow(() -> new ForbiddenException(121, "채팅방에 접속하실 권한이 없습니다."));
+
+        if (!chatPart.getIsActive()) {
+            throw new InvalidException(122, "이미 떠난 채팅방입니다.");
+        }
+
         chatPart.read();
         return chatMessageService.getMessages(chatRoomId, pageable);
     }
