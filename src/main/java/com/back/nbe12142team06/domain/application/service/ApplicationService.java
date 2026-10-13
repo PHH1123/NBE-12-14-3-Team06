@@ -18,6 +18,7 @@ import com.back.nbe12142team06.domain.user.entity.ClientProfile;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.ClientProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
@@ -67,6 +68,12 @@ public class ApplicationService {
 
         User escort = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(1, "회원 정보를 찾을 수 없습니다."));
+
+        // ACTIVE 상태인 회원만 지원 가능
+        if (escort.getUserStatus() != UserStatus.ACTIVE) {
+            throw new ForbiddenException(
+                    31, "활성 상태의 회원만 지원할 수 있습니다.");
+        }
 
         // 동행인만 지원 가능
         if (escort.getRole() != Role.ESCORT) {
@@ -133,6 +140,12 @@ public class ApplicationService {
         // 대기 중인 지원만 승인 가능
         if (application.getStatus() != ApplicationStatus.PENDING) {
             throw new InvalidException(24, "대기 중인 지원만 승인할 수 있습니다.");
+        }
+
+        // 정지·차단된 동행매니저는 승인 불가 (새로 추가)
+        if (escort.getUserStatus() != UserStatus.ACTIVE) {
+            throw new ForbiddenException(
+                    32, "활성 상태의 동행매니저만 승인할 수 있습니다.");
         }
 
         // 모집 중인 공고만 매칭 가능
@@ -274,6 +287,74 @@ public class ApplicationService {
         }
 
         throw new InvalidException(28, "취소할 수 없는 지원 상태입니다.");
+    }
+
+    // 회원 탈퇴·정지 시 패널티 없이 지원 일괄 취소
+    @Transactional
+    public void cancelAllByEscort(Long escortId) {
+
+        // 취소 가능한 지원 목록 조회
+        List<Application> applications =
+                applicationRepository.findAllCancelableByEscortId(
+                        escortId,
+                        ApplicationStatus.PENDING,
+                        ApplicationStatus.ACCEPTED,
+                        PostStatus.OPEN,
+                        PostStatus.MATCHED
+                );
+
+        for (Application candidate : applications) {
+
+            // 공고 상태가 변경될 수 있으므로 잠금 후 재확인
+            Post post = postRepository.findByIdWithLock(
+                    candidate.getPost().getId()
+            ).orElseThrow(() ->
+                    new NotFoundException(11, "공고가 없습니다."));
+
+            Application application = applicationRepository
+                    .findByIdWithLock(candidate.getId())
+                    .orElseThrow(() ->
+                            new NotFoundException(24, "지원을 찾을 수 없습니다."));
+
+            // PENDING + OPEN
+            if (application.getStatus() == ApplicationStatus.PENDING
+                    && post.getPostStatus() == PostStatus.OPEN) {
+
+                application.cancelWithoutPenalty();
+                continue;
+            }
+
+            // ACCEPTED + MATCHED
+            if (application.getStatus() == ApplicationStatus.ACCEPTED
+                    && post.getPostStatus() == PostStatus.MATCHED) {
+
+                application.cancelWithoutPenalty();
+
+                // 매칭된 공고 취소
+                post.matchedCancel();
+
+                // 취소된 공고의 결제 환불
+                paymentService.cancel(post);
+                continue;
+            }
+
+            // 조회 이후 상태가 변경된 경우
+            throw new InvalidException(
+                    35, "지원 또는 공고 상태가 변경되어 취소할 수 없습니다.");
+        }
+
+        log.info("[회원 탈퇴·정지 지원 일괄 취소] escortId={}, count={}",
+                escortId, applications.size());
+    }
+
+    // 회원 탈퇴 제한: 진행 중인 동행이 있는지 확인
+    @Transactional(readOnly = true)
+    public boolean hasInProgressEscort(Long escortId) {
+        return applicationRepository.existsInProgressByEscortId(
+                escortId,
+                ApplicationStatus.ACCEPTED,
+                PostStatus.IN_PROGRESS
+        );
     }
 
     @Transactional

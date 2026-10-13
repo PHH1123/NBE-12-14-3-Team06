@@ -2,21 +2,14 @@ package com.back.nbe12142team06.domain.report.summarizer;
 
 import com.back.nbe12142team06.domain.report.dto.ReportSummary;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
- * Anthropic Claude API 로 진료 보고서를 요약한다.
+ * Spring AI(ChatClient)로 Anthropic Claude 에게 진료 보고서를 요약시킨다.
  * <p>
  * 여기로 넘어오는 content 는 이미 {@code ReportMasker} 로 실명·연락처가 가려진 텍스트다.
  * 원문을 그대로 외부로 보내지 않는다.
@@ -43,7 +36,7 @@ public class ClaudeReportSummarizer implements ReportSummarizer {
             - 각 필드는 한국어 한두 문장으로 간결하게 쓴다.
             - 진단을 새로 내리거나 의학적 조언을 덧붙이지 않는다. 원문에 적힌 내용만 옮긴다.
             - 원문의 "환자분", "동행인" 같은 표현은 그대로 둔다. 이름을 추측해서 채우지 않는다.
-            - 설명이나 인사말 없이, 여는 중괄호로 시작해서 닫는 중괄호로 끝나는 JSON 만 출력한다.
+            - 설명이나 인사말 없이 JSON 만 출력한다.
 
             예시
             입력:
@@ -62,120 +55,50 @@ public class ClaudeReportSummarizer implements ReportSummarizer {
             }
             """;
 
-    private final RestClient claudeRestClient;
-    private final String model;
-    private final int maxTokens;
+    private final ChatClient chatClient;
 
-    // Spring Boot 4 에서는 ObjectMapper 가 자동으로 빈 등록되지 않아 직접 생성한다.
     // 응답에 우리가 모르는 필드가 섞여도 깨지지 않도록 설정한다.
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    public ClaudeReportSummarizer(
-            @Qualifier("claudeRestClient") RestClient claudeRestClient,
-            @Value("${custom.claude.model}") String model,
-            @Value("${custom.claude.max-tokens}") int maxTokens
-    ) {
-        this.claudeRestClient = claudeRestClient;
-        this.model = model;
-        this.maxTokens = maxTokens;
+    public ClaudeReportSummarizer(ChatClient.Builder builder) {
+        this.chatClient = builder.defaultSystem(SYSTEM_PROMPT).build();
     }
 
     @Override
     public ReportSummary summarize(String maskedContent) {
+        String text = chatClient.prompt()
+                .user("다음 진료 보고서를 요약해줘.\n\n" + maskedContent)
+                .call()
+                .content();
 
-        String responseBody = claudeRestClient.post()
-                .uri("/v1/messages")
-                .body(buildRequestBody(maskedContent))
-                .retrieve()
-                .body(String.class);
-
-        return parseSummary(responseBody);
+        return parseSummary(text);
     }
 
     /**
-     * 요청 본문을 만든다.
-     * 대화는 반드시 user 메시지로 끝나야 한다.
-     */
-    private Map<String, Object> buildRequestBody(String maskedContent) {
-        return Map.of(
-                "model", model,
-                "max_tokens", maxTokens,
-                "system", SYSTEM_PROMPT,
-                "messages", List.of(
-                        Map.of("role", "user",
-                                "content", "다음 진료 보고서를 요약해줘. JSON 만 출력해.\n\n" + maskedContent)
-                )
-        );
-    }
-
-    /**
-     * 응답에서 요약 JSON 을 꺼낸다.
-     * 응답 구조: { "content": [ { "type": "text", "text": "..." }, ... ], "stop_reason": "..." }
-     */
-    private ReportSummary parseSummary(String responseBody) {
-        try {
-            JsonNode root = objectMapper.readTree(responseBody);
-
-            return objectMapper.readValue(extractJson(extractText(root)), ReportSummary.class);
-
-        } catch (Exception e) {
-            throw new IllegalStateException("Claude 응답을 요약 형식으로 변환하지 못했습니다.", e);
-        }
-    }
-
-    /**
-     * content 배열에서 type 이 "text" 인 블록만 골라 잇는다.
+     * 응답 텍스트에서 요약 JSON 을 꺼내 변환한다.
      * <p>
-     * 0번 블록을 그대로 꺼내면 안 된다. 모델에 따라 텍스트 앞에 다른 종류의 블록이 올 수 있어
-     * 그 경우 빈 문자열이 나온다.
+     * entity() 를 쓰지 않는 이유: 모델이 JSON 을 ```json 코드 블록으로 감싸 보내면
+     * entity() 의 변환기가 내용을 비워 버려 "No content to map" 오류가 난다.
+     * 그래서 첫 번째 여는 중괄호부터 마지막 닫는 중괄호까지만 직접 잘라 파싱한다.
      */
-    private String extractText(JsonNode root) {
-
-        StringBuilder text = new StringBuilder();
-
-        for (JsonNode block : root.path("content")) {
-            if ("text".equals(block.path("type").asText())) {
-                text.append(block.path("text").asText());
-            }
+    private ReportSummary parseSummary(String text) {
+        if (text == null) {
+            throw new IllegalStateException("Claude 응답이 비어 있습니다.");
         }
-
-        if (text.isEmpty()) {
-            // 진단에 필요한 정보만 남긴다. 응답 본문에는 진료 내용이 들어 있으므로 로그에 싣지 않는다.
-            throw new IllegalStateException(
-                    "응답에 text 블록이 없습니다. stop_reason=%s, 블록 종류=%s"
-                            .formatted(root.path("stop_reason").asText("?"), blockTypes(root))
-            );
-        }
-
-        return text.toString();
-    }
-
-    /** 실패 원인 파악용. 응답에 어떤 종류의 블록이 왔는지만 남긴다. */
-    private String blockTypes(JsonNode root) {
-
-        List<String> types = new ArrayList<>();
-
-        for (JsonNode block : root.path("content")) {
-            types.add(block.path("type").asText("?"));
-        }
-
-        return types.toString();
-    }
-
-    /**
-     * 모델이 JSON 앞뒤에 코드블록 표시나 설명을 붙이는 경우가 있어,
-     * 첫 번째 여는 중괄호부터 마지막 닫는 중괄호까지만 잘라낸다.
-     */
-    private String extractJson(String text) {
 
         int start = text.indexOf('{');
         int end = text.lastIndexOf('}');
 
         if (start < 0 || end <= start) {
-            throw new IllegalStateException("응답에서 JSON 을 찾지 못했습니다: " + text);
+            // 응답 본문에는 진료 내용이 들어 있을 수 있으므로 로그에 싣지 않는다.
+            throw new IllegalStateException("응답에서 JSON 을 찾지 못했습니다. (응답 길이=%d)".formatted(text.length()));
         }
 
-        return text.substring(start, end + 1);
+        try {
+            return objectMapper.readValue(text.substring(start, end + 1), ReportSummary.class);
+        } catch (Exception e) {
+            throw new IllegalStateException("Claude 응답을 요약 형식으로 변환하지 못했습니다.", e);
+        }
     }
 }
