@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import Container from '@/components/ui/Container';
+import { NotificationBell } from '@/features/notification';
 import { cn } from '@/lib/cn';
 import UserMenu, { type UserMenuItem } from './UserMenu';
 
@@ -87,7 +88,11 @@ export default function Header({ user, pending, onLogout, canRegisterPost, isEsc
           <div aria-hidden="true" className="h-[54px] min-w-[104px]" />
         ) : user ? (
           <div className="flex items-center gap-[25px]">
-            <UserMenu name={user.name} href={user.href ?? '/mypage'} items={user.menu} />
+            <div className="flex items-center gap-3">
+              {/* 이름 왼쪽의 알림 종. 로그인 세션을 직접 읽어서, 모의 user 를 넘긴 화면에서는 스스로 숨습니다. */}
+              <NotificationBell />
+              <UserMenu name={user.name} href={user.href ?? '/mypage'} items={user.menu} />
+            </div>
             <button
               type="button"
               onClick={onLogout}

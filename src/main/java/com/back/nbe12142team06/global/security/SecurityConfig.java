@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.global.security;
 
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -70,10 +71,15 @@ public class SecurityConfig {
                     .requestMatchers("/api/v1/payments/**").hasRole("CLIENT")
                     .requestMatchers("/api/v1/settlements/**").hasRole("ESCORT")
 
+                    // SSE에서 비동기로 돌리는데 비동기는 Filter를 타지 않도록 설정
+                    .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
+
                     // 위에서 안 걸린 나머지 API 는 로그인만 하면 통과 (역할 무관)
                     .requestMatchers("/api/**").authenticated()
                     .requestMatchers("/ws/**").authenticated()
                     .anyRequest().permitAll()
+
+
             )
             .csrf(csrf -> csrf.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
