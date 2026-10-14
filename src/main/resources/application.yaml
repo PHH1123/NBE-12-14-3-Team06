@@ -25,7 +25,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health      # health 만 공개. 나머지는 노출하지 않음
+        include: health, prometheus
   endpoint:
     health:
       show-details: never    # DB 주소 같은 내부 정보는 숨김
