@@ -1,73 +1,44 @@
 package com.back.nbe12142team06.domain.settlement.dto;
 
+import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.settlement.entity.Settlement;
 import com.back.nbe12142team06.domain.settlement.entity.SettlementStatus;
+import com.back.nbe12142team06.domain.user.entity.User;
 
-import java.util.List;
+import java.time.LocalDate;
 
 public record SettlementAdminResponse(
-        long totalSettlementAmount,
-        long settlementCount,
-        long totalSettledAmount,
-        long settledCount,
-        long totalUnSettledAmount,
-        long unSettledCount,
-        long totalPlatformFee,
-        long platformFeeCount,
-        long totalDonationAmount,
-        long donationCount,
-        long totalErrorSettlementAmount,
-        long errorSettlementCount
+        Long id,
+        int payoutAmount,
+        int platformFee,
+        int penaltyAmount,
+        SettlementStatus status,
+        LocalDate settledAt,
+        Long applicationId,
+        Long userId,
+        String name
 ) {
-    public SettlementAdminResponse(List<Settlement> settlementList) {
-        long totalSettlementAmount = 0L;
-        long settlementCount = 0L;
-        long totalSettledAmount = 0L;
-        long settledCount = 0L;
-        long totalUnSettledAmount = 0L;
-        long unSettledCount = 0L;
-        long totalPlatformFee = 0L;
-        long platformFeeCount = 0L;
-        long totalDonationAmount = 0L;
-        long donationCount = 0L;
-        long totalErrorSettlementAmount = 0L;
-        long errorSettlementCount = 0L;
+    public SettlementAdminResponse(Settlement settlement) {
+        Application application = null;
+        User user = null;
+        if (settlement.getApplication() != null) {
+            application = settlement.getApplication();
+        }
 
-        for (Settlement settlement : settlementList) {
-            totalSettlementAmount += settlement.getPayoutAmount();
-            settlementCount++;
-
-            if (settlement.getSettlementStatus().equals(SettlementStatus.COMPLETED)) {
-                totalSettledAmount += settlement.getPayoutAmount();
-                settledCount++;
-                totalPlatformFee += settlement.getPlatformFee();
-                platformFeeCount++;
-                totalDonationAmount += settlement.getPenaltyAmount();
-                if (settlement.getPenaltyAmount() != 0) {
-                    donationCount++;
-                }
-            } else if (settlement.getSettlementStatus().equals(SettlementStatus.PROCESSING)) {
-                totalErrorSettlementAmount += settlement.getPayoutAmount();
-                errorSettlementCount++;
-            } else {
-                totalUnSettledAmount += settlement.getPayoutAmount();
-                unSettledCount++;
-            }
+        if (settlement.getEscort() != null) {
+            user = settlement.getEscort();
         }
 
         this(
-                totalSettlementAmount,
-                settlementCount,
-                totalSettledAmount,
-                settledCount,
-                totalUnSettledAmount,
-                unSettledCount,
-                totalPlatformFee,
-                platformFeeCount,
-                totalDonationAmount,
-                donationCount,
-                totalErrorSettlementAmount,
-                errorSettlementCount
+                settlement.getId(),
+                settlement.getPayoutAmount(),
+                settlement.getPlatformFee(),
+                settlement.getPenaltyAmount(),
+                settlement.getSettlementStatus(),
+                settlement.getSettledDate(),
+                application == null ? null : application.getId(),
+                user == null ? null : user.getId(),
+                user == null ? null : user.getName()
         );
     }
 }

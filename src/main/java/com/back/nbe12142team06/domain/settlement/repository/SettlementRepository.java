@@ -64,4 +64,11 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             "where s.settledDate >= :startDate and s.settledDate <= :endDate")
     List<Settlement> findAnalytics(@Param("startDate") LocalDate startDate,
                                    @Param("endDate") LocalDate endDate);
+
+    @Query("select s from Settlement s " +
+            "join fetch s.escort " +
+            "where s.settledDate >= :startDate and s.settledDate <= :endDate")
+    Page<Settlement> findByPeriod(@Param("startDate") LocalDate startDate,
+                                  @Param("endDate") LocalDate endDate,
+                                  Pageable pageable);
 }

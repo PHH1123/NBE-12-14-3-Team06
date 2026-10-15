@@ -202,4 +202,16 @@ public class SettlementService {
 
         return settlementPersistenceService.getAnalytics(startDate, endDate);
     }
+
+    public Page<Settlement> getSettlementForAdmin(LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        if (startDate == null) {
+            startDate = LocalDate.now().minusDays(7);
+        }
+
+        if (endDate == null) {
+            endDate = LocalDate.now();
+        }
+
+        return settlementPersistenceService.getSettlementForAdmin(startDate, endDate, pageable);
+    }
 }

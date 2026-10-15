@@ -9,6 +9,8 @@ import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,5 +52,9 @@ public class SettlementPersistenceService {
 
     public List<Settlement> getAnalytics(LocalDate startDate, LocalDate endDate) {
         return settlementRepository.findAnalytics(startDate, endDate);
+    }
+
+    public Page<Settlement> getSettlementForAdmin(LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        return settlementRepository.findByPeriod(startDate, endDate, pageable);
     }
 }
