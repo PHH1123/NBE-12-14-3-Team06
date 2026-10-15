@@ -29,9 +29,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_PAYMENT_PARTIAL_CANCELED;
 import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_SETTLEMENT_DONE;
-import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_PAYMENT_PARTIAL_CANCELED;
 import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_SETTLEMENT_DONE;
 
 @Slf4j
@@ -243,5 +241,9 @@ public class SettlementService {
         int row = settlementPersistenceService.processingSettlementForAdmin(settlementId);
 
         requestSettlement(settlementId, row, accountDto, name, account);
+    }
+
+    public boolean hasUnsettled(Long userId) {
+        return this.settlementRepository.existsByEscortIdAndSettlementStatusNot(userId, SettlementStatus.COMPLETED);
     }
 }
