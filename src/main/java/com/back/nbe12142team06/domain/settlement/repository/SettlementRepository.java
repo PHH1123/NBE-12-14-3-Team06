@@ -10,7 +10,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -59,4 +58,6 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
 
     @Query("select s from Settlement s join fetch s.application join fetch s.escort where s.id=:id")
     Optional<Settlement> findJoinFetchById(@Param("id") Long id);
+
+    boolean existsByEscortIdAndSettlementStatusNot(Long escortId, SettlementStatus status);
 }

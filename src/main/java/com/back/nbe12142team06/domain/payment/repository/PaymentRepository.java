@@ -60,4 +60,14 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     int paymentInProgress(@Param("paymentId") Long paymentId);
 
     List<Payment> findByPostIdAndPaymentStatus(Long postId, PaymentStatus paymentStatus);
+
+    // 회원 탈퇴 제한 - 동행 완료 후 미결제 추가 결제가 있는지 확인
+    @Query("""
+    SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END
+    FROM Payment p
+    WHERE p.post.client.id = :userId
+      AND p.paymentStatus = PaymentStatus.READY
+      AND p.post.postStatus = PostStatus.COMPLETED
+    """)
+    boolean existsUnpaidExtraByUserId(@Param("userId") Long userId);
 }

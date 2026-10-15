@@ -3,7 +3,6 @@ package com.back.nbe12142team06.domain.payment.service;
 import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
-import com.back.nbe12142team06.domain.application.service.ApplicationService;
 import com.back.nbe12142team06.domain.notification.service.NoticeService;
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient;
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest;
@@ -16,8 +15,6 @@ import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.post.entity.PostStatus;
 import com.back.nbe12142team06.domain.settlement.service.SettlementService;
-import com.back.nbe12142team06.domain.user.entity.User;
-import com.back.nbe12142team06.domain.user.service.UserService;
 import com.back.nbe12142team06.global.exception.InternalServerErrorException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
@@ -31,7 +28,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.*;
-import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_PAYMENT_PARTIAL_CANCELED;
 import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.*;
 
 @Slf4j
@@ -332,5 +328,10 @@ public class PaymentService {
         List<Payment> payments = paymentPersistenceService.getNotPaid(userId);
 
         return payments.isEmpty();
+    }
+
+    // 동행 완료 후 추가 결제를 하지 않은 공고가 있는 지 확인
+    public boolean hasUnpaidExtraPayment(Long userId) {
+        return this.paymentRepository.existsUnpaidExtraByUserId(userId);
     }
 }
