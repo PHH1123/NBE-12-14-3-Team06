@@ -3,6 +3,8 @@ package com.back.nbe12142team06.domain.payment.repository;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
 import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -78,4 +80,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             "and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED)")
     List<Payment> findAnalyticsByPeriod(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate);
+
+    @Query("select pay " +
+            "from Payment pay " +
+            "join fetch pay.post post " +
+            "join fetch post.client " +
+            "where pay.approvedAt >= :startDate and pay.approvedAt <= :endDate")
+    Page<Payment> findPaymentsForAdmin(@Param("startDate") LocalDateTime startDate,
+                                       @Param("endDate") LocalDateTime endDate,
+                                       Pageable pageable);
 }

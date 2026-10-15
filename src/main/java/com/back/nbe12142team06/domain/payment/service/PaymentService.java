@@ -24,6 +24,8 @@ import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -372,5 +374,24 @@ public class PaymentService {
         }
 
         return paymentPersistenceService.getAnalyticsByPeriod(startDateTime, endDateTime);
+    }
+
+    public Page<Payment> getPaymentsForAdmin(LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        } else {
+            startDateTime = LocalDate.now().minusDays(7).atStartOfDay();
+        }
+
+        if (endDate != null) {
+            endDateTime = endDate.atStartOfDay();
+        } else {
+            endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
+        }
+
+        return paymentPersistenceService.getPaymentsForAdmin(startDateTime, endDateTime, pageable);
     }
 }

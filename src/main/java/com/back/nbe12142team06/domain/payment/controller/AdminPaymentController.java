@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.payment.controller;
 
+import com.back.nbe12142team06.domain.payment.dto.PaymentAdminResponse;
 import com.back.nbe12142team06.domain.payment.dto.PaymentAnalyticsResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
@@ -8,6 +9,10 @@ import com.back.nbe12142team06.global.response.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -35,7 +40,7 @@ public class AdminPaymentController {
         List<PaymentDailyAnalyticsDto> result =
                 paymentService.getDailyPaymentAnalytics(startDate, endDate);
 
-        return new RsData<>("200-201", "조회 완료",
+        return new RsData<>("200-151", "관리자 일별 결제 통계를 조회가 완료되었습니다.",
                 result);
     }
 
@@ -50,7 +55,25 @@ public class AdminPaymentController {
         List<Payment> result =
                 paymentService.getPaymentAnalyticsByPeriod(startDate, endDate);
 
-        return new RsData<>("200-201", "조회 완료",
+        return new RsData<>("200-152", "관리자 기간별 결제 및 취소 통계 조회가 완료되었습니다.",
                 new PaymentAnalyticsResponse(result));
+    }
+
+    @Operation(
+            summary = "기간별 결제 목록 조회",
+            description = "관리자가 기간별 결제 목록을 조회합니다."
+    )
+    @GetMapping
+    public RsData<Page<PaymentAdminResponse>> getPaymentList(@RequestParam(defaultValue = "0") int page,
+                                                             @RequestParam(defaultValue = "20") int size,
+                                                             @RequestParam(required = false) LocalDate startDate,
+                                                             @RequestParam(required = false) LocalDate endDate) {
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "id");
+
+        Page<Payment> result =
+                paymentService.getPaymentsForAdmin(startDate, endDate, pageable);
+
+        return new RsData<>("200-153", "관리자 기간별 결제 목록 조회가 완료되었습니다.",
+                result.map(PaymentAdminResponse::new));
     }
 }

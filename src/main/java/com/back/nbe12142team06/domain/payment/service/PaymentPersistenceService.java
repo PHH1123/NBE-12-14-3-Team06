@@ -10,6 +10,8 @@ import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -126,5 +128,9 @@ public class PaymentPersistenceService {
 
     public List<Payment> getAnalyticsByPeriod(LocalDateTime startDateTime, LocalDateTime endDateTime) {
         return paymentRepository.findAnalyticsByPeriod(startDateTime, endDateTime);
+    }
+
+    public Page<Payment> getPaymentsForAdmin(LocalDateTime startDateTime, LocalDateTime endDateTime, Pageable pageable) {
+        return paymentRepository.findPaymentsForAdmin(startDateTime, endDateTime, pageable);
     }
 }
