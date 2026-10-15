@@ -18,6 +18,16 @@ repositories {
     mavenCentral()
 }
 
+ext {
+    set('springAiVersion', "2.0.1")
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+    }
+}
+
 dependencies {
     // 웹 / 영속성
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -52,8 +62,12 @@ dependencies {
     testAnnotationProcessor("org.projectlombok:lombok")
     testCompileOnly("org.projectlombok:lombok")
 
-    //모니터링
+    // 모니터링
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
+
+    // LLM (Spring AI)
+    implementation("org.springframework.ai:spring-ai-starter-model-anthropic")
 
     // 웹소켓
     implementation ("org.springframework.boot:spring-boot-starter-websocket")

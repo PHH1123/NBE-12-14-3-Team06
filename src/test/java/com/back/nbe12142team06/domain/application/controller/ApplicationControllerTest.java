@@ -5,6 +5,7 @@ import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.enums.EscortProgress;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository;
+import com.back.nbe12142team06.domain.application.service.ApplicationService;
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
@@ -37,6 +38,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -63,6 +66,9 @@ public class ApplicationControllerTest {
 
     @Autowired
     private ApplicationRepository applicationRepository;
+
+    @Autowired
+    private ApplicationService applicationService;
 
     @Autowired
     private PaymentRepository paymentRepository;
@@ -203,6 +209,276 @@ public class ApplicationControllerTest {
                 .andExpect(jsonPath("$.data.id").exists())
                 .andExpect(jsonPath("$.data.postId").value(testPostId))
                 .andExpect(jsonPath("$.data.status").value("PENDING"));
+    }
+
+
+    @Test
+    @DisplayName("[ApplicationController] 지원하기 - 일시 정지 회원은 지원할 수 없다")
+    void t1_1() throws Exception {
+
+        // given: 정상 회원을 일시 정지 상태로 변경
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        escort.suspend(1L, "테스트용 일시 정지");
+        userRepository.saveAndFlush(escort);
+
+        // when: 일시 정지된 회원이 지원 시도
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/applications/{postId}", testPostId)
+                        .cookie(escortAccessTokenCookie)
+        ).andDo(print());
+
+        // then: 지원 거부
+        resultActions
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-31"))
+                .andExpect(jsonPath("$.msg")
+                        .value("활성 상태의 회원만 지원할 수 있습니다."));
+
+        // 실제 지원 내역도 생성되지 않아야 함
+        assertEquals(
+                0,
+                applicationRepository.findAllByPostIdWithEscort(testPostId).size()
+        );
+    }
+
+
+    @Test
+    @DisplayName("[ApplicationController] 지원하기 - 영구 정지 회원은 지원할 수 없다")
+    void t1_2() throws Exception {
+
+        // given: 로그인한 동행매니저를 영구 정지
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        escort.ban(1L, "테스트용 영구 정지");
+        userRepository.saveAndFlush(escort);
+
+        // when: 기존 로그인 쿠키로 지원 시도
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/applications/{postId}", testPostId)
+                        .cookie(escortAccessTokenCookie)
+        ).andDo(print());
+
+        // then: 지원 거부
+        resultActions
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-31"))
+                .andExpect(jsonPath("$.msg")
+                        .value("활성 상태의 회원만 지원할 수 있습니다."));
+
+        // 지원 데이터가 생성되지 않았는지 확인
+        assertEquals(
+                0,
+                applicationRepository.findAllByPostIdWithEscort(testPostId).size()
+        );
+    }
+
+    @Test
+    @DisplayName("[ApplicationService] 진행 중인 동행이 있으면 탈퇴 제한 대상")
+    void t1_3() {
+
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        Post post = postRepository.findById(testPostId)
+                .orElseThrow();
+
+        // 승인된 지원 생성
+        Application application = Application.builder()
+                .post(post)
+                .escort(escort)
+                .build();
+
+        application.accept();
+        applicationRepository.save(application);
+
+        // 공고를 매칭 완료 → 동행 진행 중 상태로 변경
+        post.match();
+        post.startProgress(LocalDateTime.now());
+
+        // 진행 중 동행이 있으므로 true
+        boolean result = applicationService.hasInProgressEscort(escort.getId());
+
+        assertTrue(result);
+    }
+
+    @Test
+    @DisplayName("[ApplicationService] 매칭만 완료된 경우 탈퇴 제한 대상이 아님")
+    void t1_4() {
+
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        Post post = postRepository.findById(testPostId)
+                .orElseThrow();
+
+        Application application = Application.builder()
+                .post(post)
+                .escort(escort)
+                .build();
+
+        application.accept();
+        applicationRepository.save(application);
+
+        // 매칭만 완료된 상태
+        post.match();
+
+        // 아직 동행이 시작되지 않았으므로 false
+        boolean result = applicationService.hasInProgressEscort(escort.getId());
+
+        assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("[ApplicationService] 대기 중인 지원만 있으면 진행 중 동행이 아니다")
+    void t1_5() {
+
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        Post post = postRepository.findById(testPostId)
+                .orElseThrow();
+
+        // PENDING 지원 생성 (기본 상태)
+        Application application = Application.builder()
+                .post(post)
+                .escort(escort)
+                .build();
+
+        applicationRepository.save(application);
+
+        // PENDING + OPEN 상태에서는 false
+        boolean result = applicationService.hasInProgressEscort(escort.getId());
+
+        assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("[ApplicationService] 다른 동행매니저의 진행 중 동행은 조회되지 않는다")
+    void t1_6() {
+
+        User escort1 = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        // 두 번째 동행매니저 생성
+        User escort2 = new User(
+                "escort2",
+                passwordEncoder.encode("testPassword"),
+                "escort2@test.com",
+                "동행인2",
+                Role.ESCORT,
+                Gender.MALE,
+                LocalDate.of(1996, 1, 1),
+                "010-3333-3333",
+                "서울"
+        );
+
+        userRepository.save(escort2);
+
+        Post post = postRepository.findById(testPostId)
+                .orElseThrow();
+
+        // escort2의 동행을 진행 중 상태로 생성
+        Application application = Application.builder()
+                .post(post)
+                .escort(escort2)
+                .build();
+
+        application.accept();
+        applicationRepository.save(application);
+
+        post.match();
+        post.startProgress(LocalDateTime.now());
+
+        // escort2는 진행 중인 동행이 존재
+        assertTrue(applicationService.hasInProgressEscort(escort2.getId()));
+
+        // escort1은 진행 중인 동행이 없음
+        assertFalse(applicationService.hasInProgressEscort(escort1.getId()));
+    }
+
+    @Test
+    @DisplayName("[ApplicationController] 지원 승인 - 일시 정지된 동행매니저는 승인할 수 없다")
+    void t1_7() throws Exception {
+
+        // given: 정상 회원일 때 공고에 지원
+        mvc.perform(
+                post("/api/v1/applications/{postId}", testPostId)
+                        .cookie(escortAccessTokenCookie)
+        ).andExpect(status().isCreated());
+
+        Application application = applicationRepository
+                .findAllByPostIdWithEscort(testPostId)
+                .get(0);
+
+        // 지원 이후 동행매니저 일시 정지
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        escort.suspend(1L, "테스트용 일시 정지");
+        userRepository.saveAndFlush(escort);
+
+        // when: 의뢰인이 정지된 동행매니저의 지원을 승인 시도
+        mvc.perform(
+                        patch("/api/v1/applications/{applicationId}/accept", application.getId())
+                                .cookie(clientAccessTokenCookie)
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-32"))
+                .andExpect(jsonPath("$.msg")
+                        .value("활성 상태의 동행매니저만 승인할 수 있습니다."));
+
+        // then: 지원과 공고 상태는 변경되지 않아야 함
+        assertEquals(ApplicationStatus.PENDING,
+                applicationRepository.findById(application.getId())
+                        .orElseThrow().getStatus());
+
+        assertEquals(PostStatus.OPEN,
+                postRepository.findById(testPostId)
+                        .orElseThrow().getPostStatus());
+    }
+
+    @Test
+    @DisplayName("[ApplicationController] 지원 승인 - 영구 정지된 동행매니저는 승인할 수 없다")
+    void t1_8() throws Exception {
+
+        // given: 정상 회원일 때 공고에 지원
+        mvc.perform(
+                post("/api/v1/applications/{postId}", testPostId)
+                        .cookie(escortAccessTokenCookie)
+        ).andExpect(status().isCreated());
+
+        Application application = applicationRepository
+                .findAllByPostIdWithEscort(testPostId)
+                .get(0);
+
+        // 지원 이후 동행매니저 영구 정지
+        User escort = userRepository.findByUsername("escort1")
+                .orElseThrow();
+
+        escort.ban(1L, "테스트용 영구 정지");
+        userRepository.saveAndFlush(escort);
+
+        // when: 의뢰인이 영구 정지된 회원의 지원을 승인 시도
+        mvc.perform(
+                        patch("/api/v1/applications/{applicationId}/accept", application.getId())
+                                .cookie(clientAccessTokenCookie)
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-32"))
+                .andExpect(jsonPath("$.msg")
+                        .value("활성 상태의 동행매니저만 승인할 수 있습니다."));
+
+        // then: 지원은 PENDING, 공고는 OPEN 유지
+        assertEquals(ApplicationStatus.PENDING,
+                applicationRepository.findById(application.getId())
+                        .orElseThrow().getStatus());
+
+        assertEquals(PostStatus.OPEN,
+                postRepository.findById(testPostId)
+                        .orElseThrow().getPostStatus());
     }
 
     @Test

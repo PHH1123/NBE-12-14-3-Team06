@@ -24,8 +24,14 @@ export type Application = {
   status: ApplicationStatus;
 };
 
-/** 백엔드 SettlementStatus */
-export type SettlementStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
+/**
+ * 백엔드 SettlementStatus.
+ *
+ * PROCESSING 은 정산 요청이 외부 API 응답을 기다리는 중간 상태라 평소엔 잘 안 보이지만,
+ * 정산 배치가 도는 중에 목록을 열거나 요청 도중 서버가 끊기면 그대로 내려옵니다.
+ * 빠뜨리면 BADGE 조회가 undefined 가 되어 정산 화면 전체가 렌더링에 실패합니다.
+ */
+export type SettlementStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
 /** 백엔드 SettlementResponse 의 post 부분 (settlement 카드에 필요한 값만) */
 export type SettlementPost = {

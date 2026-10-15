@@ -7,6 +7,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+  ai:
+    anthropic:
+      api-key: test-dummy-key
 
 custom:
   jwt:

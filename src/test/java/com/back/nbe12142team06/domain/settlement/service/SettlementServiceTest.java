@@ -256,11 +256,17 @@ public class SettlementServiceTest {
     @DisplayName("[SettlementService] FAILED → 재시도로 PROCESSING 가능")
     void settlementRequestStatusFailed() {
         User escort = createEscort(false);
+        User client = createClient(false);
         EscortProfile escortProfile = createEscortProfile(escort);
-        Settlement settlement = createSettlement(null, escort, null, SettlementStatus.FAILED);
+        Post post = createPost(client, null, PostStatus.COMPLETED);
+        Application application = createApplication(escort, post, null, ApplicationStatus.ACCEPTED);
+        Settlement settlement = createSettlement(application, escort, null, SettlementStatus.FAILED);
 
+        userRepository.save(client);
         userRepository.save(escort);
         escortProfileRepository.save(escortProfile);
+        postRepository.save(post);
+        applicationRepository.save(application);
         settlementRepository.save(settlement);
 
         doReturn(new SettlementClientResponse("123-000000-123", "동행매니저", 150_000))
@@ -299,12 +305,18 @@ public class SettlementServiceTest {
     @Test
     @DisplayName("[SettlementService] 정산 예정일 전 요청 가능")
     void settlementEarlyRequest() {
+        User client = createClient(false);
         User escort = createEscort(false);
         EscortProfile escortProfile = createEscortProfile(escort);
-        Settlement settlement = createSettlement(null, escort, null, SettlementStatus.PENDING);
+        Post post = createPost(client, null, PostStatus.COMPLETED);
+        Application application = createApplication(escort, post, null, ApplicationStatus.ACCEPTED);
+        Settlement settlement = createSettlement(application, escort, null, SettlementStatus.PENDING);
 
+        userRepository.save(client);
         userRepository.save(escort);
         escortProfileRepository.save(escortProfile);
+        postRepository.save(post);
+        applicationRepository.save(application);
         settlementRepository.save(settlement);
 
         doReturn(new SettlementClientResponse("123-000000-123", "동행매니저", 150_000))

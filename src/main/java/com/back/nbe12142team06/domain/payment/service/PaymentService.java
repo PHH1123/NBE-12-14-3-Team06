@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.application.service.ApplicationService;
+import com.back.nbe12142team06.domain.notification.service.NoticeService;
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient;
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest;
 import com.back.nbe12142team06.domain.payment.dto.PaymentConfirmRequest;
@@ -15,6 +16,8 @@ import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.post.entity.PostStatus;
 import com.back.nbe12142team06.domain.settlement.service.SettlementService;
+import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.service.UserService;
 import com.back.nbe12142team06.global.exception.InternalServerErrorException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
@@ -27,6 +30,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
+import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.*;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_PAYMENT_PARTIAL_CANCELED;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.*;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,6 +44,7 @@ public class PaymentService {
     private final TossPaymentClient tossPaymentClient;
     private final SettlementService settlementService;
     private final ApplicationRepository applicationRepository;
+    private final NoticeService noticeService;
 
     public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId, String sessionAmount, String sessionOrderId) {
 
@@ -82,6 +90,11 @@ public class PaymentService {
         }
 
         log.info("결제 승인 성공 - paymentId: {}, userId: {}", paymentId, userId);
+
+        // 알림
+        noticeService.send(payment.getPost().getClient(),
+                C_PAYMENT_DONE.of(payment.getPost().getTitle(), String.valueOf(payment.getAmount())),
+                U_PAYMENT_DONE.of(payment.getPost().getId()));
 
         return payment;
     }
@@ -148,6 +161,11 @@ public class PaymentService {
         // 지원한 사용자 모두 거절
         applicationRepository.findAllByPostAndStatus(post, ApplicationStatus.PENDING)
                 .forEach(Application::reject);
+
+        // 알림
+        noticeService.send(post.getClient(),
+                C_PAYMENT_CANCELED.of(post.getTitle(), String.valueOf(payment.getAmount())),
+                U_PAYMENT_CANCELED.of(post.getId()));
 
         return canceledPayment;
     }
@@ -224,6 +242,11 @@ public class PaymentService {
                     .amount(Math.abs(balanceAmount))
                     .build();
             paymentPersistenceService.createPayment(newPayment);
+
+            // 알림
+            noticeService.send(post.getClient(),
+                    C_PAYMENT_EXTRA_PAY.of(post.getTitle(), String.valueOf(newPayment.getAmount())),
+                    U_PAYMENT_EXTRA_PAY.of(post.getId()));
         }
 
         // 부분 취소 플로우
@@ -234,6 +257,11 @@ public class PaymentService {
                     new PaymentCancelRequest("결제 금액: %s, 이용 금액: %s".formatted(balanceAmount + payoutAmount, payoutAmount)),
                     balanceAmount, true, false
             );
+
+            // 알림
+            noticeService.send(post.getClient(),
+                    C_PAYMENT_PARTIAL_CANCELED.of(post.getTitle(), String.valueOf(balanceAmount)),
+                    U_PAYMENT_PARTIAL_CANCELED.of(post.getId()));
         }
 
         return payoutAmount;
