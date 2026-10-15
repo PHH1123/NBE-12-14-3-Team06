@@ -3,6 +3,7 @@ package com.back.nbe12142team06.domain.payment.controller;
 import com.back.nbe12142team06.domain.payment.dto.PaymentAdminResponse;
 import com.back.nbe12142team06.domain.payment.dto.PaymentAnalyticsResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
+import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
 import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
 import com.back.nbe12142team06.domain.payment.service.PaymentService;
 import com.back.nbe12142team06.global.response.RsData;
@@ -13,10 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -75,5 +73,19 @@ public class AdminPaymentController {
 
         return new RsData<>("200-153", "관리자 기간별 결제 목록 조회가 완료되었습니다.",
                 result.map(PaymentAdminResponse::new));
+    }
+
+    @Operation(
+            summary = "결제 상태 변경",
+            description = "관리자가 결제 상태를 변경합니다."
+    )
+    @PatchMapping("/{paymentId}/status")
+    public RsData<?> updateStatus(@PathVariable Long paymentId,
+                                  @RequestParam("status") PaymentStatus status) {
+
+        paymentService.updateStatusForAdmin(paymentId, status);
+
+        return new RsData<>("200-154",
+                "관리자 결제 상태가 변경되었습니다.");
     }
 }

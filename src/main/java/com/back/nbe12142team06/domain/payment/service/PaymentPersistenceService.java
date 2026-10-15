@@ -133,4 +133,12 @@ public class PaymentPersistenceService {
     public Page<Payment> getPaymentsForAdmin(LocalDateTime startDateTime, LocalDateTime endDateTime, Pageable pageable) {
         return paymentRepository.findPaymentsForAdmin(startDateTime, endDateTime, pageable);
     }
+
+    @Transactional
+    public void updateStatusForAdmin(Long paymentId, PaymentStatus status) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
+
+        payment.statusUpdate(status);
+    }
 }

@@ -394,4 +394,8 @@ public class PaymentService {
 
         return paymentPersistenceService.getPaymentsForAdmin(startDateTime, endDateTime, pageable);
     }
+
+    public void updateStatusForAdmin(Long paymentId, PaymentStatus status) {
+        paymentPersistenceService.updateStatusForAdmin(paymentId, status);
+    }
 }
