@@ -123,4 +123,8 @@ public class PaymentPersistenceService {
     public List<PaymentDailyAnalyticsDto> getDailyAnalytics(LocalDateTime startDate, LocalDateTime endDate) {
         return paymentRepository.findDailyAnalytics(startDate, endDate);
     }
+
+    public List<Payment> getAnalyticsByPeriod(LocalDateTime startDateTime, LocalDateTime endDateTime) {
+        return paymentRepository.findAnalyticsByPeriod(startDateTime, endDateTime);
+    }
 }

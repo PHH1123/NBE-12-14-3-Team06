@@ -63,7 +63,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     List<Payment> findByPostIdAndPaymentStatus(Long postId, PaymentStatus paymentStatus);
 
-    @Query("select cast(p.approvedAt as LocalDate), sum(p.amount) amount, count(p) counts " +
+    @Query("select cast(p.approvedAt as LocalDate), sum(p.amount) paidAmount, count(p) counts " +
             "from Payment p " +
             "where p.approvedAt >= :startDate and p.approvedAt <= :endDate " +
             "and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED) " +
@@ -71,4 +71,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             "order by cast(p.approvedAt as LocalDate)")
     List<PaymentDailyAnalyticsDto> findDailyAnalytics(@Param("startDate") LocalDateTime startDate,
                                                       @Param("endDate") LocalDateTime endDate);
+
+    @Query("select p " +
+            "from Payment p " +
+            "where p.approvedAt >= :startDate and p.approvedAt <= :endDate " +
+            "and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED)")
+    List<Payment> findAnalyticsByPeriod(@Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate);
 }

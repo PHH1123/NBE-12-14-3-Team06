@@ -4,7 +4,7 @@ import java.time.LocalDate;
 
 public record PaymentDailyAnalyticsDto(
         LocalDate approvedAt,
-        Long amount,
+        Long paidAmount,
         Long counts
 ) {
 }

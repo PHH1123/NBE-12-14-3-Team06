@@ -354,4 +354,23 @@ public class PaymentService {
 
         return paymentPersistenceService.getDailyAnalytics(startDateTime, endDateTime);
     }
+
+    public List<Payment> getPaymentAnalyticsByPeriod(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        } else {
+            startDateTime = LocalDate.now().minusDays(7).atStartOfDay();
+        }
+
+        if (endDate != null) {
+            endDateTime = endDate.atStartOfDay();
+        } else {
+            endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
+        }
+
+        return paymentPersistenceService.getAnalyticsByPeriod(startDateTime, endDateTime);
+    }
 }

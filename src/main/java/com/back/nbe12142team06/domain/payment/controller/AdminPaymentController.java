@@ -1,5 +1,7 @@
 package com.back.nbe12142team06.domain.payment.controller;
 
+import com.back.nbe12142team06.domain.payment.dto.PaymentAnalyticsResponse;
+import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
 import com.back.nbe12142team06.domain.payment.service.PaymentService;
 import com.back.nbe12142team06.global.response.RsData;
@@ -26,14 +28,29 @@ public class AdminPaymentController {
             summary = "일별 결제 통계 조회",
             description = "관리자가 일별 결제 통계를 조회합니다. 결제는 완료되거나 부분 취소된 결제만 조회합니다."
     )
-    @GetMapping("/daily")
-    public RsData<?> getDailyAnalytics(@RequestParam(required = false) LocalDate startDate,
-                                       @RequestParam(required = false) LocalDate endDate) {
+    @GetMapping("/analytics/daily")
+    public RsData<List<PaymentDailyAnalyticsDto>> getDailyAnalytics(@RequestParam(required = false) LocalDate startDate,
+                                                                    @RequestParam(required = false) LocalDate endDate) {
 
         List<PaymentDailyAnalyticsDto> result =
                 paymentService.getDailyPaymentAnalytics(startDate, endDate);
 
         return new RsData<>("200-201", "조회 완료",
                 result);
+    }
+
+    @Operation(
+            summary = "기간별 결제 및 취소 통계 조회",
+            description = "관리자가 기간별 결제 및 취소 통계를 조회합니다. 결제는 완료되거나 부분 취소된 결제만 조회합니다."
+    )
+    @GetMapping("/analytics")
+    public RsData<PaymentAnalyticsResponse> getAnalyticsByPeriod(@RequestParam(required = false) LocalDate startDate,
+                                                                 @RequestParam(required = false) LocalDate endDate) {
+
+        List<Payment> result =
+                paymentService.getPaymentAnalyticsByPeriod(startDate, endDate);
+
+        return new RsData<>("200-201", "조회 완료",
+                new PaymentAnalyticsResponse(result));
     }
 }
