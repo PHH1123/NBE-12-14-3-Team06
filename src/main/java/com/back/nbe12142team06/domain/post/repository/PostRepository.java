@@ -78,4 +78,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 회원 탈퇴·정지 시 취소할 공고 조회
     List<Post> findAllByClientIdAndPostStatusIn(Long clientId, Collection<PostStatus> statuses);
 
+    boolean existsByClientIdAndPostStatus(Long clientId, PostStatus postStatus);
 }

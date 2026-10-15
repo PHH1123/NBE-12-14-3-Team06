@@ -86,4 +86,6 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             "where s.id=:settlementId " +
             "and s.settlementStatus in (SettlementStatus.PENDING, SettlementStatus.FAILED, SettlementStatus.PROCESSING)")
     int updateProcessingForAdmin(@Param("settlementId") Long settlementId);
+
+    boolean existsByEscortIdAndSettlementStatusNot(Long escortId, SettlementStatus status);
 }
