@@ -59,4 +59,9 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
 
     @Query("select s from Settlement s join fetch s.application join fetch s.escort where s.id=:id")
     Optional<Settlement> findJoinFetchById(@Param("id") Long id);
+
+    @Query("select s from Settlement s " +
+            "where s.settledDate >= :startDate and s.settledDate <= :endDate")
+    List<Settlement> findAnalytics(@Param("startDate") LocalDate startDate,
+                                   @Param("endDate") LocalDate endDate);
 }

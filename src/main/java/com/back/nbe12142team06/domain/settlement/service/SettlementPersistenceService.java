@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -44,5 +46,9 @@ public class SettlementPersistenceService {
     public Settlement findById(Long settlementId) {
         return settlementRepository.findJoinFetchById(settlementId)
                 .orElseThrow(() -> new NotFoundException(71, "정산 데이터를 찾을 수 없습니다."));
+    }
+
+    public List<Settlement> getAnalytics(LocalDate startDate, LocalDate endDate) {
+        return settlementRepository.findAnalytics(startDate, endDate);
     }
 }

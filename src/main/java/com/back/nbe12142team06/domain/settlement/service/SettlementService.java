@@ -190,4 +190,16 @@ public class SettlementService {
 
         return savedSettlement;
     }
+
+    public List<Settlement> getAnalytics(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null) {
+            startDate = LocalDate.now().minusDays(7);
+        }
+
+        if (endDate == null) {
+            endDate = LocalDate.now();
+        }
+
+        return settlementPersistenceService.getAnalytics(startDate, endDate);
+    }
 }
