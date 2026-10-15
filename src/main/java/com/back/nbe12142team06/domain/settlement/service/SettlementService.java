@@ -197,27 +197,41 @@ public class SettlementService {
     }
 
     public List<Settlement> getAnalytics(LocalDate startDate, LocalDate endDate) {
-        if (startDate == null) {
-            startDate = LocalDate.now().minusDays(7);
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        } else {
+            startDateTime = LocalDate.now().minusDays(7).atStartOfDay();
         }
 
-        if (endDate == null) {
-            endDate = LocalDate.now();
+        if (endDate != null) {
+            endDateTime = endDate.atStartOfDay();
+        } else {
+            endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
         }
 
-        return settlementPersistenceService.getAnalytics(startDate, endDate);
+        return settlementPersistenceService.getAnalytics(startDateTime, endDateTime);
     }
 
     public Page<Settlement> getSettlementForAdmin(LocalDate startDate, LocalDate endDate, Pageable pageable) {
-        if (startDate == null) {
-            startDate = LocalDate.now().minusDays(7);
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        } else {
+            startDateTime = LocalDate.now().minusDays(7).atStartOfDay();
         }
 
-        if (endDate == null) {
-            endDate = LocalDate.now();
+        if (endDate != null) {
+            endDateTime = endDate.atStartOfDay();
+        } else {
+            endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
         }
 
-        return settlementPersistenceService.getSettlementForAdmin(startDate, endDate, pageable);
+        return settlementPersistenceService.getSettlementForAdmin(startDateTime, endDateTime, pageable);
     }
 
     public void requestForAdmin(Long settlementId) {

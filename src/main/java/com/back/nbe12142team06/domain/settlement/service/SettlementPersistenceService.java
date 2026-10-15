@@ -50,11 +50,11 @@ public class SettlementPersistenceService {
                 .orElseThrow(() -> new NotFoundException(71, "정산 데이터를 찾을 수 없습니다."));
     }
 
-    public List<Settlement> getAnalytics(LocalDate startDate, LocalDate endDate) {
+    public List<Settlement> getAnalytics(LocalDateTime startDate, LocalDateTime endDate) {
         return settlementRepository.findAnalytics(startDate, endDate);
     }
 
-    public Page<Settlement> getSettlementForAdmin(LocalDate startDate, LocalDate endDate, Pageable pageable) {
+    public Page<Settlement> getSettlementForAdmin(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         return settlementRepository.findByPeriod(startDate, endDate, pageable);
     }
 
