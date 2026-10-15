@@ -22,7 +22,7 @@ public record PaymentAdminResponse(
         Long postId,
         String postTitle,
         Long userId,
-        String username
+        String name
 ) {
     public PaymentAdminResponse(Payment payment) {
         Post post = null;

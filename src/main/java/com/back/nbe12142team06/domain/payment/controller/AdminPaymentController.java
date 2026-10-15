@@ -38,7 +38,7 @@ public class AdminPaymentController {
         List<PaymentDailyAnalyticsDto> result =
                 paymentService.getDailyPaymentAnalytics(startDate, endDate);
 
-        return new RsData<>("200-151", "관리자 일별 결제 통계를 조회가 완료되었습니다.",
+        return new RsData<>("200-151", "관리자 일별 결제 통계 조회가 완료되었습니다.",
                 result);
     }
 
