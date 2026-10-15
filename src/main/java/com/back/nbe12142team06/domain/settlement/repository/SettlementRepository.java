@@ -71,4 +71,19 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     Page<Settlement> findByPeriod(@Param("startDate") LocalDate startDate,
                                   @Param("endDate") LocalDate endDate,
                                   Pageable pageable);
+
+    @Query("select s.id, ep.accountNumber, e.name, s.payoutAmount " +
+            "from Settlement s " +
+            "join s.escort e " +
+            "join EscortProfile ep on ep.userId=e.id " +
+            "where s.id=:settlementId " +
+            "and (s.settlementStatus='PENDING' or s.settlementStatus='FAILED' or s.settlementStatus='PROCESSING')")
+    Optional<AccountDto> findByIdAndState(@Param("settlementId") Long settlementId);
+
+    @Modifying
+    @Query("update Settlement s " +
+            "set s.settlementStatus=SettlementStatus.PROCESSING " +
+            "where s.id=:settlementId " +
+            "and s.settlementStatus in (SettlementStatus.PENDING, SettlementStatus.FAILED, SettlementStatus.PROCESSING)")
+    int updateProcessingForAdmin(@Param("settlementId") Long settlementId);
 }

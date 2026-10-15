@@ -13,10 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -61,5 +58,18 @@ public class AdminSettlementController {
         return new RsData<>("200-162",
                 "관리자 정산 목록 조회가 완료되었습니다.",
                 settlementPage.map(SettlementAdminResponse::new));
+    }
+
+    @Operation(
+            summary = "정산 요청",
+            description = "관리자가 정산을 요청합니다. 정산 상태가 PROCESSING이어도 정산이 요청됩니다."
+    )
+    @PostMapping("/{settlementId}")
+    public RsData<?> requestSettlement(@PathVariable Long settlementId) {
+
+        settlementService.requestForAdmin(settlementId);
+
+        return new RsData<>("200-163",
+                "관리자 정산 요청이 완료되었습니다.");
     }
 }

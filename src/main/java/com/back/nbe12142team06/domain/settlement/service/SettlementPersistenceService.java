@@ -57,4 +57,15 @@ public class SettlementPersistenceService {
     public Page<Settlement> getSettlementForAdmin(LocalDate startDate, LocalDate endDate, Pageable pageable) {
         return settlementRepository.findByPeriod(startDate, endDate, pageable);
     }
+
+    public AccountDto findAccountDto(Long settlementId) {
+        // 정산 데이터 조회
+        return settlementRepository.findByIdAndState(settlementId)
+                .orElseThrow(() -> new NotFoundException(71, "정산 데이터를 찾을 수 없습니다."));
+    }
+
+    @Transactional
+    public int processingSettlementForAdmin(Long settlementId) {
+        return settlementRepository.updateProcessingForAdmin(settlementId);
+    }
 }

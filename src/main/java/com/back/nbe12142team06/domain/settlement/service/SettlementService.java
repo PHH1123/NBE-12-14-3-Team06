@@ -58,6 +58,11 @@ public class SettlementService {
         // 정산 중 상태 변경
         int row = settlementPersistenceService.processingSettlement(settlementId);
 
+        // 정산 요청
+        requestSettlement(settlementId, row, accountDto, name, account);
+    }
+
+    private void requestSettlement(Long settlementId, int row, AccountDto accountDto, String name, String account) {
         // 변경 된 행이 0개라면 정산 중이거나 정산이 완료 된 경우
         if (row == 0) {
             throw new InvalidException(71, "이미 정산 중이거나 정산이 완료되었습니다.");
@@ -213,5 +218,16 @@ public class SettlementService {
         }
 
         return settlementPersistenceService.getSettlementForAdmin(startDate, endDate, pageable);
+    }
+
+    public void requestForAdmin(Long settlementId) {
+        AccountDto accountDto = settlementPersistenceService.findAccountDto(settlementId);
+
+        String name = accountDto.name();
+        String account = accountDto.accountNumber();
+
+        int row = settlementPersistenceService.processingSettlementForAdmin(settlementId);
+
+        requestSettlement(settlementId, row, accountDto, name, account);
     }
 }
