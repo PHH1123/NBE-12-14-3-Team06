@@ -9,9 +9,13 @@ import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -44,5 +48,24 @@ public class SettlementPersistenceService {
     public Settlement findById(Long settlementId) {
         return settlementRepository.findJoinFetchById(settlementId)
                 .orElseThrow(() -> new NotFoundException(71, "정산 데이터를 찾을 수 없습니다."));
+    }
+
+    public List<Settlement> getAnalytics(LocalDateTime startDate, LocalDateTime endDate) {
+        return settlementRepository.findAnalytics(startDate, endDate);
+    }
+
+    public Page<Settlement> getSettlementForAdmin(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        return settlementRepository.findByPeriod(startDate, endDate, pageable);
+    }
+
+    public AccountDto findAccountDto(Long settlementId) {
+        // 정산 데이터 조회
+        return settlementRepository.findByIdAndState(settlementId)
+                .orElseThrow(() -> new NotFoundException(71, "정산 데이터를 찾을 수 없습니다."));
+    }
+
+    @Transactional
+    public int processingSettlementForAdmin(Long settlementId) {
+        return settlementRepository.updateProcessingForAdmin(settlementId);
     }
 }

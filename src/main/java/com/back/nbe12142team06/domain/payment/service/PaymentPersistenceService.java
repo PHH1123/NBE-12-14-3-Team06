@@ -4,16 +4,21 @@ import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
+import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -115,5 +120,25 @@ public class PaymentPersistenceService {
     public void updateAmountForModifyPost(Long postId, Post post) {
         Payment payment = paymentRepository.findByPostIdAndPaymentStatus(postId, PaymentStatus.READY).getFirst();
         payment.update(post.getTotalPay().intValue(), post.getEscortHours());
+    }
+
+    public List<PaymentDailyAnalyticsDto> getDailyAnalytics(LocalDateTime startDate, LocalDateTime endDate) {
+        return paymentRepository.findDailyAnalytics(startDate, endDate);
+    }
+
+    public List<Payment> getAnalyticsByPeriod(LocalDateTime startDateTime, LocalDateTime endDateTime) {
+        return paymentRepository.findAnalyticsByPeriod(startDateTime, endDateTime);
+    }
+
+    public Page<Payment> getPaymentsForAdmin(LocalDateTime startDateTime, LocalDateTime endDateTime, Pageable pageable) {
+        return paymentRepository.findPaymentsForAdmin(startDateTime, endDateTime, pageable);
+    }
+
+    @Transactional
+    public void updateStatusForAdmin(Long paymentId, PaymentStatus status) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
+
+        payment.statusUpdate(status);
     }
 }
