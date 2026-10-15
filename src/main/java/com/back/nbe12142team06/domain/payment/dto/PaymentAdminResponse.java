@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public record PaymentAdminResponse(
         Long id,
         int amount,
+        int balanceAmount,
         int hourlyPaySnapshot,
         BigDecimal hours,
         String orderId,
@@ -35,6 +36,7 @@ public record PaymentAdminResponse(
         this(
                 payment.getId(),
                 payment.getAmount(),
+                payment.getBalanceAmount(),
                 payment.getHourlyPaySnapshot(),
                 payment.getHours(),
                 payment.getOrderId(),

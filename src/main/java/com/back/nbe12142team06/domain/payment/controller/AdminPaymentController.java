@@ -43,8 +43,8 @@ public class AdminPaymentController {
     }
 
     @Operation(
-            summary = "기간별 결제 및 취소 통계 조회",
-            description = "관리자가 기간별 결제 및 취소 통계를 조회합니다. 결제는 완료되거나 부분 취소된 결제만 조회합니다."
+            summary = "기간별 결제 및 환불 금액 통계 조회",
+            description = "관리자가 기간별 결제 및 환불 금액 통계를 조회합니다. 결제는 완료되거나 부분 취소된 결제만 조회합니다."
     )
     @GetMapping("/analytics")
     public RsData<PaymentAnalyticsResponse> getAnalyticsByPeriod(@RequestParam(required = false) LocalDate startDate,
@@ -53,7 +53,7 @@ public class AdminPaymentController {
         List<Payment> result =
                 paymentService.getPaymentAnalyticsByPeriod(startDate, endDate);
 
-        return new RsData<>("200-152", "관리자 기간별 결제 및 취소 통계 조회가 완료되었습니다.",
+        return new RsData<>("200-152", "관리자 기간별 결제 및 취소 환불 금액 통계 조회가 완료되었습니다.",
                 new PaymentAnalyticsResponse(result));
     }
 
