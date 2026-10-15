@@ -13,6 +13,7 @@ import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
+import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.post.entity.PostStatus;
 import com.back.nbe12142team06.domain.settlement.service.SettlementService;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.*;
@@ -332,5 +334,24 @@ public class PaymentService {
         List<Payment> payments = paymentPersistenceService.getNotPaid(userId);
 
         return payments.isEmpty();
+    }
+
+    public List<PaymentDailyAnalyticsDto> getDailyPaymentAnalytics(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        } else {
+            startDateTime = LocalDate.now().minusDays(7).atStartOfDay();
+        }
+
+        if (endDate != null) {
+            endDateTime = endDate.atStartOfDay();
+        } else {
+            endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
+        }
+
+        return paymentPersistenceService.getDailyAnalytics(startDateTime, endDateTime);
     }
 }

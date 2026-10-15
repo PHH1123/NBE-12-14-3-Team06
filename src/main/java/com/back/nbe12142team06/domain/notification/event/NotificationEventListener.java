@@ -42,7 +42,7 @@ public class NotificationEventListener {
                     .reconnectTime(3000L));
         } catch (IOException e) {
             log.error("SSE 전송 실패 emitterId: {}, data: {}", emitterId, data);
-//            throw new InvalidException(131, "SSE 전송에 실패했습니다.");
+            throw new InvalidException(131, "SSE 전송에 실패했습니다.");
         }
     }
 }

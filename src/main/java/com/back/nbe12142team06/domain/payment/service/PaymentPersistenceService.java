@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
+import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -115,5 +118,9 @@ public class PaymentPersistenceService {
     public void updateAmountForModifyPost(Long postId, Post post) {
         Payment payment = paymentRepository.findByPostIdAndPaymentStatus(postId, PaymentStatus.READY).getFirst();
         payment.update(post.getTotalPay().intValue(), post.getEscortHours());
+    }
+
+    public List<PaymentDailyAnalyticsDto> getDailyAnalytics(LocalDateTime startDate, LocalDateTime endDate) {
+        return paymentRepository.findDailyAnalytics(startDate, endDate);
     }
 }

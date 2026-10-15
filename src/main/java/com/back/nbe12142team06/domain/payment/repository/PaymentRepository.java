@@ -2,11 +2,14 @@ package com.back.nbe12142team06.domain.payment.repository;
 
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
+import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,7 +22,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             "where post.id=:postId and u.id=:userId and pay.paymentStatus=PaymentStatus.READY")
     Optional<Payment> findByPostIdAndUserIdAndReady(@Param("postId") Long postId,
                                                     @Param("userId") Long userId);
-
 
 
     @Query("select pay " +
@@ -60,4 +62,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     int paymentInProgress(@Param("paymentId") Long paymentId);
 
     List<Payment> findByPostIdAndPaymentStatus(Long postId, PaymentStatus paymentStatus);
+
+    @Query("select cast(p.approvedAt as LocalDate), sum(p.amount) amount, count(p) counts " +
+            "from Payment p " +
+            "where p.approvedAt >= :startDate and p.approvedAt <= :endDate " +
+            "and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED) " +
+            "group by cast(p.approvedAt as LocalDate) " +
+            "order by cast(p.approvedAt as LocalDate)")
+    List<PaymentDailyAnalyticsDto> findDailyAnalytics(@Param("startDate") LocalDateTime startDate,
+                                                      @Param("endDate") LocalDateTime endDate);
 }
