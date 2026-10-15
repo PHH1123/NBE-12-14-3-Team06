@@ -29,7 +29,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_PAYMENT_PARTIAL_CANCELED;
 import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_SETTLEMENT_DONE;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_PAYMENT_PARTIAL_CANCELED;
 import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_SETTLEMENT_DONE;
 
 @Slf4j
@@ -56,6 +58,11 @@ public class SettlementService {
         // 정산 중 상태 변경
         int row = settlementPersistenceService.processingSettlement(settlementId);
 
+        // 정산 요청
+        requestSettlement(settlementId, row, accountDto, name, account);
+    }
+
+    private void requestSettlement(Long settlementId, int row, AccountDto accountDto, String name, String account) {
         // 변경 된 행이 0개라면 정산 중이거나 정산이 완료 된 경우
         if (row == 0) {
             throw new InvalidException(71, "이미 정산 중이거나 정산이 완료되었습니다.");
@@ -189,7 +196,52 @@ public class SettlementService {
         return savedSettlement;
     }
 
-    public boolean hasUnsettled(Long userId) {
-        return this.settlementRepository.existsByEscortIdAndSettlementStatusNot(userId, SettlementStatus.COMPLETED);
+    public List<Settlement> getAnalytics(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        } else {
+            startDateTime = LocalDate.now().minusDays(7).atStartOfDay();
+        }
+
+        if (endDate != null) {
+            endDateTime = endDate.atStartOfDay();
+        } else {
+            endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
+        }
+
+        return settlementPersistenceService.getAnalytics(startDateTime, endDateTime);
+    }
+
+    public Page<Settlement> getSettlementForAdmin(LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        } else {
+            startDateTime = LocalDate.now().minusDays(7).atStartOfDay();
+        }
+
+        if (endDate != null) {
+            endDateTime = endDate.atStartOfDay();
+        } else {
+            endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
+        }
+
+        return settlementPersistenceService.getSettlementForAdmin(startDateTime, endDateTime, pageable);
+    }
+
+    public void requestForAdmin(Long settlementId) {
+        AccountDto accountDto = settlementPersistenceService.findAccountDto(settlementId);
+
+        String name = accountDto.name();
+        String account = accountDto.accountNumber();
+
+        int row = settlementPersistenceService.processingSettlementForAdmin(settlementId);
+
+        requestSettlement(settlementId, row, accountDto, name, account);
     }
 }
