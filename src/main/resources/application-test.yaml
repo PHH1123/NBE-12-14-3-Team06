@@ -20,4 +20,4 @@ custom:
     secure: false
     same-site: Lax
   toss:
-    secret-key: ${TOSS_SECRET}
+    secret-key: ${TOSS_SECRET:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}
