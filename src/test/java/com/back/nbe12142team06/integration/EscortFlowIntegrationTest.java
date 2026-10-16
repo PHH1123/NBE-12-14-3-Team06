@@ -295,15 +295,7 @@ class EscortFlowIntegrationTest {
         // READY 상태라 결제 승인(confirm)을 거치지 않으면 escortComplete() 의
         // validPayment() 가 "결제된 금액이 0원"으로 보고 매번 추가 결제 플로우를 탄다
         // (계획/실제 동행 시간이 같아도 소용없다). 그래서 실제 결제 승인 플로우
-        // (금액 임시 저장 -> 승인)를 그대로 호출해 결제를 DONE 으로 만든다.
         String plannedAmount = String.valueOf(hourlyPay * 2);
-        mvc.perform(post("/api/v1/payments/save-amount")
-                        .cookie(clientCookie)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"paymentId": %d, "orderId": "order-%s", "amount": "%s"}
-                                """.formatted(paymentId, tag, plannedAmount)))
-                .andExpect(status().isCreated());
         mvc.perform(post("/api/v1/payments/{paymentId}/confirm", paymentId)
                         .cookie(clientCookie)
                         .sessionAttrs(Map.of("amount", plannedAmount, "orderId", "order-%s".formatted(tag)))
@@ -492,13 +484,6 @@ class EscortFlowIntegrationTest {
         Long paymentId = ((Number) writeCtx.read("$.data.paymentId")).longValue();
 
         String plannedAmount = String.valueOf(hourlyPay * 2);
-        mvc.perform(post("/api/v1/payments/save-amount")
-                        .cookie(clientCookie)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"paymentId": %d, "orderId": "order-%s", "amount": "%s"}
-                                """.formatted(paymentId, tag, plannedAmount)))
-                .andExpect(status().isCreated());
         mvc.perform(post("/api/v1/payments/{paymentId}/confirm", paymentId)
                         .cookie(clientCookie)
                         .sessionAttrs(Map.of("amount", plannedAmount, "orderId", "order-%s".formatted(tag)))
@@ -625,15 +610,8 @@ class EscortFlowIntegrationTest {
         Long postId = ((Number) writeCtx.read("$.data.id")).longValue();
         Long paymentId = ((Number) writeCtx.read("$.data.paymentId")).longValue();
 
-        // 2. 결제 승인 (금액 임시 저장 → 승인)
+        // 2. 결제 승인
         String plannedAmount = String.valueOf(hourlyPay * 2);
-        mvc.perform(post("/api/v1/payments/save-amount")
-                        .cookie(clientCookie)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"paymentId": %d, "orderId": "order-%s", "amount": "%s"}
-                                """.formatted(paymentId, tag, plannedAmount)))
-                .andExpect(status().isCreated());
         mvc.perform(post("/api/v1/payments/{paymentId}/confirm", paymentId)
                         .cookie(clientCookie)
                         .sessionAttrs(Map.of("amount", plannedAmount, "orderId", "order-%s".formatted(tag)))

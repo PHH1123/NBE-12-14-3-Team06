@@ -405,7 +405,6 @@ function PostDetailPageBody({ viewer }: Props) {
     ? `/client/posts/new/payment?${new URLSearchParams({
         postId: String(post.id),
         paymentId: String(unpaidPayment.id),
-        amount: String(unpaidPayment.amount),
         pay: String(post.hourlyPay),
         ...(isExtraPayment ? { flow: 'extra' } : {}),
       })}`

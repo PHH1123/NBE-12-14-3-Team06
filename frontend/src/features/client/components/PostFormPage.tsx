@@ -403,10 +403,11 @@ function PostFormFields({ postId, initial, sample }: FormFieldsProps) {
         // TODO: 등록 API(POST /api/v1/posts)는 의뢰인(CLIENT) 로그인 쿠키가 있어야 합니다.
         const created = await createPost(payload);
         // paymentId 는 공고 등록 시 함께 생성된 결제(Payment) 의 id 입니다. 결제 승인 때 필요합니다.
+        // 결제 금액은 넘기지 않습니다 — 결제 화면이 서버의 Payment.amount 를 직접 받아 씁니다.
+        // (여기서 계산한 추정치를 넘기면 서버 계산과 어긋나 승인 단계에서 거절될 수 있습니다)
         const query = new URLSearchParams({
           postId: String(created.id),
           paymentId: String(created.paymentId),
-          amount: String(amount),
           pay: String(estimateAmount(hourlyPay, 60)),
         });
         router.push(`/client/posts/new/payment?${query.toString()}`);
