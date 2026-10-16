@@ -819,7 +819,7 @@ public class AdminUserControllerTest {
         requestSuspension(user1Id, adminToken)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.statusCode").value("400-8"))
-                .andExpect(jsonPath("$.msg").value("이미 정지 상태인 계정입니다."));
+                .andExpect(jsonPath("$.msg").value("이미 기간 정지 상태인 계정입니다."));
     }
 
     @Test
@@ -959,7 +959,7 @@ public class AdminUserControllerTest {
         requestBan(user1Id, adminToken)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.statusCode").value("400-8"))
-                .andExpect(jsonPath("$.msg").value("이미 영구정지 상태인 계정입니다."));
+                .andExpect(jsonPath("$.msg").value("이미 영구 정지 상태인 계정입니다."));
     }
     @Test
     @DisplayName("[AdminUserController] 영구 정지 요청 - 관리자 계정을 정지 요청 시 400-6 반환")
