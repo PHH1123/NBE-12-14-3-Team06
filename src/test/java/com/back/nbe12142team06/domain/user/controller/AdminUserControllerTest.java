@@ -81,6 +81,22 @@ public class AdminUserControllerTest {
         return mvc.perform(request).andDo(print());
     }
 
+    // 영구 정지 요청
+    private ResultActions requestBan(Long userId, Cookie token) throws Exception {
+        var request = post("/api/v1/admin/users/{userId}/ban", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "reason": "욕설"
+                    }
+                    """);
+
+        if (token != null) {
+            request.cookie(token);
+        }
+
+        return mvc.perform(request).andDo(print());
+    }
     // 관리자 계정 주입
     private void createTestAdmin() {
         User admin = new User(
@@ -926,4 +942,23 @@ public class AdminUserControllerTest {
         assertThat(history.getEndAt()).isNull();
     }
 
+    @Test
+    @DisplayName("[AdminUserController] 영구 정지 요청 - 이미 영구 정지된 회원을 정지 요청 시 400-8 반환")
+    void t28() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        // 첫 번째 정지
+        requestBan(user1Id, adminToken)
+                .andExpect(status().isOk());
+
+        // 두 번째 정지
+        requestBan(user1Id, adminToken)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value("400-8"))
+                .andExpect(jsonPath("$.msg").value("이미 영구정지 상태인 계정입니다."));
+    }
 }
