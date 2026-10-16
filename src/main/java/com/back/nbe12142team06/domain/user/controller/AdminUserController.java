@@ -134,4 +134,24 @@ public class AdminUserController {
                 new AdminUserSuspendResponse(userStatusHistory)
         );
     }
+
+
+    @Operation(
+            summary = "회원 영구 정지",
+            description = "관리자가 회원에게 영구 정지 패널티를 부여합니다."
+    )
+    @PostMapping("/users/{userId}/ban")
+    public RsData<AdminUserSuspendResponse> banUserByAdmin(
+            @PathVariable Long userId,
+            @Valid @RequestBody AdminUserSuspendRequest request,
+            @AuthenticationPrincipal SecurityUser admin
+    ){
+        UserStatusHistory userStatusHistory = this.userService.banUser(admin.getId(), userId, request.reason());
+
+        return new RsData<>(
+                "200-11",
+                "회원이 영구 정지되었습니다.",
+                new AdminUserSuspendResponse(userStatusHistory)
+        );
+    }
 }
