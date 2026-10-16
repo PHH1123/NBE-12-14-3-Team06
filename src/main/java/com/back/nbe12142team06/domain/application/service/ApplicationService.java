@@ -285,6 +285,12 @@ public class ApplicationService {
             Post post = postRepository.findByIdWithLock(application.getPost().getId())
                     .orElseThrow(() -> new NotFoundException(11, "%d번 공고가 없습니다.".formatted(application.getPost().getId())));
 
+            // 동행 진행 중이거나 완료된 공고는 지원 취소 불가
+            if (post.getPostStatus() == PostStatus.IN_PROGRESS
+                    || post.getPostStatus() == PostStatus.COMPLETED) {
+                throw new InvalidException(36, "동행 진행 중이거나 완료된 공고는 지원을 취소할 수 없습니다.");
+            }
+
             EscortProfile escortProfile = escortProfileRepository.findById(userId)
                     .orElseThrow(() -> new NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다."));
 
