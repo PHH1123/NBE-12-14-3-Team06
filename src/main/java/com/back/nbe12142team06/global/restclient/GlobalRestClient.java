@@ -3,6 +3,7 @@ package com.back.nbe12142team06.global.restclient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import java.nio.charset.StandardCharsets;
@@ -14,12 +15,17 @@ public class GlobalRestClient {
 
     @Bean
     public RestClient tossRestClient() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10);
+        factory.setReadTimeout(10);
+
         return RestClient.builder()
                 .baseUrl("https://api.tosspayments.com")
                 .defaultHeader("Authorization",
                         "Basic " + new String(Base64.getEncoder()
                                 .encode((TOSS_SECRET_KEY + ":").getBytes(StandardCharsets.UTF_8))))
                 .defaultHeader("Content-Type", "application/json")
+                .requestFactory(factory)
                 .build();
     }
 }
