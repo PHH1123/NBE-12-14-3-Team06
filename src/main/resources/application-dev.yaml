@@ -30,3 +30,5 @@ custom:
 ##    api-key: ${CLAUDE_API_KEY}
 ##    model: claude-sonnet-5
 ##    max-tokens: 1024
+  toss:
+    secret-key: ${TOSS_SECRET}
