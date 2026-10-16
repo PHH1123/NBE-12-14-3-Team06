@@ -52,6 +52,12 @@ public class EscortProfile extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer noShowCount = 0;
 
+    // 등급 (동행 완료 횟수와 노쇼 횟수로 계산해 저장한다)
+    @Enumerated(EnumType.STRING)
+    @ColumnDefault("'SEED'")
+    @Column(nullable = false, length = 20)
+    private EscortGrade grade = EscortGrade.SEED;
+
     // 은행 이름
     @Column(nullable = false, length = 20)
     private String bankName;
@@ -100,8 +106,13 @@ public class EscortProfile extends BaseTimeEntity {
     }
 
 
-    //등급 배지 기준
-    public EscortGrade getGrade() {
+    // 저장된 등급을 새 등급으로 바꾼다. 이력은 호출하는 쪽(서비스)에서 남긴다.
+    public void updateGrade(EscortGrade newGrade) {
+        this.grade = newGrade;
+    }
+
+    // 등급 배지 기준: 완료 횟수와 노쇼 횟수로 등급을 계산한다 (저장은 하지 않는다)
+    public EscortGrade calculateGrade() {
         EscortGrade grade;
 
         if (completedCount >= 30) {
