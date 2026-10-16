@@ -883,4 +883,47 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.statusCode").value("403-1"))
                 .andExpect(jsonPath("$.msg").value("권한이 없습니다."));
     }
+
+    @Test
+    @DisplayName("[AdminUserController] 영구 정지 요청 - 관리자가 ACTIVE 상태의 유저를 정지 요청 시 유저 상태를 BANNED로 변경 후 200-11 반환")
+    void t27() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+        Long adminId = findUserId(ADMIN_USERNAME);
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/admin/users/{userId}/ban",  user1Id)
+                        .cookie(adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "reason": "욕설"
+                                }
+                                """)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-11"))
+                .andExpect(jsonPath("$.msg").value("회원이 영구 정지되었습니다."))
+                .andExpect(jsonPath("$.data.username").value("user1"))
+                .andExpect(jsonPath("$.data.startAt").isNotEmpty())
+                .andExpect(jsonPath("$.data.endAt").doesNotExist());
+
+        em.flush();
+        em.clear();
+
+        User user = this.userRepository.findById(user1Id).orElseThrow();
+        assertThat(user.getUserStatus()).isEqualTo(UserStatus.BANNED);
+
+        UserStatusHistory history = this.userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElseThrow();
+        assertThat(history.getStatus()).isEqualTo(UserStatus.BANNED);
+        assertThat(history.getAdminId()).isEqualTo(adminId);
+        assertThat(history.getReason()).isEqualTo("욕설");
+        assertThat(history.getEndAt()).isNull();
+    }
+
 }

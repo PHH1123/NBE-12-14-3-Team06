@@ -87,12 +87,12 @@ public class AdminUserController {
             summary = "회원 탈퇴 처리",
             description = "관리자가 특정 회원을 탈퇴 처리합니다. 관리자 본인 또는 이미 탈퇴한 회원은 탈퇴 처리할 수 없습니다."
     )
-    @DeleteMapping("/users/{id}")
+    @DeleteMapping("/users/{userId}")
     public RsData<Void> deleteUser(
             @AuthenticationPrincipal SecurityUser admin,
-            @PathVariable Long id
+            @PathVariable Long userId
     ) {
-        this.userService.deleteUser(admin.getId(), id);
+        this.userService.deleteUser(admin.getId(), userId);
 
 
         return new RsData<>(
