@@ -1,5 +1,8 @@
 package com.back.nbe12142team06.domain.payment.service;
 
+import com.back.nbe12142team06.domain.application.entity.Application;
+import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
+import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
@@ -28,6 +31,7 @@ import java.util.List;
 public class PaymentPersistenceService {
 
     private final PaymentRepository paymentRepository;
+    private final ApplicationRepository applicationRepository;
 
     @Transactional
     public void paymentSaveDb(ResponseEntity<TossConfirmResponse> response, Long paymentId, String tossPaymentKey, String tossOrderId) {
@@ -140,5 +144,11 @@ public class PaymentPersistenceService {
                 .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
 
         payment.statusUpdate(status);
+    }
+
+    @Transactional
+    public void rejectApplication(Post post) {
+        applicationRepository.findAllByPostAndStatus(post, ApplicationStatus.PENDING)
+                .forEach(Application::reject);
     }
 }
