@@ -3,7 +3,7 @@ package com.back.nbe12142team06.domain.payment.service;
 import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
-import com.back.nbe12142team06.domain.application.service.ApplicationService;
+import com.back.nbe12142team06.domain.notification.service.NoticeService;
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient;
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest;
 import com.back.nbe12142team06.domain.payment.dto.PaymentConfirmRequest;
@@ -12,6 +12,7 @@ import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
+import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.post.entity.PostStatus;
 import com.back.nbe12142team06.domain.settlement.service.SettlementService;
@@ -20,12 +21,18 @@ import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+
+import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.*;
+import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.*;
 
 @Slf4j
 @Service
@@ -37,8 +44,9 @@ public class PaymentService {
     private final TossPaymentClient tossPaymentClient;
     private final SettlementService settlementService;
     private final ApplicationRepository applicationRepository;
+    private final NoticeService noticeService;
 
-    public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId, String sessionAmount, String sessionOrderId) {
+    public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId) {
 
         Payment payment = paymentPersistenceService.findById(userId, paymentId);
 
@@ -55,7 +63,7 @@ public class PaymentService {
         String amount = request.amount();
 
         // 1. 검증 로직
-        verifyAmount(sessionAmount, sessionOrderId, new SaveAmountRequest(payment.getId(), tossOrderId, amount));
+        verifyAmount(String.valueOf(payment.getAmount()), new SaveAmountRequest(payment.getId(), null, amount));
         if (paymentPersistenceService.confirmUpdateStatus(payment.getId()) <= 0) {
             throw new InvalidException(44, "결제 대기 중인 데이터가 없습니다.");
         }
@@ -82,6 +90,11 @@ public class PaymentService {
         }
 
         log.info("결제 승인 성공 - paymentId: {}, userId: {}", paymentId, userId);
+
+        // 알림
+        noticeService.send(payment.getPost().getClient(),
+                C_PAYMENT_DONE.of(payment.getPost().getTitle(), String.valueOf(payment.getAmount())),
+                U_PAYMENT_DONE.of(payment.getPost().getId()));
 
         return payment;
     }
@@ -149,6 +162,11 @@ public class PaymentService {
         applicationRepository.findAllByPostAndStatus(post, ApplicationStatus.PENDING)
                 .forEach(Application::reject);
 
+        // 알림
+        noticeService.send(post.getClient(),
+                C_PAYMENT_CANCELED.of(post.getTitle(), String.valueOf(payment.getAmount())),
+                U_PAYMENT_CANCELED.of(post.getId()));
+
         return canceledPayment;
     }
 
@@ -173,6 +191,7 @@ public class PaymentService {
         verifyAmount(String.valueOf(payment.getAmount()), request);
     }
 
+    /// deprecated
     public void verifyAmount(String amount, String orderId, SaveAmountRequest request) {
         if (!amount.equals(request.amount())
                 || !orderId.equals(request.orderId())) {
@@ -182,7 +201,6 @@ public class PaymentService {
         }
     }
 
-    /// deprecated
     public void verifyAmount(String amount, SaveAmountRequest request) {
         if (amount == null || !amount.equals(request.amount())) {
             log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 저장된 amount: {}", request.amount(), amount);
@@ -224,6 +242,11 @@ public class PaymentService {
                     .amount(Math.abs(balanceAmount))
                     .build();
             paymentPersistenceService.createPayment(newPayment);
+
+            // 알림
+            noticeService.send(post.getClient(),
+                    C_PAYMENT_EXTRA_PAY.of(post.getTitle(), String.valueOf(newPayment.getAmount())),
+                    U_PAYMENT_EXTRA_PAY.of(post.getId()));
         }
 
         // 부분 취소 플로우
@@ -234,6 +257,11 @@ public class PaymentService {
                     new PaymentCancelRequest("결제 금액: %s, 이용 금액: %s".formatted(balanceAmount + payoutAmount, payoutAmount)),
                     balanceAmount, true, false
             );
+
+            // 알림
+            noticeService.send(post.getClient(),
+                    C_PAYMENT_PARTIAL_CANCELED.of(post.getTitle(), String.valueOf(balanceAmount)),
+                    U_PAYMENT_PARTIAL_CANCELED.of(post.getId()));
         }
 
         return payoutAmount;
@@ -256,8 +284,8 @@ public class PaymentService {
     public void updateAmount(Long paymentId, String amount) {
         paymentPersistenceService.updateAmount(paymentId, amount);
     }
-
     // 결제 - 공고 삭제 상태 변경
+
     public Payment cancelPostAndPayment(Long postId) {
         return paymentPersistenceService.updateDeleteStatus(postId);
     }
@@ -304,5 +332,71 @@ public class PaymentService {
         List<Payment> payments = paymentPersistenceService.getNotPaid(userId);
 
         return payments.isEmpty();
+    }
+
+    public List<PaymentDailyAnalyticsDto> getDailyPaymentAnalytics(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        } else {
+            startDateTime = LocalDate.now().minusDays(7).atStartOfDay();
+        }
+
+        if (endDate != null) {
+            endDateTime = endDate.plusDays(1).atStartOfDay();
+        } else {
+            endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
+        }
+
+        return paymentPersistenceService.getDailyAnalytics(startDateTime, endDateTime);
+    }
+
+    public List<Payment> getPaymentAnalyticsByPeriod(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        } else {
+            startDateTime = LocalDate.now().minusDays(7).atStartOfDay();
+        }
+
+        if (endDate != null) {
+            endDateTime = endDate.atStartOfDay();
+        } else {
+            endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
+        }
+
+        return paymentPersistenceService.getAnalyticsByPeriod(startDateTime, endDateTime);
+    }
+
+    public Page<Payment> getPaymentsForAdmin(LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        } else {
+            startDateTime = LocalDate.now().minusDays(7).atStartOfDay();
+        }
+
+        if (endDate != null) {
+            endDateTime = endDate.atStartOfDay();
+        } else {
+            endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
+        }
+
+        return paymentPersistenceService.getPaymentsForAdmin(startDateTime, endDateTime, pageable);
+    }
+
+    public void updateStatusForAdmin(Long paymentId, PaymentStatus status) {
+        paymentPersistenceService.updateStatusForAdmin(paymentId, status);
+    }
+    // 동행 완료 후 추가 결제를 하지 않은 공고가 있는 지 확인
+
+    public boolean hasUnpaidExtraPayment(Long userId) {
+        return this.paymentRepository.existsUnpaidExtraByUserId(userId);
     }
 }

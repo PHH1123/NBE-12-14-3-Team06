@@ -26,7 +26,6 @@ import com.back.nbe12142team06.domain.user.service.EscortService;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
-import com.back.nbe12142team06.global.exception.UnauthorizedException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -354,5 +353,9 @@ public class PostService {
 
         post.cancel();
         log.info("[공고 취소] postId={}, userId={}", postId, userId);
+    }
+
+    public boolean hasInProgressPost(Long userId){
+        return this.postRepository.existsByClientIdAndPostStatus(userId, PostStatus.IN_PROGRESS);
     }
 }

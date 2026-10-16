@@ -4,6 +4,7 @@
  */
 export {
   fetchPendingPayment,
+  fetchPayment,
   fetchMyPayments,
   fetchUnpaidByPost,
   fetchPaymentsByPost,

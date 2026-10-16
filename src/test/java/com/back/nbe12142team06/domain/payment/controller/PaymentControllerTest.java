@@ -2,6 +2,7 @@ package com.back.nbe12142team06.domain.payment.controller;
 
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.application.service.ApplicationService;
+import com.back.nbe12142team06.domain.notification.service.NoticeService;
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient;
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest;
 import com.back.nbe12142team06.domain.payment.dto.PaymentConfirmRequest;
@@ -178,10 +179,12 @@ class PaymentControllerTest {
 
         TossPaymentClient mockTossPaymentClient = mock(TossPaymentClient.class);
         when(mockTossPaymentClient.callApiConfirm(any(), any(), any())).thenReturn(ResponseEntity.ok(new TossConfirmResponse("계좌이체", amount)));
+        NoticeService mockNoticeService = mock(NoticeService.class);
 
-        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, mockTossPaymentClient, null, null);
 
-        Payment payment = paymentService.confirm(new PaymentConfirmRequest(paymentKey, orderId, amount), savedPayment2Id, savedUser1Id, amount, orderId);
+        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, mockTossPaymentClient, null, null, mockNoticeService);
+
+        Payment payment = paymentService.confirm(new PaymentConfirmRequest(paymentKey, orderId, amount), savedPayment2Id, savedUser1Id);
 
         assertEquals(PaymentStatus.DONE, payment.getPaymentStatus());
         assertEquals(LocalDateTime.now().getHour(), payment.getApprovedAt().getHour());
@@ -223,11 +226,11 @@ class PaymentControllerTest {
         String orderId = "temp";
         String amount = "10000";
 
-        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, null, null, null);
+        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, null, null, null, null);
 
         // 예외 발생 403번
         assertThrows(ForbiddenException.class, () -> {
-            paymentService.confirm(new PaymentConfirmRequest(paymentKey, orderId, amount), savedPayment1Id, savedUser2Id, amount, orderId);
+            paymentService.confirm(new PaymentConfirmRequest(paymentKey, orderId, amount), savedPayment1Id, savedUser2Id);
         });
     }
 
@@ -240,11 +243,11 @@ class PaymentControllerTest {
         String amount = "10000";
         Long paymentId = 10000L;
 
-        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, null, null, null);
+        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, null, null, null, null);
 
         // 예외 발생 404
         assertThrows(NotFoundException.class, () -> {
-            paymentService.confirm(new PaymentConfirmRequest(paymentKey, orderId, amount), paymentId, savedUser1Id, amount, orderId);
+            paymentService.confirm(new PaymentConfirmRequest(paymentKey, orderId, amount), paymentId, savedUser1Id);
         });
     }
 
@@ -259,132 +262,12 @@ class PaymentControllerTest {
         TossPaymentClient mockTossPaymentClient = mock(TossPaymentClient.class);
         when(mockTossPaymentClient.callApiConfirm(any(), any(), any())).thenThrow(new InvalidException(11, "결제 승인에 실패했습니다."));
 
-        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, mockTossPaymentClient, null, null);
+        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, mockTossPaymentClient, null, null, null);
 
         // 예외 발생 400번
         assertThrows(InvalidException.class, () -> {
-            paymentService.confirm(new PaymentConfirmRequest(paymentKey, orderId, amount), savedPayment1Id, savedUser1Id, amount, orderId);
+            paymentService.confirm(new PaymentConfirmRequest(paymentKey, orderId, amount), savedPayment1Id, savedUser1Id);
         });
-    }
-
-    @Test
-    @DisplayName("[PaymentController] 결제 정보 임시 저장")
-    void tempSave() throws Exception {
-
-        String orderId = UUID.randomUUID().toString();
-        String amount = "10000";
-
-        ResultActions resultActions = mvc.perform(
-                post("/api/v1/payments/save-amount")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(accessTokenCookie1)
-                        .content("""
-                                {
-                                    "paymentId": %d,
-                                    "orderId": "%s",
-                                    "amount": "%s"
-                                }
-                                """.formatted(savedPayment1Id, orderId, amount))
-        ).andDo(print());
-
-        resultActions
-                .andExpect(handler().handlerType(PaymentController.class))
-                .andExpect(handler().methodName("tempSave"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.statusCode").value("201-41"))
-                .andExpect(jsonPath("$.msg").value("결제 정보 임시 저장에 성공했습니다."));
-
-        // 세션이 아니라 DB(Payment.amount)에 반영되는지 확인
-        Payment saved = paymentRepository.findById(savedPayment1Id).orElseThrow();
-        assertEquals(10_000, saved.getAmount());
-    }
-
-    @Test
-    @DisplayName("[PaymentController] 결제 정보 임시 저장 검증 - 성공")
-    void verifyAmount() throws Exception {
-
-        String orderId = UUID.randomUUID().toString();
-        // 공고 등록 때 서버가 계산해 DB 에 저장한 금액 (시간당 15,000원 * 4시간)
-        String amount = "60000";
-
-        ResultActions resultActions = mvc.perform(
-                post("/api/v1/payments/verify-amount")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(accessTokenCookie1)
-                        .content("""
-                                {
-                                    "paymentId": %d,
-                                    "orderId": "%s",
-                                    "amount": "%s"
-                                }
-                                """.formatted(savedPayment1Id, orderId, amount))
-        ).andDo(print());
-
-        resultActions
-                .andExpect(handler().handlerType(PaymentController.class))
-                .andExpect(handler().methodName("verifyAmount"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.statusCode").value("200-42"))
-                .andExpect(jsonPath("$.msg").value("결제 정보가 유효합니다."));
-    }
-
-    /// deprecated
-//    @Test
-//    @DisplayName("[PaymentController] 결제 정보 임시 저장 검증 - 검증 실패")
-//    void verifyAmountFail() throws Exception {
-//
-//        String orderId = UUID.randomUUID().toString();
-//        // DB 에 저장된 금액(60,000원)과 다른 금액을 입력
-//        String amount = "5000";
-//
-//        ResultActions resultActions = mvc.perform(
-//                post("/api/v1/payments/verify-amount")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .cookie(accessTokenCookie1)
-//                        .content("""
-//                                {
-//                                    "paymentId": %d,
-//                                    "orderId": "%s",
-//                                    "amount": "%s"
-//                                }
-//                                """.formatted(savedPayment1Id, orderId, amount))
-//        ).andDo(print());
-//
-//        resultActions
-//                .andExpect(handler().handlerType(PaymentController.class))
-//                .andExpect(handler().methodName("verifyAmount"))
-//                .andExpect(status().isBadRequest())
-//                .andExpect(jsonPath("$.statusCode").value("400-42"))
-//                .andExpect(jsonPath("$.msg").value("결제 금액 정보가 유효하지 않습니다."));
-//    }
-
-    @Test
-    @DisplayName("[PaymentController] 결제 정보 임시 저장 검증 - 남의 결제")
-    void verifyAmountForbidden() throws Exception {
-
-        String orderId = UUID.randomUUID().toString();
-        String amount = "60000";
-
-        // user1 의 결제를 user2 가 검증 요청
-        ResultActions resultActions = mvc.perform(
-                post("/api/v1/payments/verify-amount")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(accessTokenCookie2)
-                        .content("""
-                                {
-                                    "paymentId": %d,
-                                    "orderId": "%s",
-                                    "amount": "%s"
-                                }
-                                """.formatted(savedPayment1Id, orderId, amount))
-        ).andDo(print());
-
-        resultActions
-                .andExpect(handler().handlerType(PaymentController.class))
-                .andExpect(handler().methodName("verifyAmount"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.statusCode").value("403-41"))
-                .andExpect(jsonPath("$.msg").value("사용자의 결제 정보가 아닙니다."));
     }
 
     @Test
@@ -474,8 +357,9 @@ class PaymentControllerTest {
         TossPaymentClient mockTossPaymentClient = mock(TossPaymentClient.class);
         ApplicationRepository mockApplicationRepository = mock(ApplicationRepository.class);
         when(mockTossPaymentClient.callApiCancel(any(), any(), any())).thenReturn(ResponseEntity.ok(new TossConfirmResponse("계좌이체", "60000")));
+        NoticeService mockNoticeService = mock(NoticeService.class);
 
-        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, mockTossPaymentClient, null, mockApplicationRepository);
+        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, mockTossPaymentClient, null, mockApplicationRepository, mockNoticeService);
 
         Payment canceledPayment = paymentService.cancel(savedUser1Id, savedPayment1Id, new PaymentCancelRequest(cancelReason));
 
@@ -495,7 +379,7 @@ class PaymentControllerTest {
         TossPaymentClient mockTossPaymentClient = mock(TossPaymentClient.class);
         when(mockTossPaymentClient.callApiCancel(any(), any(), any())).thenThrow(InvalidException.class);
 
-        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, mockTossPaymentClient, null, null);
+        PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, mockTossPaymentClient, null, null, null);
 
         // 예외 발생 400번
         assertThrows(InvalidException.class, () -> {

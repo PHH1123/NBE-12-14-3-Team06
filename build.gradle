@@ -62,8 +62,9 @@ dependencies {
     testAnnotationProcessor("org.projectlombok:lombok")
     testCompileOnly("org.projectlombok:lombok")
 
-    //모니터링
+    // 모니터링
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
     // LLM (Spring AI)
     implementation("org.springframework.ai:spring-ai-starter-model-anthropic")

@@ -24,6 +24,7 @@ const TABS: { value: Tab; label: string }[] = [
 
 const BADGE: Record<SettlementStatus, { label: string; className: string }> = {
   PENDING: { label: '정산 대기', className: 'bg-[#e6e8ec] text-footer' },
+  PROCESSING: { label: '정산 중', className: 'bg-[#e8f3ff] text-[#203b9d]' },
   COMPLETED: { label: '정산 완료', className: 'bg-[#d3d5da] text-[#62656d]' },
   FAILED: { label: '정산 실패', className: 'bg-[#ffe3e3] text-[#b91d1d]' },
 };
@@ -52,9 +53,11 @@ function SettlementCard({ settlement, onRequested }: { settlement: SettlementDto
     setRequesting(true);
     setError('');
     try {
-      // TODO: 정산 요청 API(POST /api/v1/settlements/{settlementId})는 정산 대기 상태에서만 됩니다.
+      // POST /api/v1/settlements/{settlementId} 는 정산 대기(PENDING) 상태에서만 됩니다.
+      // 성공(2xx)이면 서버가 이미 COMPLETED 로 바꾼 뒤이고, 실패하면 예외를 던집니다.
       await requestSettlement(settlement.id);
-      onRequested({ ...settlement, status: 'COMPLETED', settledAt: new Date().toISOString() });
+      // settledAt 은 서버가 미리 잡아 둔 정산 예정일이라 여기서 "지금"으로 덮어쓰지 않습니다.
+      onRequested({ ...settlement, status: 'COMPLETED' });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '정산 요청에 실패했습니다.');
     } finally {

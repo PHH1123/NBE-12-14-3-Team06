@@ -31,53 +31,14 @@ public class PaymentController {
     @PostMapping("/{paymentId}/confirm")
     public RsData<PaymentConfirmResponse> requestConfirm(@AuthenticationPrincipal SecurityUser actor,
                                                          @RequestBody PaymentConfirmRequest request,
-                                                         @PathVariable Long paymentId,
-                                                         HttpSession session
+                                                         @PathVariable Long paymentId
     ) {
         Long userId = actor.getId();
-        String amount = (String) session.getAttribute("amount");
-        String orderId = (String) session.getAttribute("orderId");
 
-        paymentService.confirm(request, paymentId, userId, amount, orderId);
-
-        session.removeAttribute("amount");
-        session.removeAttribute("orderId");
+        paymentService.confirm(request, paymentId, userId);
 
         return new RsData<>("200-41", "결제 승인에 성공했습니다.",
                 new PaymentConfirmResponse(request));
-    }
-
-    @Operation(
-            summary = "결제 정보 임시 저장",
-            description = "결제 진행에 필요한 주문 ID와 결제 금액을 세션에 임시 저장합니다."
-    )
-    @PostMapping("/save-amount")
-    public RsData<?> tempSave(HttpSession session,
-                              @AuthenticationPrincipal SecurityUser actor,
-                              @RequestBody SaveAmountRequest request) {
-        session.setAttribute("orderId", request.orderId());
-        session.setAttribute("amount", request.amount());
-
-        paymentService.updateAmount(request.paymentId(), request.amount());
-
-        log.info("세션 저장 완료 - orderId: %s, amount: %s".formatted(request.orderId(), request.amount()));
-
-        return new RsData<>("201-41", "결제 정보 임시 저장에 성공했습니다.");
-    }
-
-    /// deprecated
-    @Operation(
-            summary = "결제 금액 검증",
-            description = "DB 에 저장된 결제 금액과 요청 정보를 비교하여 결제 정보를 검증합니다."
-    )
-    @PostMapping("/verify-amount")
-    public RsData<?> verifyAmount(@AuthenticationPrincipal SecurityUser actor,
-                                  @RequestBody SaveAmountRequest request) {
-        Long userId = actor.getId();
-
-        paymentService.verifyAmount(userId, request);
-
-        return new RsData<>("200-42", "결제 정보가 유효합니다.");
     }
 
     @Operation(

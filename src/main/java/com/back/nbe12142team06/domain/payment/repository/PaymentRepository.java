@@ -2,11 +2,16 @@ package com.back.nbe12142team06.domain.payment.repository;
 
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
+import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,7 +24,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             "where post.id=:postId and u.id=:userId and pay.paymentStatus=PaymentStatus.READY")
     Optional<Payment> findByPostIdAndUserIdAndReady(@Param("postId") Long postId,
                                                     @Param("userId") Long userId);
-
 
 
     @Query("select pay " +
@@ -60,4 +64,39 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     int paymentInProgress(@Param("paymentId") Long paymentId);
 
     List<Payment> findByPostIdAndPaymentStatus(Long postId, PaymentStatus paymentStatus);
+
+    @Query("select cast(p.approvedAt as LocalDate), sum(p.amount) paidAmount, count(p) counts " +
+            "from Payment p " +
+            "where p.approvedAt >= :startDate and p.approvedAt <= :endDate " +
+            "and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED) " +
+            "group by cast(p.approvedAt as LocalDate) " +
+            "order by cast(p.approvedAt as LocalDate)")
+    List<PaymentDailyAnalyticsDto> findDailyAnalytics(@Param("startDate") LocalDateTime startDate,
+                                                      @Param("endDate") LocalDateTime endDate);
+
+    @Query("select p " +
+            "from Payment p " +
+            "where p.approvedAt >= :startDate and p.approvedAt <= :endDate " +
+            "and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED)")
+    List<Payment> findAnalyticsByPeriod(@Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate);
+
+    @Query("select pay " +
+            "from Payment pay " +
+            "join fetch pay.post post " +
+            "join fetch post.client " +
+            "where pay.approvedAt >= :startDate and pay.approvedAt <= :endDate")
+    Page<Payment> findPaymentsForAdmin(@Param("startDate") LocalDateTime startDate,
+                                       @Param("endDate") LocalDateTime endDate,
+                                       Pageable pageable);
+
+    // 회원 탈퇴 제한 - 동행 완료 후 미결제 추가 결제가 있는지 확인
+    @Query("""
+    SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END
+    FROM Payment p
+    WHERE p.post.client.id = :userId
+      AND p.paymentStatus = PaymentStatus.READY
+      AND p.post.postStatus = PostStatus.COMPLETED
+    """)
+    boolean existsUnpaidExtraByUserId(@Param("userId") Long userId);
 }

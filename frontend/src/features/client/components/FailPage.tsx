@@ -18,13 +18,13 @@ export default function FailPage() {
   const postId = searchParams.get('postId') ?? '1';
   const paymentId = searchParams.get('paymentId') ?? '';
   const pay = searchParams.get('pay') ?? '0';
-  const amount = searchParams.get('amount') ?? '0';
   // flow=extra : 동행 완료 후 차액을 내는 추가 결제. 재시도해도 같은 흐름을 이어가야 합니다.
   const flow = searchParams.get('flow') ?? '';
   const isExtra = flow === 'extra';
 
   // 실패했으니 결제 화면으로 되돌아가 같은 공고를 다시 결제할 수 있게 합니다.
-  const retryHref = `/client/posts/new/payment?${new URLSearchParams({ postId, paymentId, pay, amount, flow })}`;
+  // 금액은 싣지 않습니다 — 결제 화면이 paymentId 로 서버의 Payment.amount 를 다시 받아 씁니다.
+  const retryHref = `/client/posts/new/payment?${new URLSearchParams({ postId, paymentId, pay, flow })}`;
 
   return (
     <div id="info" className="box_section" style={{ width: '600px' }}>

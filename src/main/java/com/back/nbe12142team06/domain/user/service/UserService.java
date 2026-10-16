@@ -1,9 +1,13 @@
 package com.back.nbe12142team06.domain.user.service;
 
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
+import com.back.nbe12142team06.domain.application.service.ApplicationService;
 import com.back.nbe12142team06.domain.auth.entity.RefreshToken;
 import com.back.nbe12142team06.domain.auth.repository.RefreshTokenRepository;
 import com.back.nbe12142team06.domain.education.service.EducationService;
+import com.back.nbe12142team06.domain.payment.service.PaymentService;
+import com.back.nbe12142team06.domain.post.service.PostService;
+import com.back.nbe12142team06.domain.settlement.service.SettlementService;
 import com.back.nbe12142team06.domain.user.dto.admin.AdminUserProfileUpdateRequest;
 import com.back.nbe12142team06.domain.user.dto.login.UserLoginRequest;
 import com.back.nbe12142team06.domain.user.dto.profile.ClientProfileModifyRequest;
@@ -57,27 +61,12 @@ public class UserService {
     private final ApplicationRepository applicationRepository;
     private final UserStatusHistoryRepository userStatusHistoryRepository;
     private final EducationService educationService;
+    private final ApplicationService applicationService;
+    private final PostService postService;
+    private final PaymentService paymentService;
+    private final SettlementService settlementService;
 
-    // 프로필 삭제, 리프레시 토큰 폐기, 회원 정보 삭제
-    private void withdraw(User user) {
-        Long userId = user.getId();
 
-        switch (user.getRole()) {
-            case CLIENT -> this.clientProfileRepository.deleteByUserId(userId);
-            case ESCORT -> {
-                this.educationService.deleteProgresses(userId);
-                this.escortProfileRepository.deleteByUserId(userId);
-            }
-        }
-
-        List<RefreshToken> refreshTokens = this.refreshTokenRepository.findAllByUserIdAndRevokedAtIsNull(userId);
-        for (RefreshToken refreshToken : refreshTokens) {
-            refreshToken.revoke();
-        }
-
-        user.deleteUser();
-        this.userRepository.save(user);
-    }
 
     // 회원가입
     @Transactional
@@ -245,7 +234,11 @@ public class UserService {
         if (user.getRole() == Role.ADMIN) {
             throw new InvalidException(3, "관리자는 자신의 계정을 탈퇴시킬 수 없습니다.");
         }
-        // TODO: 지원 취소, 공고 취소 로직 추가
+        // 동행 진행 중인 건, 미결제, 미정산 건이 존재하는 지 확인
+        validateWithdrawable(user);
+
+        // 공고 취소, 지원 취소
+        cancelAllByUser(user);
 
         // 회원 정보, 프로필, 토큰 전부 삭제
         withdraw(user);
@@ -400,7 +393,12 @@ public class UserService {
         if (user.isDeleted()) {
             throw new InvalidException(5, "이미 탈퇴한 회원입니다.");
         }
-        // TODO: 지원 취소, 공고 취소 로직 추가
+
+        // 동행 진행 중인 건, 미결제, 미정산 건이 존재하는 지 확인
+        validateWithdrawable(user);
+
+        // 공고 취소, 지원 취소
+        cancelAllByUser(user);
 
         // 회원 정보, 프로필, 토큰 전부 삭제
         withdraw(user);
@@ -446,10 +444,61 @@ public class UserService {
             );
         }
 
-        // TODO: 지원 취소, 공고 취소 로직 추가
-
         UserStatusHistory history = this.userStatusHistoryRepository.save(user.suspend(adminId, reason));
+
+        // 공고 취소, 지원 취소
+        cancelAllByUser(user);
+
         log.info("[회원 정지] adminId={}, userId={}", adminId, userId);
         return history;
     }
+
+    // 프로필 삭제, 리프레시 토큰 폐기, 회원 정보 삭제
+    private void withdraw(User user) {
+        Long userId = user.getId();
+
+        switch (user.getRole()) {
+            case CLIENT -> this.clientProfileRepository.deleteByUserId(userId);
+            case ESCORT -> {
+                this.educationService.deleteProgresses(userId);
+                this.escortProfileRepository.deleteByUserId(userId);
+            }
+        }
+
+        List<RefreshToken> refreshTokens = this.refreshTokenRepository.findAllByUserIdAndRevokedAtIsNull(userId);
+        for (RefreshToken refreshToken : refreshTokens) {
+            refreshToken.revoke();
+        }
+
+        user.deleteUser();
+        this.userRepository.save(user);
+    }
+
+
+    // 탈퇴 가능 여부 판단
+    private void validateWithdrawable(User user) {
+        Long userId = user.getId();
+        switch (user.getRole()) {
+            case CLIENT -> {
+                if (postService.hasInProgressPost(userId)) throw new InvalidException(7, "진행 중인 동행이 있어 탈퇴 할 수 없습니다.");
+                if (paymentService.hasUnpaidExtraPayment(userId)) throw new InvalidException(10, "미결제 공고가 있어 탈퇴 할 수 없습니다.");
+            }
+            case ESCORT -> {
+                if (applicationService.hasInProgressEscort(userId)) throw new InvalidException(7, "진행 중인 동행이 있어 탈퇴 할 수 없습니다.");
+                if (settlementService.hasUnsettled(userId)) throw new InvalidException(101, "미정산이 동행이 있어 탈퇴 할 수 없습니다.");
+            }
+            case ADMIN -> {}
+        }
+    }
+
+
+    // 탈퇴, 정지 시 공고, 지원 취소 및 삭제
+    private void cancelAllByUser(User user){
+        switch (user.getRole()){
+            case CLIENT -> this.postService.cancelAllByClient(user.getId());
+            case ESCORT -> this.applicationService.cancelAllByEscort(user.getId());
+            case ADMIN -> {}
+        }
+    }
+
 }

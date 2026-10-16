@@ -48,4 +48,11 @@ public class ChatPart extends BaseTimeEntity {
         this.lastReadAt = LocalDateTime.now();
     }
 
+    public void leave() {
+        this.isActive = false;
+    }
+
+    public void join() {
+        this.isActive = true;
+    }
 }
