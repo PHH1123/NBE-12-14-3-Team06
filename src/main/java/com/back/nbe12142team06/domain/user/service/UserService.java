@@ -453,6 +453,7 @@ public class UserService {
         return history;
     }
 
+    @Transactional
     public UserStatusHistory banUser(Long adminId, Long userId, String reason) {
         // 패널티 대상이 존재하는 회원인지 확인
         User user = this.userRepository.findById(userId)
