@@ -453,6 +453,7 @@ public class UserService {
         return history;
     }
 
+    // [관리자] 회원 계정에 영구 정지 패널티 부여
     @Transactional
     public UserStatusHistory banUser(Long adminId, Long userId, String reason) {
         // 패널티 대상이 존재하는 회원인지 확인

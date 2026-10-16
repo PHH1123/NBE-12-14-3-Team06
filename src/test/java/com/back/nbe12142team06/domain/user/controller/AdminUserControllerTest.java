@@ -961,4 +961,23 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.statusCode").value("400-8"))
                 .andExpect(jsonPath("$.msg").value("이미 영구정지 상태인 계정입니다."));
     }
+    @Test
+    @DisplayName("[AdminUserController] 영구 정지 요청 - 관리자 계정을 정지 요청 시 400-6 반환")
+    void t29() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+        Long adminId = findUserId(ADMIN_USERNAME);
+
+        requestBan(adminId, adminToken)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value("400-6"))
+                .andExpect(jsonPath("$.msg").value("관리자의 계정을 정지시킬 수 없습니다."));
+
+        // 상태 유지 확인
+        em.flush();
+        em.clear();
+
+        User admin = userRepository.findById(adminId).orElseThrow();
+        assertThat(admin.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+    }
 }
