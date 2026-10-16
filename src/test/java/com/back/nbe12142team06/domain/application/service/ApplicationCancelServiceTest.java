@@ -13,6 +13,7 @@ import com.back.nbe12142team06.domain.post.repository.PostRepository;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
+import com.back.nbe12142team06.domain.user.service.EscortService;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,9 @@ class ApplicationCancelServiceTest {
 
     @InjectMocks
     private ApplicationService applicationService;
+
+    @Mock
+    private EscortService escortService;
 
     @ParameterizedTest
     @EnumSource(value = PostStatus.class, names = {"IN_PROGRESS", "COMPLETED"})
@@ -174,6 +178,7 @@ class ApplicationCancelServiceTest {
         verify(escortProfile).increaseNoShowCount();
         verify(noShowPenaltyService).noShow(application);
         verify(post).reopen();
+        verify(escortService).refreshGrade(escortProfile);
 
         // 모집 기간이 남아 있으므로 환불하지 않음
         verifyNoInteractions(paymentService);
