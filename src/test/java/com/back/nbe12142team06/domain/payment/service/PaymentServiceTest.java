@@ -267,7 +267,7 @@ class PaymentServiceTest {
         doReturn(payment)
                 .when(paymentPersistenceService).findById(any(Long.class), any(Long.class));
 
-        assertThatThrownBy(() -> paymentService.confirm(null, payment.getId(), client.getId(), null, null))
+        assertThatThrownBy(() -> paymentService.confirm(null, payment.getId(), client.getId()))
                 .isInstanceOf(InvalidException.class)
                 .hasMessage("이미 결제를 완료하셨습니다.");
     }
@@ -282,7 +282,7 @@ class PaymentServiceTest {
         doReturn(payment)
                 .when(paymentPersistenceService).findById(any(Long.class), any(Long.class));
 
-        assertThatThrownBy(() -> paymentService.confirm(null, payment.getId(), client.getId(), null, null))
+        assertThatThrownBy(() -> paymentService.confirm(null, payment.getId(), client.getId()))
                 .isInstanceOf(InvalidException.class)
                 .hasMessage("취소된 결제입니다.");
     }
@@ -386,7 +386,7 @@ class PaymentServiceTest {
 
         assertThatThrownBy(() -> paymentService.confirm(
                 new PaymentConfirmRequest(payment.getPaymentKey(), payment.getOrderId(), String.valueOf(payment.getAmount())),
-                payment.getId(), client.getId(), String.valueOf(payment.getAmount()), payment.getOrderId()))
+                payment.getId(), client.getId()))
                 .isInstanceOf(InternalServerErrorException.class)
                 .hasMessage("토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다.");
 

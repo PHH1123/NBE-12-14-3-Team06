@@ -12,11 +12,24 @@ import type { PaymentDto } from './types';
  * ⚠️ 최초 결제를 아직 안 한 공고도 READY 건이 있어 여기에 잡힙니다.
  *    "추가 결제"인지는 공고 상태(동행 완료)로 판단해야 합니다. 본보기: features/post/components/PostDetailPage.tsx
  *
- * 결제 세션 저장(save-amount)·승인(confirm)은 토스 위젯 화면에 붙어 있어서
- * features/client/api.ts 에 있습니다.
+ * 결제 승인(confirm)은 토스 위젯 화면에 붙어 있어서 features/client/api.ts 에 있습니다.
  */
 export function fetchPendingPayment(postId: number): Promise<PaymentDto | null> {
   return api<PaymentDto | null>(`/api/v1/payments/posts/${postId}`);
+}
+
+/**
+ * 결제 한 건 — GET /api/v1/payments/{paymentId} (결제한 의뢰인 본인만)
+ *
+ * 결제 화면이 위젯에 넣을 금액을 여기서 받습니다. 금액의 유일한 출처는 서버가 공고의 총액으로
+ * 계산해 둔 Payment.amount 이고, 승인(POST /api/v1/payments/{paymentId}/confirm)이 토스에서
+ * 실제로 승인된 금액을 이 값과 대조합니다 — 화면이 URL 쿼리스트링처럼 다른 출처를 쓰면
+ * 조작은 서버가 막아 주지만 정상 결제도 400 "결제 금액 정보가 유효하지 않습니다" 로 거절됩니다.
+ *
+ * ⚠️ 남의 결제를 조회하면 403 입니다(백엔드 PaymentPersistenceService.findById).
+ */
+export function fetchPayment(paymentId: number): Promise<PaymentDto> {
+  return api<PaymentDto>(`/api/v1/payments/${paymentId}`);
 }
 
 /**

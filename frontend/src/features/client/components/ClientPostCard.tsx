@@ -23,7 +23,6 @@ export default function ClientPostCard({ post }: { post: ClientPost }) {
     ? `/client/posts/new/payment?${new URLSearchParams({
         postId: String(post.id),
         paymentId: String(post.unpaid.paymentId),
-        amount: String(post.unpaid.amount),
         pay: String(post.unpaid.hourlyPay),
         ...(isExtra ? { flow: 'extra' } : {}),
       })}`
