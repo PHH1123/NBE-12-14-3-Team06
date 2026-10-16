@@ -212,7 +212,6 @@ export default function ClientTrackingPage() {
     ? `/client/posts/new/payment?${new URLSearchParams({
         postId: String(escort.postId),
         paymentId: String(pendingPayment.id),
-        amount: String(pendingPayment.amount),
         pay: String(pendingPayment.hourlyPaySnapshot),
         flow: 'extra',
       })}`

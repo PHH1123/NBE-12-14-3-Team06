@@ -42,21 +42,6 @@ export async function fetchClientEscortCase(postId: number, applicationId: numbe
   );
 }
 
-/**
- * 결제를 요청하기 전에 orderId·금액을 서버(Payment 레코드)에 저장합니다.
- * 결제 과정에서 악의적으로 결제 금액이 바뀌는 것을 승인 단계에서 검증하기 위한 용도입니다.
- *
- * ⚠️ 백엔드 SaveAmountRequest(Long paymentId, String orderId, String amount) 의 amount 가 String 이라
- *    금액은 문자열로 보냅니다. paymentId 가 없으면 서버가 저장할 결제를 찾지 못합니다.
- */
-export async function fetchSaveAmount(paymentId: number, orderId: string, amount: number) {
-    await api<void>('/api/v1/payments/save-amount', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId, orderId, amount: String(amount) }),
-    });
-}
-
 /** 결제 승인 요청/응답 (백엔드 PaymentConfirmRequest·PaymentConfirmResponse) */
 export type PaymentConfirm = {
     orderId: string;
