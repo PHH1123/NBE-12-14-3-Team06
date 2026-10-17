@@ -9,7 +9,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from "react";
 import Link from 'next/link';
 import { useRequireAuth } from '@/features/auth';
-import { fetchSaveAmount } from '../api';
+import { fetchPayment } from '@/features/payment';
 
 // SDK 가 Amount 타입을 export 하지 않으므로 setAmount 의 파라미터에서 가져옵니다.
 type Amount = Parameters<TossPaymentsWidgets["setAmount"]>[0];
@@ -44,12 +44,51 @@ export default function PaymentPage() {
   // 없으면 공고 등록 직후의 최초 결제입니다. 승인 후 어디로 돌아갈지가 달라집니다.
   const flow = searchParams.get('flow') ?? '';
   const isExtra = flow === 'extra';
-  const [amount, setAmount] = useState<Amount>({
-    currency: "KRW",
-    value: Number(searchParams.get('amount') ?? 49000),
-  });
+  // paymentId 가 없으면 서버에서 결제를 찾을 수 없어 결제를 시작할 수 없습니다.
+  const paymentIdNum = Number(paymentId);
+  const hasPaymentId = Number.isInteger(paymentIdNum) && paymentIdNum > 0;
+  // 결제 금액은 URL 이 아니라 서버(Payment 레코드)에서 받습니다 — 아래 fetchPayment 참고.
+  const [amount, setAmount] = useState<Amount | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [widgets, setWidgets] = useState<TossPaymentsWidgets | null>(null);
+
+  const amountError = hasPaymentId
+    ? loadError
+    : '결제 정보(paymentId)가 없어 결제를 진행할 수 없습니다.';
+
+  useEffect(() => {
+    // 승인(POST /api/v1/payments/{paymentId}/confirm)이 토스에서 실제로 승인된 금액을
+    // 서버가 공고 총액으로 계산해 둔 Payment.amount 와 대조합니다. 그래서 위젯에 넣을 금액도
+    // 같은 레코드에서 받아야 합니다 — 쿼리스트링에서 읽으면 사용자가 고칠 수 있고(조작은 서버가
+    // 막지만 카드 인증까지 끝낸 뒤에 실패합니다), 공고 등록 직후처럼 화면이 금액을 직접 계산해
+    // 넘기던 경로는 서버 계산과 1원만 달라도 정상 결제가 거절됩니다.
+    if (!hasPaymentId) return;
+
+    let ignore = false;
+    fetchPayment(paymentIdNum)
+      .then((payment) => {
+        if (ignore) return;
+        // 승인이 거절할 상태(PaymentService.confirm)는 결제창을 띄우기 전에 막습니다.
+        if (payment.paymentStatus === 'DONE') {
+          setLoadError('이미 결제를 완료한 건입니다.');
+          return;
+        }
+        if (payment.paymentStatus === 'CANCELED') {
+          setLoadError('취소된 결제입니다.');
+          return;
+        }
+        setAmount({ currency: 'KRW', value: payment.amount });
+      })
+      .catch((error) => {
+        if (ignore) return;
+        setLoadError(error instanceof Error ? error.message : '결제 금액을 불러오지 못했습니다.');
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [hasPaymentId, paymentIdNum]);
 
   useEffect(() => {
     // customerKey 는 "이 고객"을 가리키는 고정 식별자여야 하므로 로그인 사용자가 정해진 뒤에 초기화합니다.
@@ -84,13 +123,14 @@ export default function PaymentPage() {
 
   useEffect(() => {
     async function renderPaymentWidgets() {
-      if (widgets == null) {
+      // 서버에서 받은 금액이 없으면 아직 렌더하지 않습니다 — setAmount 가 renderPaymentMethods 보다
+      // 반드시 선행되어야 하고, 금액을 모르는 채로 결제창을 띄우면 승인에서 거절됩니다.
+      if (widgets == null || amount == null) {
         return;
       }
 
       // ------  주문서의 결제 금액 설정 ------
-      // TODO: 위젯의 결제금액을 결제하려는 금액으로 초기화하세요.
-      // TODO: renderPaymentMethods, renderAgreement, requestPayment 보다 반드시 선행되어야 합니다.
+      // renderPaymentMethods, renderAgreement, requestPayment 보다 반드시 선행되어야 합니다.
       await widgets.setAmount(amount);
 
       // ------  결제 UI 렌더링 ------
@@ -111,12 +151,8 @@ export default function PaymentPage() {
     }
 
     renderPaymentWidgets();
-  }, [widgets]);
-
-  const updateAmount = async (amount: Amount) => {
-    setAmount(amount);
-    await widgets?.setAmount(amount);
-  };
+    // widgets·amount 는 각각 한 번만 채워지므로 둘 다 준비된 시점에 한 번만 렌더됩니다.
+  }, [widgets, amount]);
 
   if (userLoading) {
     return (
@@ -148,6 +184,38 @@ export default function PaymentPage() {
     );
   }
 
+  // 결제 금액을 서버에서 받지 못하면 결제창을 띄우지 않습니다.
+  // (금액 없이 진행하면 카드 인증까지 끝낸 뒤 승인 단계에서 거절됩니다)
+  if (amountError != null) {
+    return (
+      <div className="wrapper">
+        <div className="box_section">
+          <h2>결제를 진행할 수 없어요</h2>
+          <p className="typography--p" style={{ marginTop: '20px', color: '#4e5968' }}>
+            {amountError}
+          </p>
+          <Link href={isExtra ? `/client/posts/${postId}` : '/client/posts'}>
+            <button type="button" className="button" style={{ marginTop: '30px' }}>
+              {isExtra ? '공고 상세로' : '내 공고 목록으로'}
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // 금액을 받기 전에는 위젯을 렌더하지 않으므로(위 renderPaymentWidgets) 빈 상자가 보입니다.
+  // 결제수단·약관 자리가 비어 있고 버튼만 눌리지 않는 화면이 되지 않게 여기서 가립니다.
+  if (amount == null) {
+    return (
+      <div className="wrapper">
+        <div className="box_section">
+          <p className="typography--p">결제 금액을 확인하고 있어요.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="wrapper">
       <div className="box_section">
@@ -157,6 +225,9 @@ export default function PaymentPage() {
         <div id="agreement" />
         {/* 쿠폰 체크박스 — 추가 결제는 백엔드가 계산한 차액을 그대로 내야 해서 금액을 바꿀 수 없게 숨깁니다. */}
         {/* 나중에 쿠폰 기능을 추가할 수 있어 주석처리 했습니다. */}
+        {/* ⚠️ 이대로 되살리면 결제가 거절됩니다 — 승인(confirm)이 토스 승인 금액을 서버의 Payment.amount 와
+            대조하므로, 할인은 화면에서 setAmount 로 깎는 게 아니라 서버가 Payment.amount 를 다시 계산한 뒤
+            그 값을 받아 와야 합니다. (아래 updateAmount 는 그래서 지웠습니다) */}
         {/* {!isExtra && (
           <div style={{ paddingLeft: "24px" }}>
             <div className="checkable typography--p">
@@ -199,21 +270,8 @@ export default function PaymentPage() {
               return;
             }
 
-            // 결제 금액 저장은 paymentId 로 Payment 레코드를 찾으므로, 없으면 결제를 시작할 수 없습니다.
-            const paymentIdNum = Number(paymentId);
-            if (!Number.isInteger(paymentIdNum) || paymentIdNum <= 0) {
-              console.error('결제 정보(paymentId)가 없어 결제를 진행할 수 없습니다.');
-              return;
-            }
-
             try {
               const orderId = generateRandomString();
-
-              // 결제를 요청하기 전에 orderId, amount를 서버(Payment 레코드)에 저장
-              // 결제 과정에서 악의적으로 결제 금액이 바뀌는 것을 확인하는 용도입니다.
-              // 실제 프로덕트에선 제거액세스 토큰 추가
-              // document.cookie = "accessToken=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6MSwicm9sZSI6IkNMSUVOVCIsInVzZXJuYW1lIjoidGVzdFVzZXJuYW1lIiwiaWF0IjoxNzg5ODkwMjY4LCJleHAiOjE3ODk4OTA4Njh9.S6Ky5v23U8zg3dyou8C-s5kNEB0F7G_JIPGG0HsTr3hoMiYQ1xGJ23_M7TnSOWOadI2_9W9dmikUnRX4jy09cA; Path=/;"
-              await fetchSaveAmount(paymentIdNum, orderId, amount.value);
 
               // 토스는 successUrl/failUrl 의 쿼리스트링을 그대로 보존해서 리다이렉트합니다.
               // 리다이렉트 이후 승인(paymentId)과 완료 화면(postId·pay)에 필요한 값을 여기 실어 보냅니다.

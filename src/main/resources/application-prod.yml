@@ -34,3 +34,5 @@ custom:
     phone-num: ${ADMIN_PHONE_NUM}
     name: ${ADMIN_NAME:관리자}
     region: ${ADMIN_REGION:서울}
+  toss:
+    secret-key: ${TOSS_SECRET}

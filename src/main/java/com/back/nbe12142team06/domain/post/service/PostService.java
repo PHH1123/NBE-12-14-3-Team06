@@ -16,11 +16,13 @@ import com.back.nbe12142team06.domain.post.entity.PostStatus;
 import com.back.nbe12142team06.domain.post.repository.PostRepository;
 import com.back.nbe12142team06.domain.ride.dto.RideUpdateRequest;
 import com.back.nbe12142team06.domain.ride.service.RideService;
+import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import com.back.nbe12142team06.domain.user.service.EscortService;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
@@ -50,6 +52,7 @@ public class PostService {
     private final EscortProfileRepository escortProfileRepository;
     private final PaymentService paymentService;
     private final RideService rideService;
+    private final EscortService escortService;
 
     public Page<Post> findAll(Pageable pageable) {
         return postRepository.findAllWithClient(pageable);
@@ -307,7 +310,12 @@ public class PostService {
         if (updated == 0) {
             throw new NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.");
         }
-
+        EscortProfile escortProfile = escortProfileRepository.findById(escortId)
+                .orElseThrow(() -> new NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다."));
+        boolean refreshed = escortService.refreshGrade(escortProfile);
+        if(refreshed){
+            log.info("[등급 변경 완료] postId={}, escortId={} ",postId, escortId);
+        }
         log.info("[동행 완료] postId={}, escortId={}, userId={}", postId, escortId, userId);
     }
     /**

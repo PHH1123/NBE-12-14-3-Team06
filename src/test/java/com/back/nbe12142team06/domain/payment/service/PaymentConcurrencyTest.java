@@ -165,7 +165,7 @@ public class PaymentConcurrencyTest {
                 latch.await();
                 paymentService.confirm(
                         new PaymentConfirmRequest(savedPayment.getPaymentKey(), savedPayment.getOrderId(), String.valueOf(savedPayment.getAmount())),
-                        savedPayment.getId(), savedClient.getId(), String.valueOf(savedPayment.getAmount()), savedPayment.getOrderId());
+                        savedPayment.getId(), savedClient.getId());
                 return null;
             });
         }

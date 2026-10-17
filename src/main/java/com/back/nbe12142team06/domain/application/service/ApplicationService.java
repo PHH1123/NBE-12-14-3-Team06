@@ -23,6 +23,7 @@ import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.ClientProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import com.back.nbe12142team06.domain.user.service.EscortService;
 import com.back.nbe12142team06.global.exception.DuplicatedException;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InvalidException;
@@ -57,6 +58,7 @@ public class ApplicationService {
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
     private final RideService rideService;
+    private final EscortService escortService;
     private final NoticeService noticeService;
 
     @Transactional
@@ -285,11 +287,22 @@ public class ApplicationService {
             Post post = postRepository.findByIdWithLock(application.getPost().getId())
                     .orElseThrow(() -> new NotFoundException(11, "%d번 공고가 없습니다.".formatted(application.getPost().getId())));
 
+            // 동행 진행 중이거나 완료된 공고는 지원 취소 불가
+            if (post.getPostStatus() == PostStatus.IN_PROGRESS
+                    || post.getPostStatus() == PostStatus.COMPLETED) {
+                throw new InvalidException(36, "동행 진행 중이거나 완료된 공고는 지원을 취소할 수 없습니다.");
+            }
+
             EscortProfile escortProfile = escortProfileRepository.findById(userId)
                     .orElseThrow(() -> new NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다."));
 
             application.noShow();
             escortProfile.increaseNoShowCount();
+
+            boolean refreshed = escortService.refreshGrade(escortProfile);
+            if(refreshed){
+                log.info("[등급 변경 완료] postId={}, escortId={} ", applicationId, userId);
+            }
 
             // 노쇼 데이터 생성
             noShowPenaltyService.noShow(application);

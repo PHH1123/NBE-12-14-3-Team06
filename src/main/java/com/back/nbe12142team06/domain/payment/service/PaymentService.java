@@ -43,10 +43,9 @@ public class PaymentService {
     private final PaymentPersistenceService paymentPersistenceService;
     private final TossPaymentClient tossPaymentClient;
     private final SettlementService settlementService;
-    private final ApplicationRepository applicationRepository;
     private final NoticeService noticeService;
 
-    public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId, String sessionAmount, String sessionOrderId) {
+    public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId) {
 
         Payment payment = paymentPersistenceService.findById(userId, paymentId);
 
@@ -63,7 +62,7 @@ public class PaymentService {
         String amount = request.amount();
 
         // 1. 검증 로직
-        verifyAmount(sessionAmount, sessionOrderId, new SaveAmountRequest(payment.getId(), tossOrderId, amount));
+        verifyAmount(String.valueOf(payment.getAmount()), new SaveAmountRequest(payment.getId(), null, amount));
         if (paymentPersistenceService.confirmUpdateStatus(payment.getId()) <= 0) {
             throw new InvalidException(44, "결제 대기 중인 데이터가 없습니다.");
         }
@@ -144,7 +143,6 @@ public class PaymentService {
         return payment;
     }
 
-    @Transactional
     public Payment cancel(Long userId, Long paymentId, PaymentCancelRequest request) {
         Payment payment = paymentPersistenceService.findById(userId, paymentId);
 
@@ -159,8 +157,7 @@ public class PaymentService {
         Payment canceledPayment = this.cancel(payment, request, amount, false, true);
 
         // 지원한 사용자 모두 거절
-        applicationRepository.findAllByPostAndStatus(post, ApplicationStatus.PENDING)
-                .forEach(Application::reject);
+        paymentPersistenceService.rejectApplication(post);
 
         // 알림
         noticeService.send(post.getClient(),
@@ -184,23 +181,6 @@ public class PaymentService {
         }
     }
 
-    /// deprecated
-    public void verifyAmount(Long userId, SaveAmountRequest request) {
-        Payment payment = paymentPersistenceService.findById(userId, request.paymentId());
-
-        verifyAmount(String.valueOf(payment.getAmount()), request);
-    }
-
-    public void verifyAmount(String amount, String orderId, SaveAmountRequest request) {
-        if (!amount.equals(request.amount())
-                || !orderId.equals(request.orderId())) {
-            log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 요청 orderId: {}, 저장된 amount: {}, 저장된 orderId: {}",
-                    request.amount(), request.orderId(), amount, orderId);
-            throw new InvalidException(42, "결제 금액 정보가 유효하지 않습니다.");
-        }
-    }
-
-    /// deprecated
     public void verifyAmount(String amount, SaveAmountRequest request) {
         if (amount == null || !amount.equals(request.amount())) {
             log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 저장된 amount: {}", request.amount(), amount);
@@ -284,8 +264,8 @@ public class PaymentService {
     public void updateAmount(Long paymentId, String amount) {
         paymentPersistenceService.updateAmount(paymentId, amount);
     }
-
     // 결제 - 공고 삭제 상태 변경
+
     public Payment cancelPostAndPayment(Long postId) {
         return paymentPersistenceService.updateDeleteStatus(postId);
     }
@@ -394,8 +374,8 @@ public class PaymentService {
     public void updateStatusForAdmin(Long paymentId, PaymentStatus status) {
         paymentPersistenceService.updateStatusForAdmin(paymentId, status);
     }
-
     // 동행 완료 후 추가 결제를 하지 않은 공고가 있는 지 확인
+
     public boolean hasUnpaidExtraPayment(Long userId) {
         return this.paymentRepository.existsUnpaidExtraByUserId(userId);
     }

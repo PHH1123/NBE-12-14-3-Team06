@@ -134,7 +134,12 @@ public class SettlementService {
                         settlementApi(accountDto.payoutAmount(), accountDto.name(), accountDto.accountNumber());
                 // 정산 성공
                 if (response.res_cnt() >= 1) {
-                    settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.COMPLETED);
+                    try {
+                        settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.COMPLETED);
+                    } catch (Exception e) {
+                        log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
+                        throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
+                    }
                     successCount++;
                     log.info("정산 성공 - settlementId: {}", accountDto.id());
                 } else {
