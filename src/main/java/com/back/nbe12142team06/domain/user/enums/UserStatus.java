@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum UserStatus {
     ACTIVE("활성"),
-    SUSPENDED("정지"),
-    BANNED("영구정지");
+    SUSPENDED("기간 정지"),
+    BANNED("영구 정지");
 
     private final String description;
 }
