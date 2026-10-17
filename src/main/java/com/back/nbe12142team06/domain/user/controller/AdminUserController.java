@@ -87,12 +87,12 @@ public class AdminUserController {
             summary = "회원 탈퇴 처리",
             description = "관리자가 특정 회원을 탈퇴 처리합니다. 관리자 본인 또는 이미 탈퇴한 회원은 탈퇴 처리할 수 없습니다."
     )
-    @DeleteMapping("/users/{id}")
+    @DeleteMapping("/users/{userId}")
     public RsData<Void> deleteUser(
             @AuthenticationPrincipal SecurityUser admin,
-            @PathVariable Long id
+            @PathVariable Long userId
     ) {
-        this.userService.deleteUser(admin.getId(), id);
+        this.userService.deleteUser(admin.getId(), userId);
 
 
         return new RsData<>(
@@ -131,6 +131,26 @@ public class AdminUserController {
         return new RsData<>(
                 "200-10",
                 "회원이 기간 정지되었습니다.",
+                new AdminUserSuspendResponse(userStatusHistory)
+        );
+    }
+
+
+    @Operation(
+            summary = "회원 영구 정지",
+            description = "관리자가 회원에게 영구 정지 패널티를 부여합니다."
+    )
+    @PostMapping("/users/{userId}/ban")
+    public RsData<AdminUserSuspendResponse> banUserByAdmin(
+            @PathVariable Long userId,
+            @Valid @RequestBody AdminUserSuspendRequest request,
+            @AuthenticationPrincipal SecurityUser admin
+    ){
+        UserStatusHistory userStatusHistory = this.userService.banUser(admin.getId(), userId, request.reason());
+
+        return new RsData<>(
+                "200-11",
+                "회원이 영구 정지되었습니다.",
                 new AdminUserSuspendResponse(userStatusHistory)
         );
     }
