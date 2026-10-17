@@ -1,15 +1,24 @@
 import type { ComponentProps } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { FIELD_CLASS } from './fieldStyle';
 
-/** 입력창과 같은 모양의 선택 상자. 아직 고르지 않았으면 안내 문구 색으로 보입니다. */
-export default function SelectInput({ className, children, ...props }: ComponentProps<'select'>) {
+export default function SelectInput({ className, children, style, ...props }: ComponentProps<'select'>) {
   return (
-    <select
-      {...props}
-      className={cn(FIELD_CLASS, 'appearance-none', props.value ? 'text-brand' : 'text-brand-muted', className)}
-    >
-      {children}
-    </select>
+    <div className="relative w-full min-w-0">
+      <select
+        {...props}
+        style={{ ...style, color: props.value ? '#14243A' : '#98A1AD' }}
+        className={cn(FIELD_CLASS, 'appearance-none pr-11', className)}
+      >
+        {children}
+      </select>
+      <ChevronDown
+        size={18}
+        strokeWidth={1.8}
+        className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#8793A0]"
+        aria-hidden="true"
+      />
+    </div>
   );
 }

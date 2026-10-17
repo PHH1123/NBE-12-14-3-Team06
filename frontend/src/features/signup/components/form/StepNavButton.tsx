@@ -19,15 +19,15 @@ type Props = {
 };
 
 const BASE =
-  'flex h-14 flex-1 items-center justify-center rounded-[30px] px-6 text-xl leading-[18px] font-semibold transition-colors';
+  'group flex h-12 flex-1 items-center justify-center rounded-xl px-6 text-sm font-semibold transition-all duration-200';
 
 /** 가입 단계 아래쪽 "이전 / 다음" 버튼 (Figma 높이 56 · 라운드 30) */
 export default function StepNavButton({ variant = 'ghost', href, disabled, inactive, onClick, children }: Props) {
   const className = cn(
     BASE,
     variant === 'solid'
-      ? 'bg-brand text-white hover:bg-brand-hover'
-      : 'border border-line bg-white text-brand hover:bg-line-soft',
+      ? 'bg-[#1E2739] text-white hover:bg-[#29364E]'
+      : 'border border-[#E1E5E8] bg-white text-[#344055] hover:bg-[#F7F8F8]',
   );
 
   return href ? (
@@ -43,7 +43,7 @@ export default function StepNavButton({ variant = 'ghost', href, disabled, inact
       className={cn(
         className,
         'disabled:cursor-not-allowed disabled:opacity-60',
-        inactive && 'cursor-not-allowed opacity-60 hover:bg-brand',
+        inactive && 'cursor-not-allowed opacity-60 hover:bg-[#1E2739]',
       )}
     >
       {children}

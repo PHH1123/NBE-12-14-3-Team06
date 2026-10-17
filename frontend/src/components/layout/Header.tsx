@@ -99,7 +99,7 @@ export default function Header({ user, pending, onLogout, canRegisterPost, isEsc
       'top-0 z-40 w-full transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300',
       isHome ? 'fixed' : 'sticky',
       transparent ? 'border-b border-white/20 bg-transparent' :
-        'border-b border-[#E1E5E8] bg-white/95 shadow-sm backdrop-blur-md',
+        'border-b border-[#E1E5E8] bg-white/95 shadow-xs backdrop-blur-md',
     )}>
       <Container className="flex min-h-[72px] items-center justify-between gap-4">
         <Link href="/" aria-label="GAJI 홈" className={cn('flex shrink-0 items-center gap-2', transparent ? 'text-white' : 'text-[#14243A]')}>

@@ -1,119 +1,138 @@
 'use client';
 
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { AppShell } from '@/components/layout';
-import { Container, SectionHeading } from '@/components/ui';
 import { useSignupRole } from '../hooks/useSignupRole';
 import { AGREEMENT_GROUPS } from '../model';
 import { useSignup } from '../state/SignupContext';
 import SignupStepper from './SignupStepper';
-import StepNavButton from './form/StepNavButton';
-import AgreementCard from './terms/AgreementCard';
 
-const SECTION_TITLE = 'flex h-[30px] items-center text-xl leading-6 font-semibold text-brand lg:text-2xl';
+const roleLabels = { CLIENT: '의뢰인', ESCORT: '동행 매니저' } as const;
 
-/**
- * 회원가입 2단계(약관 동의)
- * Figma 공통_회원가입_개인정보동의(의뢰인) 564:17321 · (동행매니저) 564:17438
- *
- * 필수 항목은 체크하지 않으면 제출되지 않습니다(브라우저 기본 검사).
- * 동의 여부는 SignupContext 에 두고, 실제 가입은 다음 단계(정보 입력)에서 요청합니다.
- */
 export default function SignupTermsPage() {
   const router = useRouter();
   const role = useSignupRole();
-  const { agreements: checked, setAgreements: setChecked } = useSignup();
+  const { agreements, setAgreements } = useSignup();
+  const [showError, setShowError] = useState(false);
   const group = AGREEMENT_GROUPS[role];
-  const allRequiredChecked = group.required.every((item) => checked[item.id]);
+  const requiredComplete = group.required.every((item) => !!agreements[item.id]);
+  const allItems = [...group.required, ...group.optional];
+  const allComplete = allItems.every((item) => !!agreements[item.id]);
 
-  const handleToggle = (id: string) => (value: boolean) => {
-    setChecked((prev) => ({ ...prev, [id]: value }));
+  const toggle = (id: string, checked: boolean) => {
+    setAgreements((prev) => ({ ...prev, [id]: checked }));
+    setShowError(false);
   };
 
-  // "필수 항목에 모두 동의합니다" — 선택 항목은 건드리지 않습니다.
-  const handleToggleAllRequired = (value: boolean) => {
-    setChecked((prev) => ({
+  const toggleAll = (checked: boolean) => {
+    setAgreements((prev) => ({
       ...prev,
-      ...Object.fromEntries(group.required.map((item) => [item.id, value])),
+      ...Object.fromEntries(allItems.map((item) => [item.id, checked])),
     }));
+    setShowError(false);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!requiredComplete) {
+      setShowError(true);
+      return;
+    }
     router.push(`/signup/info?role=${role}`);
   };
 
   return (
     <AppShell>
-      <section className="bg-white py-[50px]">
-        <Container className="flex flex-col items-center">
-          <div className="mb-8 flex w-full justify-center lg:mb-[50px]">
+      <main className="bg-[#F7F8F8] px-5 pb-24 pt-12 sm:px-8 sm:pt-16">
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-10 flex justify-center sm:mb-12">
             <SignupStepper current={2} />
           </div>
 
-          <SectionHeading
-            title="개인정보 이용 동의"
-            description={[
-              '가치동행 서비스 이용을 위해 아래의 내용을 확인하고 동의해주세요.',
-              '소중한 개인정보는 안전하게 보호되며, 서비스 제공 목적에만 사용됩니다.',
-            ]}
-            className="mb-8 lg:mb-[42px]"
-            descriptionClassName="leading-6 lg:leading-[30px]"
-          />
+          <header className="mb-9 space-y-2 text-center sm:mb-10">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#426B93]">
+              {roleLabels[role]} 회원가입
+            </span>
+            <h1 className="text-2xl font-semibold text-[#14243A] sm:text-3xl">
+              서비스 이용약관에 동의해 주세요
+            </h1>
+            <p className="text-sm text-[#67717C]">
+              필수 약관을 확인하고 동의하면 다음 단계로 진행할 수 있습니다.
+            </p>
+          </header>
 
-          <form onSubmit={handleSubmit} className="flex w-full max-w-[1066px] flex-col gap-[30px]">
-            <AgreementCard
-              id="agree-all-required"
-              title="필수 항목에 모두 동의합니다."
-              description="선택 항목은 동의하지 않아도 서비스 이용이 가능합니다."
-              checked={allRequiredChecked}
-              onChange={handleToggleAllRequired}
-              emphasized
-            />
+          <form onSubmit={submit} noValidate className="rounded-2xl border border-[#E1E5EA] bg-white p-5 shadow-[0_3px_12px_rgba(30,39,57,0.035)] sm:p-8">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#D8E0E9] bg-[#F5F7FA] px-4 py-5 sm:px-5">
+              <input
+                type="checkbox"
+                checked={allComplete}
+                onChange={(event) => toggleAll(event.target.checked)}
+                className="peer sr-only"
+                aria-label="모든 약관 동의"
+              />
+              <span aria-hidden="true" className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-md border transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#55749B] ${allComplete ? 'border-[#55749B] bg-[#55749B] text-white' : 'border-[#A7B1BE] bg-white'}`}>
+                {allComplete && <Check size={16} strokeWidth={2.5} />}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-base font-semibold text-[#1E2739] sm:text-lg">전체 약관에 동의합니다</span>
+                <span className="mt-1 block text-sm leading-5 text-[#667085]">필수 및 선택 약관을 모두 포함합니다. 선택 항목은 동의하지 않아도 가입할 수 있습니다.</span>
+              </span>
+            </label>
 
-            <section aria-labelledby="agreements-required" className="flex flex-col gap-2.5">
-              <h3 id="agreements-required" className={SECTION_TITLE}>
-                {group.requiredTitle}
-              </h3>
-              {group.required.map((item) => (
-                <AgreementCard
-                  key={item.id}
-                  id={`agree-${item.id}`}
-                  title={item.title}
-                  description={item.description}
-                  checked={!!checked[item.id]}
-                  onChange={handleToggle(item.id)}
-                  badge="required"
-                  required
-                />
-              ))}
-            </section>
+            <div className="mt-7 space-y-3">
+              {allItems.map((item) => {
+                const checked = !!agreements[item.id];
+                return (
+                  <label key={item.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-4 transition-[border-color,box-shadow] duration-200 hover:border-[#A5B7CA] hover:shadow-[0_3px_10px_rgba(30,39,57,0.045)] sm:px-5 ${checked ? 'border-[#C7DAEC]' : 'border-[#E1E5EA]'}`}>
+                    <input
+                      type="checkbox"
+                      name={`agree-${item.id}`}
+                      checked={checked}
+                      onChange={(event) => toggle(item.id, event.target.checked)}
+                      className="peer sr-only"
+                      aria-label={item.title}
+                    />
+                    <span aria-hidden="true" className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-md border transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#55749B] ${checked ? 'border-[#55749B] bg-[#55749B] text-white' : 'border-[#A7B1BE] bg-white'}`}>
+                      {checked && <Check size={16} strokeWidth={2.5} />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex shrink-0 items-center rounded-md px-2 py-1 text-xs font-semibold leading-none ${item.required ? 'bg-[#FCEEEE] text-[#B54747]' : 'bg-[#F0F2F5] text-[#667085]'}`}>{item.required ? '필수' : '선택'}</span>
+                        <span className="text-sm font-semibold text-[#1E2739] sm:text-base">{item.title}</span>
+                      </span>
+                      <span className="mt-1 block text-sm leading-6 text-[#667085]">{item.description}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
 
-            <section aria-labelledby="agreements-optional" className="flex flex-col gap-2.5">
-              <h3 id="agreements-optional" className={SECTION_TITLE}>
-                선택 동의 항목
-              </h3>
-              {group.optional.map((item) => (
-                <AgreementCard
-                  key={item.id}
-                  id={`agree-${item.id}`}
-                  title={item.title}
-                  description={item.description}
-                  checked={!!checked[item.id]}
-                  onChange={handleToggle(item.id)}
-                  badge="optional"
-                />
-              ))}
-            </section>
+            {showError && (
+              <p role="alert" className="mt-4 text-sm font-medium text-[#B34747]">필수 약관에 모두 동의해 주세요.</p>
+            )}
 
-            <div className="mt-5 flex w-full gap-2.5">
-              <StepNavButton href="/signup">이전</StepNavButton>
-              <StepNavButton variant="solid">다음</StepNavButton>
+            <div className="mt-8 flex flex-col-reverse gap-3 border-t border-[#E9ECEF] pt-6 sm:flex-row sm:justify-between">
+              <button
+                type="button"
+                onClick={() => router.push('/signup')}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#DDE3EA] bg-white px-6 text-sm font-semibold text-[#344055] transition-colors hover:bg-[#F5F6F8]"
+              >
+                <ArrowLeft size={17} /> 이전 단계
+              </button>
+              <button
+                type="submit"
+                aria-disabled={!requiredComplete}
+                className={`group inline-flex h-12 items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold text-white transition-colors ${requiredComplete ? 'bg-[#1E2739] hover:bg-[#344055]' : 'bg-[#79879A] hover:bg-[#66758A]'}`}
+              >
+                동의하고 계속하기
+                <ArrowRight size={17} className="transition-transform duration-200 group-hover:translate-x-1" />
+              </button>
             </div>
           </form>
-        </Container>
-      </section>
+        </div>
+      </main>
     </AppShell>
   );
 }
