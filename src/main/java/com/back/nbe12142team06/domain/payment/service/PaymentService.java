@@ -43,7 +43,6 @@ public class PaymentService {
     private final PaymentPersistenceService paymentPersistenceService;
     private final TossPaymentClient tossPaymentClient;
     private final SettlementService settlementService;
-    private final ApplicationRepository applicationRepository;
     private final NoticeService noticeService;
 
     public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId) {
@@ -144,7 +143,6 @@ public class PaymentService {
         return payment;
     }
 
-    @Transactional
     public Payment cancel(Long userId, Long paymentId, PaymentCancelRequest request) {
         Payment payment = paymentPersistenceService.findById(userId, paymentId);
 
@@ -159,8 +157,7 @@ public class PaymentService {
         Payment canceledPayment = this.cancel(payment, request, amount, false, true);
 
         // 지원한 사용자 모두 거절
-        applicationRepository.findAllByPostAndStatus(post, ApplicationStatus.PENDING)
-                .forEach(Application::reject);
+        paymentPersistenceService.rejectApplication(post);
 
         // 알림
         noticeService.send(post.getClient(),
@@ -181,23 +178,6 @@ public class PaymentService {
                     payment.getBalanceAmount(),
                     false, false
             );
-        }
-    }
-
-    /// deprecated
-    public void verifyAmount(Long userId, SaveAmountRequest request) {
-        Payment payment = paymentPersistenceService.findById(userId, request.paymentId());
-
-        verifyAmount(String.valueOf(payment.getAmount()), request);
-    }
-
-    /// deprecated
-    public void verifyAmount(String amount, String orderId, SaveAmountRequest request) {
-        if (!amount.equals(request.amount())
-                || !orderId.equals(request.orderId())) {
-            log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 요청 orderId: {}, 저장된 amount: {}, 저장된 orderId: {}",
-                    request.amount(), request.orderId(), amount, orderId);
-            throw new InvalidException(42, "결제 금액 정보가 유효하지 않습니다.");
         }
     }
 
