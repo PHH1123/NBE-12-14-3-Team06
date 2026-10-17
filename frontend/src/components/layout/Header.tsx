@@ -1,120 +1,140 @@
 'use client';
 
-import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import Container from '@/components/ui/Container';
 import { NotificationBell } from '@/features/notification';
 import { cn } from '@/lib/cn';
 import UserMenu, { type UserMenuItem } from './UserMenu';
 
-type MenuItem = { label: string; href: string; emphasized?: boolean };
+type MenuItem = { label: string; href: string };
 
 const MENU: MenuItem[] = [
   { label: '서비스 소개', href: '/#about' },
   { label: '공고 찾기', href: '/posts' },
   { label: '이용 방법', href: '/#steps' },
   { label: '고객센터', href: '/support' },
-  { label: '개인정보 처리방침', href: '/privacy' },
 ];
 
-/** 의뢰인·관리자로 로그인했을 때만 "공고 찾기" 옆에 끼워 넣는 메뉴 */
-const POST_REGISTER_ITEM: MenuItem = { label: '공고등록', href: '/client/posts/new', emphasized: true };
-
-const BUTTON_BASE =
-  'inline-flex items-center justify-center rounded-[30px] px-6 py-[18px] text-base leading-[18px] font-semibold whitespace-nowrap transition-colors';
-
 type Props = {
-  /**
-   * 로그인한 사용자. 있으면 "로그인 / 회원가입" 대신 "이름 ⌄ / 로그아웃"을 보여줍니다.
-   * href 는 이름을 눌렀을 때 이동할 마이페이지(기본 /mypage), menu 는 화살표를 눌렀을 때 펼쳐지는 목록입니다.
-   */
   user?: { name: string; href?: string; menu?: UserMenuItem[] };
-  /** 세션을 확인하는 중. 로그인 상태가 정해질 때까지 버튼 자리를 비워 둡니다(깜빡임 방지). */
   pending?: boolean;
-  /** 로그아웃 버튼을 눌렀을 때 */
   onLogout?: () => void;
-  /** 의뢰인 또는 관리자로 로그인했는지 — "공고 찾기" 옆에 "공고등록"을 진하게 보여줍니다. */
   canRegisterPost?: boolean;
-  /** 동행 매니저로 로그인했는지 — "공고 찾기"를 지원용 목록(/escort/posts)으로 보냅니다. */
   isEscort?: boolean;
 };
 
 export default function Header({ user, pending, onLogout, canRegisterPost, isEscort }: Props) {
-  const menuItems = canRegisterPost ? [...MENU.slice(0, 2), POST_REGISTER_ITEM, ...MENU.slice(2)] : MENU;
+  const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => setMobileOpen(false), [pathname]);
+
+  const resolveHref = (item: MenuItem) =>
+    item.label === '공고 찾기' && isEscort ? '/escort/posts' : item.href;
+
+  const menu = (
+    <>
+      {MENU.map((item) => (
+        <Link
+          key={item.label}
+          href={resolveHref(item)}
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            'whitespace-nowrap text-[15px] font-medium text-[#67717C] transition-colors hover:text-[#14243A]',
+            (pathname === '/support' && item.href === '/support') && 'font-semibold text-[#14243A]',
+          )}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </>
+  );
+
+  const actions = pending ? (
+    <div aria-hidden="true" className="h-11 w-28" />
+  ) : user ? (
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      <NotificationBell />
+      <UserMenu name={user.name} href={user.href ?? '/mypage'} items={user.menu} />
+      <button
+        type="button"
+        onClick={onLogout}
+        className="h-11 rounded-[10px] border border-[#E1E5E8] px-3 text-sm font-semibold text-[#14243A] transition-colors hover:bg-[#F7F8F8]"
+      >
+        로그아웃
+      </button>
+    </div>
+  ) : (
+    <div className="flex items-center gap-2">
+      <Link href="/login" className="inline-flex h-11 items-center rounded-[10px] border border-[#E1E5E8] px-4 text-sm font-semibold text-[#14243A] hover:bg-[#F7F8F8]">
+        로그인
+      </Link>
+      <Link href="/signup" className="inline-flex h-11 items-center rounded-[10px] bg-[#14243A] px-4 text-sm font-semibold text-white hover:bg-[#1F3757]">
+        회원가입
+      </Link>
+    </div>
+  );
 
   return (
-    <header className="flex items-center bg-white py-4 lg:h-[118px] lg:py-0">
-      <Container className="flex flex-wrap items-center justify-between gap-6 lg:gap-x-10">
-        <Link href="/" aria-label="가지 홈" className="shrink-0">
-          <Image
-            src="/images/logo/logo.png"
-            alt=""
-            width={528}
-            height={528}
-            priority
-            className="size-[58px] -rotate-90 object-contain lg:size-[72px]"
-          />
+    <header className={cn(
+      'sticky top-0 z-40 w-full border-b border-[#E1E5E8] bg-white transition-shadow duration-200',
+      scrolled && 'shadow-sm',
+    )}>
+      <Container className="flex min-h-[72px] items-center justify-between gap-4">
+        <Link href="/" aria-label="GAJI 홈" className="flex shrink-0 items-center gap-2 text-[#14243A]">
+          <span className="text-2xl font-semibold tracking-tight">GAJI</span>
+          <span className="text-sm font-bold">가지</span>
+          <span className="h-1.5 w-1.5 rounded-full bg-[#426B93]" />
+          {pathname.startsWith('/admin') && (
+            <span className="ml-1 rounded bg-[#14243A] px-2 py-0.5 text-xs font-semibold text-white">관리자</span>
+          )}
         </Link>
 
-        {/* 모바일에서는 메뉴를 아래로 내리고 가로 스크롤 */}
-        <nav
-          aria-label="주요 메뉴"
-          className="order-2 flex w-full items-center gap-5 overflow-x-auto pb-1 lg:order-none lg:mr-auto lg:w-auto lg:gap-[33px] lg:overflow-visible lg:pb-0"
-        >
-          {menuItems.map((item) => {
-            // "공고 찾기"는 동행 매니저에게만 지원용 목록(/escort/posts, 로그인 필요)으로 보내고,
-            // 그 외(의뢰인·관리자·비로그인)는 원래 공개 목록(/posts)으로 보냅니다.
-            // ⚠️ /escort/posts 는 ESCORT 전용 가드가 걸려 있어서, 예전처럼 "로그인만 하면" 보내면
-            //    CLIENT/ADMIN 은 눌러도 그 페이지에서 바로 튕겨나와 안 눌리는 것처럼 보입니다.
-            const href = item.label === '공고 찾기' && isEscort ? '/escort/posts' : item.href;
-
-            return (
-                <Link
-                    key={item.label}
-                    href={href}
-                    className={cn(
-                      'text-base leading-[18px] whitespace-nowrap transition-colors hover:text-brand-hover lg:text-lg',
-                      item.emphasized ? 'font-bold text-brand' : 'text-brand',
-                    )}
-                >
-                  {item.label}
-                </Link>
-            );
-          })}
+        <nav aria-label="주요 메뉴" className="hidden items-center gap-7 lg:flex">
+          {menu}
         </nav>
 
-        {pending ? (
-          // 로그인 여부가 정해지기 전에는 버튼 자리만 잡아 둡니다 (54px = 버튼 높이).
-          <div aria-hidden="true" className="h-[54px] min-w-[104px]" />
-        ) : user ? (
-          <div className="flex items-center gap-[25px]">
-            <div className="flex items-center gap-3">
-              {/* 이름 왼쪽의 알림 종. 로그인 세션을 직접 읽어서, 모의 user 를 넘긴 화면에서는 스스로 숨습니다. */}
-              <NotificationBell />
-              <UserMenu name={user.name} href={user.href ?? '/mypage'} items={user.menu} />
-            </div>
-            <button
-              type="button"
-              onClick={onLogout}
-              className={`${BUTTON_BASE} min-w-[104px] border border-line bg-white text-brand hover:bg-line-soft`}
-            >
-              로그아웃
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/login"
-              className={`${BUTTON_BASE} min-w-[104px] border border-line bg-white text-brand hover:bg-line-soft`}
-            >
-              로그인
+        <div className="hidden items-center gap-3 lg:flex">
+          {canRegisterPost && (
+            <Link href="/client/posts/new" className="inline-flex h-11 items-center rounded-[10px] bg-[#426B93] px-4 text-sm font-semibold text-white hover:bg-[#345778]">
+              + 공고등록
             </Link>
-            <Link href="/signup" className={`${BUTTON_BASE} bg-brand text-white hover:bg-brand-hover`}>
-              회원가입
-            </Link>
-          </div>
-        )}
+          )}
+          {actions}
+        </div>
+
+        <button
+          type="button"
+          className="inline-flex h-11 items-center rounded-[10px] border border-[#E1E5E8] px-3 text-sm font-semibold text-[#14243A] lg:hidden"
+          aria-expanded={mobileOpen}
+          aria-controls="gaji-mobile-menu"
+          onClick={() => setMobileOpen((open) => !open)}
+        >
+          {mobileOpen ? '닫기' : '메뉴'}
+        </button>
       </Container>
+
+      {mobileOpen && (
+        <nav id="gaji-mobile-menu" aria-label="모바일 메뉴" className="border-t border-[#E1E5E8] bg-white px-5 py-5 lg:hidden">
+          <div className="mx-auto flex max-w-[1240px] flex-col items-start gap-5">
+            {menu}
+            {canRegisterPost && (
+              <Link href="/client/posts/new" onClick={() => setMobileOpen(false)} className="text-[15px] font-semibold text-[#426B93]">+ 공고등록</Link>
+            )}
+            <div className="w-full border-t border-[#E1E5E8] pt-4">{actions}</div>
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
