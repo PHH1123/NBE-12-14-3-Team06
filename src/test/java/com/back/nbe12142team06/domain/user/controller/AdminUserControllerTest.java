@@ -1015,4 +1015,52 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.statusCode").value("403-1"))
                 .andExpect(jsonPath("$.msg").value("권한이 없습니다."));
     }
+
+    @Test
+    @DisplayName("[AdminUserController] 정지 해제 요청 - 관리자의 기간 정지 회원에 대한 정지 해제 요청 시 200-12 반환")
+    void t33() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+        Long adminId = findUserId(ADMIN_USERNAME);
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        // 기간 정지
+        requestSuspension(user1Id, adminToken)
+                .andExpect(status().isOk());
+
+        // 정지 해제 요청
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/admin/users/{userId}/release", user1Id)
+                        .cookie(adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "reason": "그냥 그냥 그냥 그냥"
+                                }
+                                """)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-12"))
+                .andExpect(jsonPath("$.msg").value("회원의 정지가 해제되었습니다."))
+                .andExpect(jsonPath("$.data.username").value("user1"))
+                .andExpect(jsonPath("$.data.userStatus").value("ACTIVE"));
+
+        em.flush();
+        em.clear();
+
+        User user = this.userRepository.findById(user1Id).orElseThrow();
+        assertThat(user.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+
+        UserStatusHistory history = this.userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElseThrow();
+        assertThat(history.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(history.getAdminId()).isEqualTo(adminId);
+        assertThat(history.getReason()).isEqualTo("그냥 그냥 그냥 그냥");
+        assertThat(history.getEndAt()).isNull();
+    }
+
+
 }
