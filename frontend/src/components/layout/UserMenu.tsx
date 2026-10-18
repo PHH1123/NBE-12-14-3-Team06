@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Activity, ChevronDown, CreditCard, FileText, LayoutDashboard, Receipt,
-  LogOut, PlusCircle, ShieldCheck, Star, UserCheck, Video,
+  LogOut, PlusCircle, Settings, ShieldCheck, Star, UserCheck, UserX, Video,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -29,7 +29,9 @@ const iconFor = (label: string): LucideIcon => {
   if (label.includes('지원') || label.includes('신청')) return FileText;
   if (label.includes('공고 등록') || label.includes('공고 작성')) return PlusCircle;
   if (label.includes('공고') || label.includes('회원 관리')) return UserCheck;
-  if (label.includes('블랙리스트') || label.includes('검증')) return ShieldCheck;
+  if (label.includes('블랙리스트')) return UserX;
+  if (label.includes('검증')) return ShieldCheck;
+  if (label.includes('설정')) return Settings;
   if (label.includes('대시보드')) return LayoutDashboard;
   if (label.includes('현황') || label.includes('동행 진행')) return Activity;
   return UserCheck;
@@ -69,6 +71,9 @@ export default function UserMenu({ name, href, items, role, transparent = false,
       ? [
           { label: '관리자 대시보드', href: '/admin' },
           { label: '회원 관리', href: '/admin/members' },
+          { label: '블랙리스트', href: '/admin/blacklist' },
+          { label: '자격 검증', href: '/admin/verification' },
+          { label: '설정', href: '/admin/settings' },
         ]
       : available;
   const roleLabel = role === 'CLIENT' ? '의뢰인' : role === 'ESCORT' ? '동행 매니저' : role === 'ADMIN' ? '관리자' : '';
