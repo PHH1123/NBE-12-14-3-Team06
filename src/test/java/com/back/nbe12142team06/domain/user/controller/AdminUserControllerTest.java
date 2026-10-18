@@ -1143,6 +1143,7 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.msg").value("이미 활성 상태인 계정입니다."));
 
     }
+
     @Test
     @DisplayName("[AdminUserController] 정지 해제 요청 - 존재하지 않는 회원을 정지 해제 요청 시 404-1 반환")
     void t36() throws Exception {
@@ -1153,5 +1154,17 @@ public class AdminUserControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.statusCode").value("404-1"))
                 .andExpect(jsonPath("$.msg").value("회원 정보를 찾을 수 없습니다."));
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 정지 해제 요청 - 로그인 없이 요청 시 401-113 반환")
+    void t37() throws Exception {
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        requestRelease(user1Id, null)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.statusCode").value("401-113"))
+                .andExpect(jsonPath("$.msg").value("로그인 후 이용해주세요."));
     }
 }
