@@ -66,7 +66,7 @@ export default function UserMenu({ name, href, items, role, transparent = false,
   const navigation = (items ?? []).filter((item) => item.href !== '#');
   const available = navigation.some((item) => item.href === href) ? navigation : [{ label: '내 정보', href }, ...navigation];
   const roleItems = role === 'CLIENT'
-    ? [...available, ...(available.some((item) => item.href === '/client/posts/new') ? [] : [{ label: '새 동행 공고 등록', href: '/client/posts/new' }])]
+    ? available.filter((item) => item.href !== '/client/posts/new' && item.label !== '새 동행 공고 등록')
     : role === 'ADMIN'
       ? [
           { label: '관리자 대시보드', href: '/admin' },

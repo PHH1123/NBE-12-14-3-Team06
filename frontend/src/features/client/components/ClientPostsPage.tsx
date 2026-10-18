@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent } from 'react';
-import { Activity, FileText, PlusCircle, Receipt, Search, Star, Users, X } from 'lucide-react';
+import { Activity, ChevronLeft, FileText, PlusCircle, Receipt, Search, Star, Users, X } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import DropdownSelect from '@/components/ui/DropdownSelect';
 import { useRequireAuth } from '@/features/auth';
@@ -276,6 +276,9 @@ export default function ClientPostsPage() {
           {/* Header */}
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
+              <Link href="/client" className="mb-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] transition-colors hover:text-[#426B93]">
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" /> 마이페이지로 돌아가기
+              </Link>
               <h1 className="text-3xl font-semibold tracking-tight text-[#14243A] sm:text-4xl">작성한 공고</h1>
               <p className="mt-1 text-sm text-[#67717C]">내가 등록한 동행 의뢰의 매니저 지원 현황과 실시간 진행 상태를 확인하세요.</p>
             </div>

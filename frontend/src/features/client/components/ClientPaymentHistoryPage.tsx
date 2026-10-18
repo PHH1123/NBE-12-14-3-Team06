@@ -99,7 +99,10 @@ function DetailDialog({ payment, post, onClose }: { payment: PaymentDto; post?: 
           {payment.cancelReason && <div className="flex justify-between gap-4"><dt className="shrink-0 text-[#67717C]">취소 사유</dt><dd className="text-right text-[#14243A]">{payment.cancelReason}</dd></div>}
           <div className="flex items-baseline justify-between gap-4 border-t border-[#E1E5E8] pt-4"><dt className="font-semibold text-[#14243A]">결제 금액</dt><dd className="text-2xl font-bold tabular-nums text-[#14243A]"><Money amount={payment.amount} /></dd></div>
         </dl>
-        <p className="text-xs leading-5 text-[#67717C]">공식 영수증 발급 링크는 현재 결제 조회 응답에 제공되지 않습니다. 결제 취소는 해당 공고의 상세 화면에서 진행할 수 있습니다.</p>
+        <p className="text-xs leading-5 text-[#67717C]">
+          <span className="block">공식 영수증 발급 링크는 현재 결제 조회 응답에 제공되지 않습니다.</span>
+          <span className="block">결제 취소는 해당 공고의 상세 화면에서 진행할 수 있습니다.</span>
+        </p>
         <div className="flex flex-col gap-2.5 sm:flex-row">
           {payment.postId != null && (
             <Link
@@ -162,9 +165,11 @@ export default function ClientPaymentHistoryPage() {
     <AppShell>
       <div className="min-h-[calc(100vh-72px)] bg-[#F7F8F8] py-12 lg:py-16">
         <div className="mx-auto max-w-[1240px] space-y-8 px-5 sm:px-8 lg:px-16">
-          <Link href="/client/posts" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] hover:text-[#14243A]">
-            <ChevronLeft className="h-4 w-4" aria-hidden="true" /> 내 공고 목록으로 돌아가기
-          </Link>
+          <nav aria-label="돌아가기" className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link href="/client" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] transition-colors hover:text-[#426B93]">
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" /> 마이페이지로 돌아가기
+            </Link>
+          </nav>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-[#14243A]">결제 내역</h1>

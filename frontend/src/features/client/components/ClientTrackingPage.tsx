@@ -329,7 +329,7 @@ export default function ClientTrackingPage() {
                   {escort.reviewed ? (
                     <button type="button" disabled className={`${OUTLINE_BUTTON} cursor-not-allowed opacity-60`}>리뷰 작성 완료</button>
                   ) : (
-                    <Link href={`/client/escort/${escort.applicationId}/review?postId=${escort.postId}`} className={OUTLINE_BUTTON}>리뷰 작성</Link>
+                    <Link href={`/client/escort/${escort.applicationId}/review?postId=${escort.postId}`} className={MAIN_BUTTON}>리뷰 작성</Link>
                   )}
                   <Link href={`/client/escort/${escort.applicationId}/report?postId=${escort.postId}`} className={OUTLINE_BUTTON}>보고서 조회</Link>
                 </>

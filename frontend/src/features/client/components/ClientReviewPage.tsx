@@ -1,56 +1,19 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
+import { AlertCircle, Check, ChevronLeft, Star } from 'lucide-react';
 import { AppShell } from '@/components/layout';
-import { Container, SectionHeading } from '@/components/ui';
 import { useRequireAuth } from '@/features/auth';
 import { MAX_TAGS, REVIEW_TAG_ROWS, writeReview } from '@/features/review';
-import { cn } from '@/lib/cn';
 import { fetchClientEscortCase } from '../api';
-import { STAGE_VIEW } from '../model/escort';
 import type { ClientEscortCase } from '../types';
-import ManagerInfoCard from './ManagerInfoCard';
-import TripSummary from './TripSummary';
 
 const RATINGS = [1, 2, 3, 4, 5];
-const GUIDES = [
-  ['실제 이용 경험을 바탕으로 작성해주세요.'],
-  ['다른 이용자에게 도움이 되는 소중한 평가입니다.'],
-  ['욕설, 비방 등 부적절한 내용은 삭제될 수 있습니다.'],
-  ['리뷰는 한 번만 작성될 수 있으며,', '제출 후 수정이 어려울 수 있습니다.'],
-];
-
-const CARD = 'rounded-[30px] border border-line bg-white px-6 py-8 shadow-card lg:px-[35px]';
-const TITLE = 'text-2xl leading-6 font-semibold text-brand';
-const HINT = 'text-sm leading-5 font-medium text-brand';
-const ERROR_TEXT = 'text-sm font-medium text-[#b91d1d]';
 const MAX_COMMENT_LENGTH = 500;
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93]';
 
-/** 별 한 개 (Figma 50×50 Icon). 선택되면 파란색으로 채웁니다. */
-function Star({ filled }: { filled: boolean }) {
-  return filled ? (
-    <svg viewBox="0 0 47.41 45.39" aria-hidden="true" className="size-[50px]">
-      <path
-        d="M21.8025 2.3815C22.4014 0.539345 25.0083 0.539356 25.6072 2.3815L30.0447 16.0377L44.4041 16.0387C46.3413 16.0388 47.147 18.518 45.5798 19.6569L33.9627 28.0973L38.4002 41.7536C38.9988 43.5961 36.8894 45.1286 35.322 43.9899L23.7048 35.5504L12.0877 43.9899C10.5202 45.1286 8.41092 43.5961 9.00953 41.7536L13.447 28.0973L1.82984 19.6569C0.262689 18.518 1.06835 16.0388 3.00562 16.0387L17.365 16.0377L21.8025 2.3815Z"
-        fill="#6796DB"
-        stroke="#6796DB"
-        strokeWidth="2"
-      />
-    </svg>
-  ) : (
-    <Image src="/icons/client/star-empty.svg" alt="" width={47} height={45} className="size-[50px]" />
-  );
-}
-
-/**
- * 동행 매니저 리뷰 작성 — Figma 의뢰인_리뷰 작성 459:3023
- *
- * 리뷰는 POST /api/v1/applications/{applicationId}/reviews 로 등록합니다.
- * 동행 정보·매니저 정보는 api.ts 의 fetchClientEscortCase 로 채웁니다 — postId 쿼리가 있어야 합니다.
- */
 export default function ClientReviewPage() {
   const { loading: authLoading, user } = useRequireAuth('CLIENT');
   const params = useParams<{ applicationId: string }>();
@@ -62,233 +25,248 @@ export default function ClientReviewPage() {
 
   const [live, setLive] = useState<{ key?: number; escort?: ClientEscortCase }>({});
   const [rating, setRating] = useState(0);
-  const [tags, setTags] = useState<string[]>([]);
-  const [showError, setShowError] = useState(false);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [reviewText, setReviewText] = useState('');
+  const [showRatingError, setShowRatingError] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
-    if (postId === undefined) return;
+    if (postId === undefined || !Number.isFinite(postId) || !Number.isFinite(applicationId)) return;
     let ignore = false;
-
     fetchClientEscortCase(postId, applicationId)
-      .then((escort) => !ignore && setLive({ key: postId, escort }))
-      // 동행 정보를 못 불러오면 아래 "동행 정보를 찾을 수 없습니다" 로 떨어집니다.
-      .catch(() => !ignore && setLive({ key: postId }));
-
-    return () => {
-      ignore = true;
-    };
+      .then((escort) => {
+        if (!ignore) setLive({ key: postId, escort });
+      })
+      .catch(() => {
+        if (!ignore) setLive({ key: postId });
+      });
+    return () => { ignore = true; };
   }, [postId, applicationId]);
 
-  const escortLoading = postId !== undefined && live.key !== postId;
+  const escortLoading = postId !== undefined && Number.isFinite(postId) && live.key !== postId;
   const escort = live.key === postId ? live.escort : undefined;
 
-  if (authLoading || escortLoading) {
-    return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p className="text-xl font-semibold text-brand">불러오는 중입니다...</p>
-        </section>
-      </AppShell>
+  const toggleTag = (value: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(value)
+        ? prev.filter((tag) => tag !== value)
+        : prev.length < MAX_TAGS
+          ? [...prev, value]
+          : prev,
     );
-  }
-  if (!user) return null;
+  };
 
-  if (!escort) {
-    return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center text-xl font-semibold text-brand">동행 정보를 찾을 수 없습니다.</section>
-      </AppShell>
-    );
-  }
-
-  const tagsMaxed = tags.length >= MAX_TAGS;
-
-  const toggleTag = (value: string) =>
-    setTags((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : prev.length >= MAX_TAGS ? prev : [...prev, value]));
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submitting) return;
     if (rating === 0) {
-      setShowError(true);
+      setShowRatingError(true);
       return;
     }
-    if (!window.confirm('리뷰를 제출하시겠습니까? 제출 후에는 수정할 수 없습니다.')) return;
     setSubmitError('');
+    setShowConfirmModal(true);
+  };
 
-    const form = new FormData(event.currentTarget);
-    const content = String(form.get('comment') ?? '').trim();
-
+  const handleConfirmSubmit = async () => {
+    if (!escort || submitting) return;
     setSubmitting(true);
+    setSubmitError('');
     try {
-      await writeReview(escort.applicationId, { rating, tags, content });
-      router.push(`/client/escort/${escort.applicationId}?postId=${postId}`);
+      await writeReview(escort.applicationId, {
+        rating,
+        tags: selectedTags,
+        content: reviewText.trim(),
+      });
+      setShowConfirmModal(false);
+      router.push(`/client/escort/${escort.applicationId}?postId=${escort.postId}`);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '리뷰 제출에 실패했습니다.');
+      setShowConfirmModal(false);
       setSubmitting(false);
     }
   };
 
+  if (authLoading || escortLoading) {
+    return (
+      <AppShell>
+        <section className="min-h-[400px] bg-white py-24 text-center text-sm text-[#67717C]">불러오는 중입니다...</section>
+      </AppShell>
+    );
+  }
+  if (!user) return null;
+  if (!escort) {
+    return (
+      <AppShell>
+        <section className="min-h-[400px] bg-white py-24 text-center text-sm text-[#67717C]">
+          동행 정보를 찾을 수 없습니다.
+          <div className="mt-6"><Link href="/client/posts" className="font-semibold text-[#14243A] hover:underline">내 공고 목록으로 돌아가기</Link></div>
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
-      <section className="bg-white py-[50px]">
-        <Container width="wide">
-          <SectionHeading title="동행 매니저 리뷰 작성" description="이번 동행에 함께해준 매니저의 서비스를 평가해주세요." className="mb-6" />
+      <section className="w-full bg-white py-12 lg:py-16">
+        <div className="mx-auto max-w-[1240px] px-5 sm:px-8 lg:px-16">
+          <div className="mx-auto max-w-2xl space-y-8">
+            <Link
+              href="/client/posts"
+              className={`inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] transition-colors hover:text-[#14243A] ${FOCUS}`}
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              <span>내 공고 목록으로 돌아가기</span>
+            </Link>
 
-          <div className="grid items-start gap-[22px] lg:grid-cols-[minmax(0,858px)_minmax(0,396px)] lg:justify-center">
-            <form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-[22px]">
-              <TripSummary
-                badge={STAGE_VIEW.done.badge}
-                title={escort.title}
-                hospitalName={escort.hospitalName}
-                region={escort.region}
-                scheduleLabel={escort.scheduleLabel}
-                durationLabel={escort.durationLabel}
-                payLabel={escort.payLabel}
-                detailHref={`/client/posts/${escort.postId}`}
-                variant="narrow"
-              />
+            <div>
+              <h1 className="text-3xl font-semibold tracking-tight text-[#14243A]">동행 매니저 리뷰 작성</h1>
+              <p className="mt-1 text-sm text-[#67717C]">
+                어르신과 함께한 병원 동행 경험은 어떠셨나요? 소중한 리뷰는 다른 보호자분들께 큰 도움이 됩니다.
+              </p>
+            </div>
 
-              <section className={CARD}>
-                <h2 className={cn(TITLE, 'mb-2')}>평점 평가</h2>
-                <p className={HINT}>이번 동행에 대한 전반적인 만족도를 선택해주세요.</p>
-                <div role="radiogroup" aria-label="평점" className="mt-2.5 flex justify-center gap-2 py-[23px] sm:gap-5">
-                  {RATINGS.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      role="radio"
-                      aria-checked={rating === value}
-                      aria-label={`${value}점`}
-                      onClick={() => {
-                        setRating(value);
-                        setShowError(false);
-                      }}
-                      className="rounded-md transition-transform hover:scale-105"
-                    >
-                      <Star filled={value <= rating} />
-                    </button>
-                  ))}
+            <form onSubmit={handleSubmit} className="space-y-8 rounded-2xl border border-[#E1E5E8] bg-white p-6 shadow-xs sm:p-8">
+              <div className="flex items-center gap-3.5 rounded-xl border border-[#E1E5E8] bg-[#F7F8F8] p-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#14243A] text-base font-bold text-white" aria-hidden="true">
+                  {escort.manager.name.slice(0, 1)}
                 </div>
-                {showError && (
-                  <p role="alert" className="text-center text-sm font-medium text-[#b91d1d]">
-                    평점을 선택해주세요.
-                  </p>
-                )}
-              </section>
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-[#14243A]">{escort.manager.name} 동행 매니저</h2>
+                  <p className="mt-0.5 text-xs text-[#67717C]">{escort.hospitalName} · {escort.title}</p>
+                </div>
+              </div>
 
-              <section className={CARD}>
-                <h2 className={cn(TITLE, 'mb-2 flex items-end gap-2.5')}>
-                  세부 평가 <span className="pb-px text-[13px] leading-[22px] font-medium">(복수 선택 가능)</span>
-                </h2>
-                <p className={HINT}>매니저의 어떤 점이 좋았나요? 해당하는 항목을 선택해주세요.</p>
-                <div className="mt-5 flex flex-col gap-2.5">
-                  {REVIEW_TAG_ROWS.map((row) => (
-                    <div key={row.map((tag) => tag.value).join()} className="flex flex-wrap justify-center gap-[15px]">
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-[#14243A]" id="client-review-rating-label">동행 만족도 평가</p>
+                <div role="radiogroup" aria-labelledby="client-review-rating-label" className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                  {RATINGS.map((value) => {
+                    const filled = value <= (hoverRating || rating);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={rating === value}
+                        aria-label={`${value}점`}
+                        onMouseEnter={() => setHoverRating(value)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        onFocus={() => setHoverRating(value)}
+                        onBlur={() => setHoverRating(0)}
+                        onClick={() => { setRating(value); setShowRatingError(false); }}
+                        className={`flex h-12 w-12 items-center justify-center rounded-xl border border-[#E1E5E8] transition-colors hover:bg-[#F7F8F8] ${FOCUS}`}
+                      >
+                        <Star className={`h-7 w-7 transition-colors ${filled ? 'fill-[#9A6B12] text-[#9A6B12]' : 'text-[#E1E5E8]'}`} aria-hidden="true" />
+                      </button>
+                    );
+                  })}
+                  <span className="ml-2 text-lg font-bold tabular-nums text-[#14243A]">{rating}점 / 5점</span>
+                </div>
+                {showRatingError && <p role="alert" className="text-sm text-[#B44234]">평점을 선택해주세요.</p>}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold text-[#14243A]">어떤 점이 좋으셨나요?</h2>
+                  <span className="text-xs text-[#67717C]">(복수 선택 가능)</span>
+                </div>
+                <div className="space-y-2">
+                  {REVIEW_TAG_ROWS.map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex flex-wrap gap-2">
                       {row.map((tag) => {
-                        const selected = tags.includes(tag.value);
-                        const disabled = !selected && tagsMaxed;
+                        const selected = selectedTags.includes(tag.value);
+                        const disabled = !selected && selectedTags.length >= MAX_TAGS;
                         return (
                           <button
-                            key={tag.value}
                             type="button"
+                            key={tag.value}
                             aria-pressed={selected}
                             disabled={disabled}
                             onClick={() => toggleTag(tag.value)}
-                            className={cn(
-                              'flex h-[46px] items-center justify-center gap-2.5 rounded-[25px] border px-5 text-base leading-[13px] font-semibold whitespace-nowrap transition-colors',
-                              selected ? 'border-brand bg-brand text-white' : 'border-line bg-white text-brand hover:bg-line-soft',
-                              disabled && 'cursor-not-allowed opacity-50 hover:bg-white',
-                            )}
+                            className={`h-[42px] rounded-xl border px-4 text-xs font-semibold transition-colors ${FOCUS} ${
+                              selected
+                                ? 'border-[#14243A] bg-[#14243A] text-white shadow-xs'
+                                : 'border-[#E1E5E8] bg-white text-[#202832] hover:bg-[#F7F8F8]'
+                            } disabled:cursor-not-allowed disabled:opacity-45`}
                           >
-                            <Image
-                              src="/icons/client/chip-plus.svg"
-                              alt=""
-                              width={10}
-                              height={10}
-                              className={cn('size-2.5 transition-transform', selected && 'rotate-45 brightness-0 invert')}
-                            />
-                            {tag.label}
+                            {selected ? <Check className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" /> : '+ '}{tag.label}
                           </button>
                         );
                       })}
                     </div>
                   ))}
                 </div>
-                {tagsMaxed && (
-                  <p role="alert" className={cn(ERROR_TEXT, 'mt-2.5 text-center')}>
-                    최대 {MAX_TAGS}개까지 선택할 수 있어요
-                  </p>
-                )}
-              </section>
+                {selectedTags.length >= MAX_TAGS && <p className="text-xs text-[#67717C]">평가 항목은 최대 {MAX_TAGS}개까지 선택할 수 있어요.</p>}
+              </div>
 
-              <section className={CARD}>
-                <h2 className={cn(TITLE, 'mb-2 flex items-end gap-2.5')}>
-                  추가 의견 <span className="pb-px text-[13px] leading-[22px] font-medium">(선택)</span>
-                </h2>
-                <label htmlFor="review-comment" className={cn(HINT, 'block')}>
-                  이번 동행에 대한 의견을 자유롭게 작성해주세요.
+              <div className="space-y-2">
+                <label htmlFor="review-comment" className="block text-sm font-semibold text-[#14243A]">
+                  상세 후기 작성 <span className="text-xs font-normal text-[#67717C]">(선택)</span>
                 </label>
                 <textarea
                   id="review-comment"
-                  name="comment"
+                  rows={4}
                   maxLength={MAX_COMMENT_LENGTH}
-                  placeholder="예) 특히 도움이 되었던 점이나 개선되었으면 하는 점이 있다면 알려주세요."
-                  className="mt-[11px] h-[99px] w-full resize-none rounded-[30px] border border-line bg-white p-5 text-sm leading-5 text-brand placeholder:text-brand-muted"
+                  value={reviewText}
+                  onChange={(event) => setReviewText(event.target.value)}
+                  placeholder="어르신과의 동행 중 감동적이었던 순간이나 감사 인사를 자유롭게 적어주세요."
+                  className={`w-full resize-none rounded-xl border border-[#E1E5E8] bg-white p-3.5 text-sm text-[#202832] placeholder:text-[#67717C] focus:border-[#426B93] ${FOCUS}`}
                 />
-              </section>
-
-              {submitError && (
-                <p role="alert" className={cn(ERROR_TEXT, 'text-center')}>
-                  {submitError}
-                </p>
-              )}
-
-              <div className="flex gap-[15px]">
-                <Link
-                  href={`/client/escort/${escort.applicationId}`}
-                  className="flex h-14 flex-1 items-center justify-center rounded-[25px] border border-line bg-white text-xl leading-[18px] font-semibold text-brand transition-colors hover:bg-line-soft"
-                >
-                  취소
-                </Link>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex h-14 flex-1 items-center justify-center rounded-[25px] bg-brand text-xl leading-[18px] font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {submitting ? '제출 중...' : '리뷰 제출하기'}
-                </button>
               </div>
+
+              <div className="space-y-1 rounded-xl border border-[#E1E5E8] bg-[#EDF0F2] p-4 text-xs text-[#67717C]">
+                <p className="flex items-center gap-1.5 font-semibold text-[#14243A]">
+                  <AlertCircle className="h-3.5 w-3.5 text-[#426B93]" aria-hidden="true" />
+                  리뷰 작성 유의사항
+                </p>
+                <p>• 리뷰는 한 번만 작성될 수 있으며, 제출 후 수정이 어려울 수 있습니다.</p>
+                <p>• 비방, 욕설, 개인정보가 포함된 내용은 운영정책에 따라 가림 처리될 수 있습니다.</p>
+              </div>
+
+              {submitError && <p role="alert" className="text-sm font-medium text-[#B44234]">{submitError}</p>}
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`h-[52px] w-full rounded-[10px] bg-[#14243A] text-base font-semibold text-white shadow-xs transition-colors hover:bg-[#1f3757] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS}`}
+              >
+                {submitting ? '제출 중...' : '리뷰 제출하기'}
+              </button>
             </form>
+          </div>
+        </div>
+      </section>
 
-            <div className="flex min-w-0 flex-col gap-[22px]">
-              <ManagerInfoCard manager={escort.manager} size="sm" title="동행 매니저 정보" />
-
-              <section className="rounded-[30px] border border-line bg-white px-6 pt-8 pb-6">
-                <h2 className="mb-4 flex items-center gap-[15px] text-2xl leading-6 font-semibold text-brand">
-                  <Image src="/icons/escort/warning.svg" alt="" width={31} height={31} className="size-7" />
-                  리뷰 작성 안내
-                </h2>
-                <ul className="flex flex-col px-3">
-                  {GUIDES.map((lines) => (
-                    <li key={lines[0]} className="flex items-center gap-[19px] py-[10.5px] text-sm leading-5 font-semibold text-brand">
-                      <Image src="/icons/escort/bullet.svg" alt="" width={7.5} height={7.5} className="shrink-0" />
-                      <span>
-                        {lines.map((line) => (
-                          <span key={line} className="block">
-                            {line}
-                          </span>
-                        ))}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="presentation">
+          <div role="dialog" aria-modal="true" aria-labelledby="confirm-review-title" className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 text-center shadow-xl">
+            <h2 id="confirm-review-title" className="text-lg font-semibold text-[#14243A]">리뷰를 제출하시겠습니까?</h2>
+            <p className="text-xs text-[#67717C]">
+              <span className="block">제출 후에는 수정이 어려울 수 있으니</span>
+              <span className="block">작성하신 내용을 다시 한 번 확인해 주세요.</span>
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setShowConfirmModal(false)}
+                className={`h-11 flex-1 rounded-lg border border-[#E1E5E8] text-xs font-semibold text-[#67717C] transition-colors hover:bg-[#F7F8F8] disabled:opacity-50 ${FOCUS}`}
+              >
+                다시 확인
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleConfirmSubmit}
+                className={`h-11 flex-1 rounded-lg bg-[#14243A] text-xs font-semibold text-white transition-colors hover:bg-[#1f3757] disabled:opacity-60 ${FOCUS}`}
+              >
+                {submitting ? '제출 중...' : '제출 완료'}
+              </button>
             </div>
           </div>
-        </Container>
-      </section>
+        </div>
+      )}
     </AppShell>
   );
 }
