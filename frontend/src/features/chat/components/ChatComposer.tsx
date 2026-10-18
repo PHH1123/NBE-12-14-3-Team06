@@ -1,18 +1,15 @@
 'use client';
 
 import { useRef, useState, type KeyboardEvent } from 'react';
-import { cn } from '@/lib/cn';
+import { SendHorizontal } from 'lucide-react';
 
 type Props = {
-  /** 메시지 전송. 공백만 입력한 경우에는 불리지 않습니다. */
-  onSend: (content: string) => void;
+  /** 서버 연결이 끊겼다면 false — 입력 내용은 지우지 않습니다. */
+  onSend: (content: string) => boolean;
   disabled?: boolean;
 };
 
-/**
- * 패널 아래쪽 입력창.
- * Enter 로 보내고 Shift+Enter 로 줄바꿈합니다. 줄 수에 따라 높이가 조금 늘어납니다.
- */
+/** Enter로 전송하고 Shift+Enter로 줄바꿈합니다. */
 export default function ChatComposer({ onSend, disabled }: Props) {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -20,31 +17,20 @@ export default function ChatComposer({ onSend, disabled }: Props) {
   const send = () => {
     const content = value.trim();
     if (!content || disabled) return;
-
-    onSend(content);
+    if (!onSend(content)) return;
     setValue('');
-    // 보낸 뒤에도 계속 입력할 수 있게 포커스를 유지합니다.
     inputRef.current?.focus();
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    // 한글 입력 중(조합 중)인 Enter 는 글자 확정이라서 전송하지 않습니다.
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
     event.preventDefault();
     send();
   };
 
   return (
-    <form
-      className="flex items-end gap-2 border-t border-line bg-white px-3 py-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        send();
-      }}
-    >
-      <label className="sr-only" htmlFor="chat-composer-input">
-        메시지 입력
-      </label>
+    <form className="flex shrink-0 items-end gap-2.5 border-t border-[#E1E5E8] bg-white px-4 py-3.5" onSubmit={(event) => { event.preventDefault(); send(); }}>
+      <label className="sr-only" htmlFor="chat-composer-input">메시지 입력</label>
       <textarea
         id="chat-composer-input"
         ref={inputRef}
@@ -53,22 +39,17 @@ export default function ChatComposer({ onSend, disabled }: Props) {
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        placeholder="메시지를 입력하세요"
-        className={cn(
-          'max-h-24 min-h-10 flex-1 resize-none rounded-[18px] border border-line bg-line-soft px-3.5 py-2.5',
-          'text-[13.5px] leading-[1.45] text-brand placeholder:text-brand-muted',
-          'focus:border-brand-muted focus:bg-white focus:outline-none disabled:opacity-60',
-        )}
+        placeholder={disabled ? '연결을 기다리는 중…' : '메시지를 입력하세요'}
+        className="max-h-28 min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-[#E1E5E8] bg-[#F7F8F8] px-3.5 py-3 text-[12.5px] leading-[1.55] text-[#14243A] outline-none transition-[border-color,background-color] duration-200 placeholder:text-[#9AA3AC] focus:border-[#426B93] focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
       />
       <button
         type="submit"
         disabled={disabled || !value.trim()}
-        className={cn(
-          'h-10 shrink-0 rounded-[18px] px-4 text-[13.5px] font-semibold text-white transition-colors',
-          'bg-brand hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-brand-muted',
-        )}
+        aria-label="메시지 전송"
+        title="메시지 전송"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#14243A] text-white transition-colors duration-200 hover:bg-[#426B93] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93] disabled:cursor-not-allowed disabled:bg-[#D5DBE0] disabled:text-[#8B949E]"
       >
-        전송
+        <SendHorizontal className="h-[19px] w-[19px]" aria-hidden="true" strokeWidth={1.8} />
       </button>
     </form>
   );
