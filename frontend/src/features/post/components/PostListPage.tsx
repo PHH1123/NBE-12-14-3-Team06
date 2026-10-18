@@ -1,112 +1,180 @@
 'use client';
 
-import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Container, SectionHeading } from '@/components/ui';
 import { applyToPost, fetchMyApplications } from '@/features/application';
 import { useCurrentUser } from '@/features/auth';
-// 배럴(@/features/education)로 가져오면 education 화면 → @/features/post → 이 파일로 순환 import 가 생겨서 api 모듈을 직접 가져옵니다.
 import { isEducationRequiredError } from '@/features/education/api';
-import { cn } from '@/lib/cn';
 import { fetchPosts, type PostPage } from '../api';
-import { DEFAULT_FILTERS, PAY_OPTIONS, PERIOD_OPTIONS, optionLabel } from '../model';
 import { daysFromNow, formatMonthDay } from '../lib/date';
-import type { LabelTone, PostBadge, PostFilters } from '../types';
-import CardButton from './CardButton';
-import Pagination from './Pagination';
-import PostCard from './PostCard';
+import { DEFAULT_FILTERS, PAY_OPTIONS, PERIOD_OPTIONS, optionLabel } from '../model';
+import { postStatusLabel, toPostStatusKey } from '../model/status';
+import type { PostFilters, PostSummary } from '../types';
+import PostGuestNotice from './PostGuestNotice';
 import PostSearchPanel from './PostSearchPanel';
 
-/** 한 번에 서버에서 가져오는 공고 수 (= 한 페이지에 보여주는 카드 수) */
-const PAGE_SIZE = 6;
-
-/** 공고 상태 탭 — true(모집중)가 기본값 */
+const PAGE_SIZE = 8;
 const STATUS_TABS = [
-  { openOnly: true, label: '모집중' },
-  { openOnly: false, label: '마감' },
+  { openOnly: true, label: '모집 중' },
+  { openOnly: false, label: '모집 종료' },
 ] as const;
 
-const BADGE: Record<PostBadge, { text: string; tone: LabelTone }> = {
-  new: { text: '신규', tone: 'green' },
-  closing: { text: '오늘 마감', tone: 'red' },
-  open: { text: '모집 중', tone: 'blue' },
-  closed: { text: '마감', tone: 'gray' },
-};
+type Props = { detailBasePath?: string };
+type Role = 'ADMIN' | 'CLIENT' | 'ESCORT';
 
-type PostListPageProps = {
-  detailBasePath?: string;
-};
+function StatusBadge({ status }: { status: string }) {
+  const key = toPostStatusKey(status);
+  const label = postStatusLabel(status).text;
+  const tone = {
+    open: 'border-[#426B93]/35 bg-[#E5EEF7] text-[#305879]',
+    matched: 'border-[#2F7D5B]/35 bg-[#E5F1EA] text-[#286849]',
+    inProgress: 'border-[#14243A]/30 bg-[#E5E9F0] text-[#14243A]',
+    completed: 'border-[#5E697A]/30 bg-[#E9EDF1] text-[#344055]',
+    canceled: 'border-[#B4413C]/25 bg-[#F7ECEB] text-[#99433E]',
+    expired: 'border-[#9A6B12]/30 bg-[#F7F0DE] text-[#84601B]',
+  }[key];
+  const dot = {
+    open: 'bg-[#426B93]', matched: 'bg-[#2F7D5B]', inProgress: 'bg-[#14243A]',
+    completed: 'bg-[#67717C]', canceled: 'bg-[#B4413C]', expired: 'bg-[#9A6B12]',
+  }[key];
 
-/**
- * 공고 목록 겸 메인 — Figma 동행 매니저_공고 목록 겸 메인페이지 188:1289
- *
- * 공고 목록은 백엔드(GET /api/v1/posts)에서 가져옵니다. 검색·필터·정렬·페이지는 서버가 처리합니다.
- * ⚠️ 목록 API 는 공고 상태와 무관하게 결제 완료된 공고를 모두 주므로, 모집이 끝난 공고는 "마감"으로 표시합니다.
- */
-export default function PostListPage({
-                                       detailBasePath = '/posts',
-                                     }: PostListPageProps) {
-  // 지원은 동행 매니저(ESCORT)만 할 수 있어서, 의뢰인(CLIENT)에게는 버튼을 눌리지 않게 둡니다.
-  const { user, unauthenticated } = useCurrentUser();
-  const isClient = user?.role === 'CLIENT';
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-bold ${tone}`}>
+      <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${dot}`} />
+      {label}
+    </span>
+  );
+}
+
+function ListingRow({
+  post,
+  detailPath,
+  role,
+  applied,
+  applyStatus,
+  onApply,
+}: {
+  post: PostSummary;
+  detailPath: string;
+  role: Role;
+  applied: boolean;
+  applyStatus?: 'applying' | 'applied';
+  onApply: (postId: number) => void;
+}) {
+  const isOpen = toPostStatusKey(post.postStatus) === 'open';
+  const canApply = role === 'ESCORT' && isOpen && !applied && !applyStatus;
+  const dateLabel = formatMonthDay(daysFromNow(post.startsInDays));
+  const location = `${post.region} ${post.district}`.trim();
+
+  return (
+    <li className="group px-5 py-5 transition-colors hover:bg-[#F7F8F8] sm:px-6">
+      <div className="hidden min-[1100px]:grid grid-cols-[110px_minmax(0,2.5fr)_120px_130px_75px_95px_148px] items-center gap-4">
+        <div className="min-w-0"><StatusBadge status={post.postStatus} /></div>
+        <div className="min-w-0 pr-1">
+          <div className="mb-1 flex min-w-0 items-center gap-2">
+            <Link href={detailPath} className="truncate text-base font-semibold text-[#14243A] transition-colors hover:text-[#426B93] hover:underline">{post.title}</Link>
+            {post.badge === 'new' && <span className="shrink-0 rounded bg-[#B4413C]/10 px-1.5 py-0.5 text-[11px] font-semibold text-[#B4413C]">신규</span>}
+            {post.badge === 'closing' && <span className="shrink-0 rounded bg-[#9A6B12]/15 px-1.5 py-0.5 text-[11px] font-semibold text-[#9A6B12]">오늘 마감</span>}
+          </div>
+          <p className="truncate text-xs text-[#67717C]">{post.hospitalName}</p>
+        </div>
+        <div className="min-w-0 truncate text-sm font-medium text-[#202832]" title={location}>{location}</div>
+        <div className="min-w-0 text-sm text-[#202832]">
+          <p className="font-medium tabular-nums">{dateLabel}</p>
+          <p className="text-xs text-[#426B93]">{post.startTime}</p>
+        </div>
+        <div className="min-w-0 whitespace-nowrap text-sm text-[#67717C]">약 {post.hours}시간</div>
+        <div className="min-w-0 whitespace-nowrap text-right">
+          <span className="text-[15px] font-bold tabular-nums text-[#14243A]">{post.hourlyPay.toLocaleString()}</span><span className="ml-0.5 text-xs text-[#67717C]">원</span>
+        </div>
+        <div className="flex min-w-0 items-center justify-center gap-1.5">
+          <Link href={detailPath} className="flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-[#E1E5E8] bg-white px-2.5 text-xs font-semibold text-[#14243A] transition-colors duration-200 hover:bg-[#EDF0F2]">상세보기</Link>
+          {role === 'ESCORT' && (
+            <button
+              type="button"
+              onClick={() => onApply(post.id)}
+              disabled={!canApply}
+              className="h-9 whitespace-nowrap rounded-lg bg-[#14243A] px-2.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#426B93] disabled:cursor-not-allowed disabled:bg-[#EDF0F2] disabled:text-[#67717C]"
+            >
+              {applied || applyStatus === 'applied' ? '지원완료' : applyStatus === 'applying' ? '지원 중…' : isOpen ? '지원하기' : '지원 불가'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-3 min-[1100px]:hidden">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={post.postStatus} />
+          {post.badge === 'new' && <span className="rounded bg-[#B4413C]/10 px-1.5 py-0.5 text-[11px] font-semibold text-[#B4413C]">신규</span>}
+          {post.badge === 'closing' && <span className="rounded bg-[#9A6B12]/15 px-1.5 py-0.5 text-[11px] font-semibold text-[#9A6B12]">오늘 마감</span>}
+        </div>
+        <div>
+          <Link href={detailPath} className="mb-1 block text-base font-semibold text-[#14243A] transition-colors hover:text-[#426B93] hover:underline">{post.title}</Link>
+          <p className="text-xs text-[#67717C]">{post.hospitalName} · {location}</p>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E1E5E8]/60 pt-3 text-xs text-[#67717C]">
+          <span>일정: <strong className="font-medium text-[#202832]">{dateLabel} {post.startTime}</strong> · 약 {post.hours}시간</span>
+          <strong className="text-sm text-[#14243A]">시급 {post.hourlyPay.toLocaleString()}원</strong>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Link href={detailPath} className="flex h-9 items-center justify-center rounded-lg border border-[#E1E5E8] px-4 text-xs font-semibold text-[#14243A] transition-colors duration-200 hover:bg-[#EDF0F2]">상세보기</Link>
+          {role === 'ESCORT' && (
+            <button
+              type="button"
+              onClick={() => onApply(post.id)}
+              disabled={!canApply}
+              className="h-9 rounded-lg bg-[#14243A] px-4 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#426B93] disabled:cursor-not-allowed disabled:bg-[#EDF0F2] disabled:text-[#67717C]"
+            >
+              {applied || applyStatus === 'applied' ? '지원완료' : applyStatus === 'applying' ? '지원 중…' : isOpen ? '지원하기' : '지원 불가'}
+            </button>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function AuthenticatedPostList({ detailBasePath, role }: { detailBasePath: string; role: Role }) {
   const router = useRouter();
-  const pathname = usePathname();
-
   const [filters, setFilters] = useState<PostFilters>(DEFAULT_FILTERS);
   const [keywordInput, setKeywordInput] = useState('');
   const [page, setPage] = useState(0);
-  // 카드마다 다른 지원 상태를 기억합니다. (postId -> 'applying' | 'applied')
   const [applyStatus, setApplyStatus] = useState<Record<number, 'applying' | 'applied'>>({});
   const [appliedPostIds, setAppliedPostIds] = useState<Set<number>>(new Set());
-
-  // 조건(필터·페이지)이 바뀔 때마다 서버에서 다시 가져옵니다.
-  // result.key 로 "어떤 조건의 결과인지" 기억해 두면, 조건이 바뀐 직후에는 loading 으로 판단할 수 있습니다.
-  const requestKey = JSON.stringify([filters, page]);
+  const [retryCount, setRetryCount] = useState(0);
+  const requestKey = JSON.stringify([filters, page, retryCount]);
   const [result, setResult] = useState<{ key: string; data?: PostPage; error?: string }>();
 
   useEffect(() => {
-    let ignore = false; // 조건이 또 바뀌면 이전 요청의 결과는 버립니다.
+    let ignore = false;
     fetchPosts(filters, page, PAGE_SIZE)
-      .then((data) => !ignore && setResult({ key: requestKey, data }))
-      .catch((error: Error) => !ignore && setResult({ key: requestKey, error: error.message }));
-    return () => {
-      ignore = true;
-    };
-  }, [filters, page, requestKey]);
+      .then((data) => { if (!ignore) setResult({ key: requestKey, data }); })
+      .catch((error: Error) => { if (!ignore) setResult({ key: requestKey, error: error.message }); });
+    return () => { ignore = true; };
+  }, [filters, page, requestKey, retryCount]);
 
   useEffect(() => {
-    if (user?.role !== 'ESCORT') return;
+    if (role !== 'ESCORT') return;
     let ignore = false;
     fetchMyApplications()
-        .then((applications) => {
-          if (ignore) return;
-          setAppliedPostIds(
-              new Set(
-                  applications
-                      .filter((application) => application.applicationStatus !== 'CANCELED')
-                      .map((application) => application.postId)
-              )
-          );
-        })
-        .catch(() => {
-          if (!ignore) {
-            setAppliedPostIds(new Set());
-          }
-        });
-    return () => {
-      ignore = true;
-    };
-  }, [user?.role]);
+      .then((applications) => {
+        if (ignore) return;
+        setAppliedPostIds(new Set(applications.filter((application) => application.applicationStatus !== 'CANCELED').map((application) => application.postId)));
+      })
+      .catch(() => { if (!ignore) setAppliedPostIds(new Set()); });
+    return () => { ignore = true; };
+  }, [role]);
 
   const loading = result?.key !== requestKey;
   const posts = (!loading && result?.data?.posts) || [];
   const totalCount = (!loading && result?.data?.totalElements) || 0;
   const pageCount = Math.max(1, (!loading && result?.data?.totalPages) || 1);
-  const errorMessage = !loading ? result?.error : undefined;
+  const errorMessage = loading ? undefined : result?.error;
 
   const updateFilters = (patch: Partial<PostFilters>) => {
-    setFilters((prev) => ({ ...prev, ...patch }));
+    setFilters((previous) => ({ ...previous, ...patch }));
     setPage(0);
   };
 
@@ -117,28 +185,19 @@ export default function PostListPage({
   };
 
   const handleApply = async (postId: number) => {
-    // 로그인 안 한 상태면 API 를 부르지 않고 바로 로그인 화면으로 보냅니다 (PostDetailPage 와 동일한 처리).
-    if (unauthenticated) {
-      router.push(`/login?next=${encodeURIComponent(pathname)}`);
-      return;
-    }
+    if (role !== 'ESCORT' || appliedPostIds.has(postId) || applyStatus[postId]) return;
     if (!window.confirm('이 공고에 지원하시겠습니까?')) return;
-    setApplyStatus((prev) => ({ ...prev, [postId]: 'applying' }));
+    setApplyStatus((previous) => ({ ...previous, [postId]: 'applying' }));
     try {
       await applyToPost(postId);
-      setApplyStatus((prev) => ({ ...prev, [postId]: 'applied' }));
-      setAppliedPostIds((prev) => {
-        const next = new Set(prev);
-        next.add(postId);
-        return next;
-      });
+      setApplyStatus((previous) => ({ ...previous, [postId]: 'applied' }));
+      setAppliedPostIds((previous) => new Set([...previous, postId]));
     } catch (error) {
-      setApplyStatus((prev) => {
-        const next = { ...prev };
+      setApplyStatus((previous) => {
+        const next = { ...previous };
         delete next[postId];
         return next;
       });
-      // 교육을 이수하지 않아 막혔으면 교육 영상 화면으로 안내합니다.
       if (isEducationRequiredError(error)) {
         if (window.confirm(`${error instanceof Error ? error.message : '교육 영상 시청을 완료한 후 지원할 수 있습니다.'}\n교육 영상 화면으로 이동할까요?`)) {
           router.push('/mypage/education');
@@ -149,140 +208,133 @@ export default function PostListPage({
     }
   };
 
-  // 기본값과 다른 조건은 "선택된 필터" 칩으로 보여줍니다.
   const chips: { key: string; label: string; clear: Partial<PostFilters> }[] = [];
-  if (filters.keyword) {
-    chips.push({ key: 'keyword', label: `“${filters.keyword}”`, clear: { keyword: '' } });
-  }
-  if (filters.region !== 'all') {
-    chips.push({ key: 'region', label: filters.region, clear: { region: 'all' } });
-  }
-  if (filters.period !== 'all') {
-    chips.push({ key: 'period', label: optionLabel(PERIOD_OPTIONS, filters.period), clear: { period: 'all' } });
-  }
-  if (filters.pay !== 'all') {
-    chips.push({ key: 'pay', label: optionLabel(PAY_OPTIONS, filters.pay), clear: { pay: 'all' } });
-  }
+  if (filters.keyword) chips.push({ key: 'keyword', label: `“${filters.keyword}”`, clear: { keyword: '' } });
+  if (filters.region !== 'all') chips.push({ key: 'region', label: filters.region, clear: { region: 'all' } });
+  if (filters.period !== 'all') chips.push({ key: 'period', label: optionLabel(PERIOD_OPTIONS, filters.period), clear: { period: 'all' } });
+  if (filters.pay !== 'all') chips.push({ key: 'pay', label: optionLabel(PAY_OPTIONS, filters.pay), clear: { pay: 'all' } });
 
   return (
-      <section className="bg-white py-[50px]">
-        <Container className="flex flex-col items-center">
-          <SectionHeading
-            title="병원 동행 공고를 찾아보세요!"
-            description="지금 나에게 맞는 병원 동행 공고를 확인하고 지원할 수 있어요."
-            className="mb-8 lg:mb-6"
-            descriptionClassName="leading-6 lg:leading-[30px]"
-          />
+    <section className="w-full bg-[#F7F8F8] py-12 lg:py-16">
+      <div className="mx-auto max-w-[1240px] px-5 sm:px-8 lg:px-16">
+        <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#426B93]">Escort Opportunities</span>
+            <h1 className="text-3xl font-semibold tracking-tight text-[#14243A] sm:text-4xl">동행 공고 찾기</h1>
+          </div>
+          {role === 'CLIENT' && (
+            <Link href="/client/posts/new" className="inline-flex h-11 items-center justify-center self-start rounded-[10px] bg-[#14243A] px-5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#1F3757]">새 공고 등록</Link>
+          )}
+        </div>
 
-          {/* 모집중 / 마감 탭 — 마감된 공고 때문에 신규·모집중 공고가 뒤로 밀리지 않도록 목록 자체를 분리 */}
-          <div role="tablist" aria-label="공고 상태" className="mb-5 flex gap-2.5">
+        <PostSearchPanel
+          filters={filters}
+          keywordInput={keywordInput}
+          onKeywordInputChange={setKeywordInput}
+          onSearch={() => updateFilters({ keyword: keywordInput.trim() })}
+          onFilterChange={updateFilters}
+          onReset={reset}
+        />
+
+        <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div role="tablist" aria-label="공고 모집 상태" className="relative grid w-[238px] grid-cols-2 self-start rounded-xl border border-[#E1E5E8] bg-[#EDF0F2] p-1">
+            <span
+              aria-hidden="true"
+              className={`pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%_-_4px)] rounded-lg bg-white shadow-xs transition-transform duration-300 ease-out motion-reduce:transition-none ${filters.openOnly ? '' : 'translate-x-full'}`}
+            />
             {STATUS_TABS.map((tab) => (
               <button
-                key={String(tab.openOnly)}
                 type="button"
                 role="tab"
+                key={String(tab.openOnly)}
                 aria-selected={filters.openOnly === tab.openOnly}
                 onClick={() => updateFilters({ openOnly: tab.openOnly })}
-                className={cn(
-                  'rounded-full px-6 py-2.5 text-base font-semibold transition-colors',
-                  filters.openOnly === tab.openOnly
-                    ? 'bg-brand text-white'
-                    : 'border border-line-soft bg-white text-brand-muted hover:bg-line-soft',
-                )}
-              >
-                {tab.label}
+                className={`relative z-10 rounded-lg px-2 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93] ${filters.openOnly === tab.openOnly ? 'text-[#14243A]' : 'text-[#67717C] hover:text-[#14243A]'}`}
+              >{tab.label}</button>
+            ))}
+          </div>
+          <p aria-live="polite" className="text-sm text-[#67717C]">검색 결과 <strong className="font-semibold tabular-nums text-[#14243A]">{loading ? '–' : totalCount}</strong>건</p>
+        </div>
+
+        {chips.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {chips.map((chip) => (
+              <button key={chip.key} type="button" onClick={() => { updateFilters(chip.clear); if (chip.key === 'keyword') setKeywordInput(''); }} className="inline-flex items-center gap-1.5 rounded-full border border-[#E1E5E8] bg-white px-3 py-1.5 text-xs font-semibold text-[#14243A] hover:bg-[#EDF0F2]">
+                {chip.label}<X aria-hidden="true" className="size-3" />
               </button>
             ))}
           </div>
+        )}
 
-          <PostSearchPanel
-            filters={filters}
-            keywordInput={keywordInput}
-            onKeywordInputChange={setKeywordInput}
-            onSearch={() => updateFilters({ keyword: keywordInput })}
-            onFilterChange={updateFilters}
-            onReset={reset}
-          />
+        <div className="overflow-hidden rounded-2xl border border-[#E1E5E8] bg-white shadow-xs">
+          <div className="hidden min-[1100px]:grid grid-cols-[110px_minmax(0,2.5fr)_120px_130px_75px_95px_148px] gap-4 border-b border-[#E1E5E8] bg-[#EDF0F2]/60 px-6 py-3.5 text-xs font-semibold text-[#67717C]">
+            <div className="min-w-0">상태</div>
+            <div className="min-w-0">공고 · 병원</div>
+            <div className="min-w-0">지역</div>
+            <div className="min-w-0">일정</div>
+            <div className="min-w-0">소요</div>
+            <div className="text-right">시급</div>
+            <div className="text-center">상세 · 지원</div>
+          </div>
+          {loading ? (
+            <div role="status" className="py-20 text-center text-sm text-[#67717C]">공고를 불러오는 중입니다.</div>
+          ) : errorMessage ? (
+            <div role="alert" className="space-y-2 px-5 py-20 text-center">
+              <p className="font-medium text-[#14243A]">공고를 불러오지 못했습니다.</p>
+              <p className="text-sm text-[#67717C]">{errorMessage}</p>
+              <button type="button" onClick={() => setRetryCount((count) => count + 1)} className="mt-3 rounded-lg border border-[#E1E5E8] px-4 py-2 text-sm font-semibold text-[#14243A]">다시 시도</button>
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="space-y-2 px-5 py-20 text-center">
+              <p className="font-medium text-[#14243A]">조건에 맞는 공고가 없습니다.</p>
+              <p className="text-sm text-[#67717C]">검색어나 필터 조건을 변경해 보세요.</p>
+              <button type="button" onClick={reset} className="mt-4 rounded-lg border border-[#E1E5E8] px-4 py-2 text-xs font-semibold text-[#14243A] hover:bg-[#F7F8F8]">필터 초기화</button>
+            </div>
+          ) : (
+            <ul className="divide-y divide-[#E1E5E8]">
+              {posts.map((post) => (
+                <ListingRow
+                  key={post.id}
+                  post={post}
+                  detailPath={`${detailBasePath}/${post.id}`}
+                  role={role}
+                  applied={appliedPostIds.has(post.id)}
+                  applyStatus={applyStatus[post.id]}
+                  onApply={handleApply}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
 
-          <div className="mt-[50px] flex w-full max-w-[1124px] flex-col gap-2.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-base leading-6 font-semibold text-brand">
-                총 {totalCount}개의 공고가 있습니다.
-              </p>
-              {chips.map((chip) => (
-                <span
-                  key={chip.key}
-                  className="inline-flex items-center gap-2.5 rounded-full border border-[#e6e8ec] bg-[#f5f5f5] px-[17px] py-1.5 text-base leading-[22px] font-semibold text-brand"
-                >
-                  {chip.label}
-                  <button
-                    type="button"
-                    aria-label={`${chip.label} 조건 해제`}
-                    onClick={() => updateFilters(chip.clear)}
-                    className="grid size-4 place-items-center"
-                  >
-                    <Image src="/icons/chip-close.svg" alt="" width={7.5} height={7.5} className="size-[6px]" />
-                  </button>
-                </span>
+        {!loading && !errorMessage && pageCount > 1 && (
+          <nav aria-label="공고 페이지 이동" className="mt-8 flex items-center justify-between gap-4 border-t border-[#E1E5E8] pt-6">
+            <button type="button" disabled={page === 0} onClick={() => setPage((current) => Math.max(0, current - 1))} className="inline-flex h-12 items-center gap-1 rounded-[10px] border border-[#E1E5E8] px-4 text-sm font-semibold text-[#14243A] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft aria-hidden="true" className="size-4" />이전</button>
+            <div className="hidden items-center gap-2 sm:flex">
+              {Array.from({ length: pageCount }, (_, index) => index).filter((index) => index === 0 || index === pageCount - 1 || Math.abs(index - page) <= 2).map((index) => (
+                <button key={index} type="button" aria-current={index === page ? 'page' : undefined} onClick={() => setPage(index)} className={`size-12 rounded-[10px] text-sm font-semibold transition-colors ${index === page ? 'bg-[#14243A] text-white' : 'border border-[#E1E5E8] text-[#14243A] hover:bg-white'}`}>{index + 1}</button>
               ))}
             </div>
-
-            {loading ? (
-              <p className="py-20 text-center text-base font-semibold text-brand-muted">
-                공고를 불러오는 중입니다.
-              </p>
-            ) : errorMessage ? (
-              <p role="alert" className="py-20 text-center text-base font-semibold text-brand-muted">
-                공고를 불러오지 못했습니다. ({errorMessage})
-              </p>
-            ) : posts.length > 0 ? (
-              <ul className="grid gap-x-4 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                {posts.map((post) => {
-                  const alreadyApplied = appliedPostIds.has(post.id);
-                  return (
-                      <li key={post.id} className="flex justify-center">
-                    <PostCard
-                      title={post.title}
-                      hospitalName={post.hospitalName}
-                      location={`${post.region.slice(0, 2)} ${post.district}`}
-                      label={BADGE[post.badge]}
-                      postedAgo={post.postedAgo}
-                      dateLabel={formatMonthDay(daysFromNow(post.startsInDays))}
-                      timeLabel={post.startTime}
-                      durationLabel={`약 ${post.hours}시간`}
-                      payLabel={`시급 ${post.hourlyPay.toLocaleString()}원`}
-                      description={post.description}
-                    >
-                      <CardButton href={`${detailBasePath}/${post.id}`}>
-                        상세보기
-                      </CardButton>
-                      {isClient ? (
-                          <CardButton variant="disabled">지원 불가</CardButton>
-                      ) : alreadyApplied || applyStatus[post.id] === 'applied' ? (
-                          <CardButton variant="disabled">지원완료</CardButton>
-                      ) : post.badge === 'closed' ? (
-                          <CardButton variant="disabled">지원 불가</CardButton>
-                      ) : (
-                          <CardButton variant="solid" onClick={() => handleApply(post.id)}>
-                            {applyStatus[post.id] === 'applying' ? '지원 중…' : '지원하기'}
-                          </CardButton>
-                      )}
-                    </PostCard>
-                  </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="py-20 text-center text-base font-semibold text-brand-muted">
-                조건에 맞는 공고가 없습니다.
-              </p>
-            )}
-          </div>
-
-          <div className="mt-[50px]">
-            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
-          </div>
-        </Container>
-      </section>
+            <span className="text-sm font-medium text-[#67717C] sm:hidden">{page + 1} / {pageCount}</span>
+            <button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))} className="inline-flex h-12 items-center gap-1 rounded-[10px] border border-[#E1E5E8] px-4 text-sm font-semibold text-[#14243A] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40">다음<ChevronRight aria-hidden="true" className="size-4" /></button>
+          </nav>
+        )}
+      </div>
+    </section>
   );
+}
+
+export default function PostListPage({ detailBasePath = '/posts' }: Props) {
+  const { user, loading, unauthenticated, error } = useCurrentUser();
+  if (loading) return <section className="bg-[#F7F8F8] py-28 text-center text-sm text-[#67717C]">로그인 상태를 확인하는 중입니다.</section>;
+  if (unauthenticated) return <PostGuestNotice nextPath={detailBasePath} />;
+  if (!user) {
+    return (
+      <section className="bg-[#F7F8F8] px-5 py-28 text-center">
+        <p role="alert" className="mb-4 text-sm text-[#67717C]">{error || '로그인 상태를 확인하지 못했습니다.'}</p>
+        <button type="button" onClick={() => window.location.reload()} className="rounded-[10px] bg-[#14243A] px-5 py-3 text-sm font-semibold text-white">다시 확인하기</button>
+      </section>
+    );
+  }
+  return <AuthenticatedPostList detailBasePath={detailBasePath} role={user.role} />;
 }

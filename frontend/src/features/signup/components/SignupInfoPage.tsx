@@ -171,13 +171,20 @@ export default function SignupInfoPage() {
   // 거절된 칸으로 포커스를 옮기고 화면 가운데로 스크롤합니다. (성별 라디오는 첫 번째 버튼)
   useEffect(() => {
     if (!fieldError) return;
-    const input = formRef.current?.querySelector<HTMLElement>(`[name="${fieldError.key}"]`);
+    const input = formRef.current?.querySelector<HTMLElement>(`[data-field-name="${fieldError.key}"]`)
+      ?? formRef.current?.querySelector<HTMLElement>(`[name="${fieldError.key}"]`);
     input?.focus({ preventScroll: true });
     input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [fieldError]);
 
   // 계정만 만들어지고 프로필이 실패한 상태. 기본 정보 칸은 모양 그대로 두고 값만 바뀌지 않게 막습니다.
   const accountCreated = createdRole !== null;
+
+  const handleSelectChange = (key: FieldKey, value: string) => {
+    if (accountCreated && ACCOUNT_FIELDS.has(key)) return;
+    setValues((prev) => ({ ...prev, [key]: value }));
+    if (fieldError?.key === key) setFieldError(null);
+  };
 
   const handleChange =
     (key: keyof SignupFormValues) =>
@@ -470,18 +477,12 @@ export default function SignupInfoPage() {
                     <SelectInput
                       id="signup-region"
                       name="region"
-                      autoComplete="address-level1"
                       required
                       value={values.region}
-                      onChange={handleChange('region')}
-                    >
-                      <option value="" disabled hidden>시/도를 선택해주세요.</option>
-                      {REGIONS.map((region) => (
-                        <option key={region} value={region} className="text-[#14243A]">
-                          {region}
-                        </option>
-                      ))}
-                    </SelectInput>
+                      placeholder="시/도를 선택해주세요."
+                      options={REGIONS.map((region) => ({ value: region, label: region }))}
+                      onValueChange={(region) => handleSelectChange('region', region)}
+                    />
                     <FieldErrorMessage error={fieldError} field="region" />
                   </FormField>
                 </div>
@@ -553,16 +554,10 @@ export default function SignupInfoPage() {
                         name="bankName"
                         required
                         value={values.bankName}
-                        onChange={handleChange('bankName')}
-                        className={ACCOUNT_FIELD}
-                      >
-                        <option value="" disabled hidden>은행을 선택해주세요.</option>
-                        {BANKS.map((bank) => (
-                          <option key={bank} value={bank} className="text-[#14243A]">
-                            {bank}
-                          </option>
-                        ))}
-                      </SelectInput>
+                        placeholder="은행을 선택해주세요."
+                        options={BANKS.map((bank) => ({ value: bank, label: bank }))}
+                        onValueChange={(bank) => handleSelectChange('bankName', bank)}
+                      />
                       <FieldErrorMessage error={fieldError} field="bankName" />
                     </FormField>
                     <FormField label="예금주*" htmlFor="signup-account-holder">

@@ -1,13 +1,13 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AppShell } from '@/components/layout';
-import { Container, InfoRow } from '@/components/ui';
+import { Building2, ChevronLeft, FileCheck, Lock, Shield, MapPin, Users } from 'lucide-react';
 import { applyToPost, fetchMyApplications } from '@/features/application';
 import { useCurrentUser, useRequireAuth, type CurrentUser } from '@/features/auth';
+import PostGuestNotice from './PostGuestNotice';
 import { useChatWidget } from '@/features/chat';
 // 배럴(@/features/education)로 가져오면 education 화면 → @/features/post → 이 파일로 순환 import 가 생겨서 api 모듈을 직접 가져옵니다.
 import { isEducationRequiredError } from '@/features/education/api';
@@ -23,20 +23,13 @@ import { cn } from '@/lib/cn';
 import { deletePost, fetchPost } from '../api';
 import { daysFromNow, formatFullDate, formatTime, parseDateTime } from '../lib/date';
 import { canDeletePost, canEditPost, postStatusLabel, toPostStatusKey } from '../model/status';
-import type { LabelTone, PostBadge, PostDetail } from '../types';
+import type { LabelTone, PostDetail, PostStatusKey } from '../types';
 import StatusLabel from './StatusLabel';
 
-const BADGE: Record<PostBadge, { text: string; tone: LabelTone }> = {
-  new: { text: '신규', tone: 'green' },
-  closing: { text: '오늘 마감', tone: 'red' },
-  open: { text: '모집 중', tone: 'blue' },
-  closed: { text: '마감', tone: 'gray' },
-};
-
-const CARD = 'rounded-[30px] border border-line bg-white shadow-card';
-const CARD_TITLE = 'text-2xl leading-6 font-semibold text-brand';
+const CARD = 'rounded-2xl border border-[#E1E5E8] bg-white shadow-xs';
+const CARD_TITLE = 'text-xl font-semibold text-[#14243A]';
 const BUTTON =
-  'flex items-center justify-center rounded-[25px] px-6 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+  'flex items-center justify-center rounded-[10px] px-5 font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50';
 
 /** 결제 취소 사유 길이 제한. 입력한 사유가 그대로 토스 취소 내역으로 넘어가서 넉넉하게만 잡아 둡니다. */
 const MAX_CANCEL_REASON_LENGTH = 200;
@@ -57,19 +50,33 @@ const CANCELED_STATUS: PaymentStatus[] = ['CANCELED', 'DELETED'];
 type SectionProps = {
   title: string;
   children: ReactNode;
-  /** 카드 높이·안쪽 여백 조정 */
   className?: string;
-  /** 제목과 내용 사이 간격 (기본 mb-5) */
-  titleGap?: string;
 };
 
-/** 제목 + 내용으로 이루어진 상세 카드. 높이는 Figma 카드 높이를 최소값으로 맞춥니다. */
-function Section({ title, children, className, titleGap = 'mb-5' }: SectionProps) {
+function Section({ title, children, className }: SectionProps) {
   return (
-    <section className={cn(CARD, 'px-6 pt-7 pb-6 lg:px-[35px]', className)}>
-      <h2 className={cn(CARD_TITLE, titleGap)}>{title}</h2>
+    <section className={cn(CARD, 'p-6 sm:p-8', className)}>
+      <h2 className={cn(CARD_TITLE, 'mb-6')}>{title}</h2>
       {children}
     </section>
+  );
+}
+
+const STATUS_STYLE: Record<PostStatusKey, { className: string; dot: string }> = {
+  open: { className: 'border-[#426B93]/35 bg-[#E5EEF7] text-[#305879]', dot: 'bg-[#426B93]' },
+  matched: { className: 'border-[#2F7D5B]/35 bg-[#E5F1EA] text-[#286849]', dot: 'bg-[#2F7D5B]' },
+  inProgress: { className: 'border-[#14243A]/30 bg-[#E5E9F0] text-[#14243A]', dot: 'bg-[#14243A]' },
+  completed: { className: 'border-[#5E697A]/30 bg-[#E9EDF1] text-[#344055]', dot: 'bg-[#67717C]' },
+  canceled: { className: 'border-[#B4413C]/25 bg-[#F7ECEB] text-[#99433E]', dot: 'bg-[#B4413C]' },
+  expired: { className: 'border-[#9A6B12]/30 bg-[#F7F0DE] text-[#84601B]', dot: 'bg-[#9A6B12]' },
+};
+
+function DetailRow({ label, children }: { label: string; children: ReactNode; labelWidth?: number }) {
+  return (
+    <div className="min-w-0 text-sm">
+      <dt className="mb-1 block text-xs font-semibold text-[#67717C]">{label}</dt>
+      <dd className="font-medium leading-relaxed text-[#202832] [overflow-wrap:anywhere]">{children}</dd>
+    </div>
   );
 }
 
@@ -86,12 +93,35 @@ const REQUIRED_ROLE: Record<'escort' | 'client', CurrentUser['role']> = {
 /**
  * 공고 상세 — Figma 동행 매니저_공고 상세 225:1146 · 의뢰인_공고 상세 521:2254
  *
- * viewer='common'(/posts/[postId])은 비로그인도 볼 수 있는 공개 화면이라 로그인 가드를 걸지 않습니다.
+ * viewer='common'(/posts/[postId])은 로그인 상태를 확인한 다음 본문을 표시합니다.
  * viewer='escort'·'client' 는 각각 역할 가드를 거친 뒤에만 본문을 그립니다.
  */
 export default function PostDetailPage({ viewer = 'common' }: Props) {
-  if (viewer === 'common') return <PostDetailPageBody viewer={viewer} />;
+  if (viewer === 'common') return <CommonPostDetailGate />;
   return <GuardedPostDetailPage viewer={viewer} />;
+}
+
+function CommonPostDetailGate() {
+  const pathname = usePathname();
+  const { user, loading, unauthenticated, error } = useCurrentUser();
+
+  if (loading) {
+    return <AppShell><section className="bg-[#F7F8F8] py-28 text-center text-sm text-[#67717C]">로그인 상태를 확인하는 중입니다.</section></AppShell>;
+  }
+  if (unauthenticated) {
+    return <AppShell><PostGuestNotice nextPath={pathname} /></AppShell>;
+  }
+  if (!user) {
+    return (
+      <AppShell>
+        <section className="bg-[#F7F8F8] px-5 py-28 text-center">
+          <p role="alert" className="mb-4 text-sm text-[#67717C]">{error || '로그인 상태를 확인하지 못했습니다.'}</p>
+          <button type="button" onClick={() => window.location.reload()} className="rounded-[10px] bg-[#14243A] px-5 py-3 text-sm font-semibold text-white">다시 확인하기</button>
+        </section>
+      </AppShell>
+    );
+  }
+  return <PostDetailPageBody viewer="common" />;
 }
 
 function GuardedPostDetailPage({ viewer }: { viewer: 'escort' | 'client' }) {
@@ -130,6 +160,7 @@ function PostDetailPageBody({ viewer }: Props) {
   const [deleteError, setDeleteError] = useState<string>();
   const [applyState, setApplyState] = useState<'idle' | 'applying' | 'applied'>('idle');
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [isAssignedEscort, setIsAssignedEscort] = useState(false);
   const [applyError, setApplyError] = useState<string>();
   /** 교육 미이수로 지원이 막혔는지 (에러 문구 옆에 교육 영상 링크를 보여줍니다) */
   const [educationRequired, setEducationRequired] = useState(false);
@@ -177,6 +208,7 @@ function PostDetailPageBody({ viewer }: Props) {
   useEffect(() => {
     if (user?.role !== 'ESCORT') {
       setAlreadyApplied(false);
+      setIsAssignedEscort(false);
       return;
     }
 
@@ -193,10 +225,12 @@ function PostDetailPageBody({ viewer }: Props) {
                       application.applicationStatus !== 'CANCELED'
               )
           );
+          setIsAssignedEscort(applications.some((application) => application.postId === postId && application.applicationStatus === 'ACCEPTED'));
         })
         .catch(() => {
           if (!ignore) {
             setAlreadyApplied(false);
+            setIsAssignedEscort(false);
           }
         });
 
@@ -208,7 +242,7 @@ function PostDetailPageBody({ viewer }: Props) {
   const post = loading ? undefined : result?.data;
   const loadError = loading ? undefined : result?.error;
 
-  const isClient = viewer === 'client';
+  const isClient = user?.role === 'CLIENT' && post?.clientId === user.username;
 
   /**
    * 작성자에게 "연락하기"를 보여 줄지.
@@ -303,8 +337,7 @@ function PostDetailPageBody({ viewer }: Props) {
   };
 
   const handleApply = async () => {
-    // 공개 화면(viewer='common')은 비로그인도 볼 수 있어서, 여기서만 로그인 여부를 확인합니다.
-    // escort·client 화면은 이미 useRequireAuth 가드를 거쳐 들어오므로 항상 로그인 상태입니다.
+    // 인증 상태가 만료된 경우에는 로그인 화면으로 이동합니다.
     if (unauthenticated) {
       router.push(`/login?next=${encodeURIComponent(pathname)}`);
       return;
@@ -330,7 +363,7 @@ function PostDetailPageBody({ viewer }: Props) {
       <AppShell>
         <section className="bg-white py-[100px] text-center">
           <p className="text-xl font-semibold text-brand">{loadError ? `공고를 불러오지 못했습니다. (${loadError})` : '공고를 불러오는 중입니다.'}</p>
-          <Link href={listHref} className={cn(BUTTON, 'mx-auto mt-8 h-14 w-60 border border-line text-xl text-brand')}>
+          <Link href={listHref} className={cn(BUTTON, 'mx-auto mt-8 h-11 w-60 border border-line text-xl text-brand')}>
             목록으로
           </Link>
         </section>
@@ -340,12 +373,12 @@ function PostDetailPageBody({ viewer }: Props) {
 
   // /client/posts/[postId] 는 CLIENT 로그인이면 누구든 들어올 수 있어서(useRequireAuth 는 역할만 봅니다),
   // 공고 작성자 본인이 아니면 여기서 막습니다. (GET /posts/{id} 자체는 누구나 볼 수 있는 공개 조회라 서버는 막지 않습니다)
-  if (isClient && post.clientId !== user?.username) {
+  if (viewer === 'client' && post.clientId !== user?.username) {
     return (
       <AppShell>
         <section className="bg-white py-[100px] text-center">
           <p className="text-xl font-semibold text-brand">본인이 작성한 공고만 볼 수 있습니다.</p>
-          <Link href={listHref} className={cn(BUTTON, 'mx-auto mt-8 h-14 w-60 border border-line text-xl text-brand')}>
+          <Link href={listHref} className={cn(BUTTON, 'mx-auto mt-8 h-11 w-60 border border-line text-xl text-brand')}>
             내 공고 목록으로
           </Link>
         </section>
@@ -355,7 +388,10 @@ function PostDetailPageBody({ viewer }: Props) {
 
   // 의뢰인은 자기 공고의 진행 상태(모집 중 · 매칭 완료 · 진행 중 · 동행 완료 …)를 봅니다.
   // 동행 매니저·비로그인은 "지원할 수 있는지"가 중요해서 신규/오늘 마감 같은 모집 배지를 그대로 씁니다.
-  const label = isClient ? postStatusLabel(post.postStatus) : BADGE[post.badge];
+  const label = postStatusLabel(post.postStatus);
+  const statusKey = toPostStatusKey(post.postStatus);
+  const statusStyle = STATUS_STYLE[statusKey];
+  const canViewSensitive = (user?.role === 'CLIENT' && post.clientId === user.username) || (user?.role === 'ESCORT' && isAssignedEscort);
   const date = formatFullDate(daysFromNow(post.startsInDays));
   const duration = `약 ${post.hours}시간`;
   const pay = `시급 ${post.hourlyPay.toLocaleString()}원`;
@@ -379,8 +415,8 @@ function PostDetailPageBody({ viewer }: Props) {
       : '미정';
 
   const applyClosed = post.badge === 'closed';
-  // 지원은 동행 매니저(ESCORT)만 할 수 있어서, 의뢰인(CLIENT)으로 로그인했으면 공개 화면에서도 누를 수 없게 둡니다.
-  const applyBlockedByRole = user?.role === 'CLIENT';
+  // 지원은 동행 매니저만 할 수 있으므로 다른 역할에는 지원 버튼을 비활성화합니다.
+  const applyBlockedByRole = user?.role !== 'ESCORT';
   const applyLabel = applyBlockedByRole
       ? '지원 불가'
       : alreadyApplied || applyState === 'applied'
@@ -418,90 +454,160 @@ function PostDetailPageBody({ viewer }: Props) {
   const canEdit = isClient && canEditPost(post.postStatus, post.recruitStarted);
   const canDelete = isClient && canDeletePost(post.postStatus);
 
+  const estimatedTotal = Math.round(post.hourlyPay * post.hours);
+
+  const actionErrors = deleteError || cancelError || applyError;
+
   return (
     <AppShell>
-      <section className="bg-white py-[50px]">
-        <Container width="wide" className="grid items-start gap-[22px] lg:grid-cols-[858px_396px] lg:justify-center">
-          <div className="flex min-w-0 flex-col gap-[22px]">
-            {/* 제목 */}
-            <section className="flex flex-col items-center gap-6 rounded-[30px] border border-line-soft bg-white px-6 py-5 shadow-card sm:flex-row sm:px-8 lg:min-h-[210px]">
-              <Image src="/images/post/eggplant.png" alt="" width={100} height={100} className="size-[100px] shrink-0 object-contain" />
-              <div className="flex min-w-0 flex-1 flex-col gap-[15px]">
-                <div className="flex items-center justify-between gap-3">
-                  <StatusLabel tone={label.tone} size="large">
+      <section className="w-full bg-[#F7F8F8] py-12 lg:py-16">
+      <div className="max-w-[1240px] mx-auto px-5 sm:px-8 lg:px-16">
+        {/* Back Link */}
+        <Link
+          href={listHref}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] hover:text-[#14243A] mb-8 sc-focus"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>목록으로 돌아가기</span>
+        </Link>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          {/* Main content column (col-span-8) */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* 1. 공고 요약 */}
+            <div className="bg-white rounded-2xl border border-[#E1E5E8] p-6 sm:p-8 shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-1 rounded text-xs font-semibold inline-flex items-center gap-1.5 ${statusStyle.className}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} aria-hidden="true" />
                     {label.text}
-                  </StatusLabel>
-                  <span className="text-base leading-4 font-semibold whitespace-pre text-[#c0c0c2]">
-                    {`등록일   ${post.postedAt}`}
+                  </span>
+                  {post.badge === 'closing' && <span className="text-xs font-semibold text-[#426B93] bg-[#EDF0F2] px-2.5 py-1 rounded">오늘 마감</span>}
+                  {post.badge === 'new' && <span className="text-xs font-semibold text-[#426B93] bg-[#EDF0F2] px-2.5 py-1 rounded">신규</span>}
+                </div>
+                <div className="text-xs text-[#67717C]">
+                  등록일: {post.postedAt} · 의뢰인: <span className="font-semibold text-[#202832]">{post.clientId}</span>
+                </div>
+              </div>
+
+              <h1 className="text-2xl sm:text-3xl font-semibold text-[#14243A] tracking-tight mb-4">
+                {post.title}
+              </h1>
+
+              <div className="flex flex-wrap items-center gap-4 text-sm text-[#67717C] pt-2 border-t border-[#E1E5E8]">
+                <div className="flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-[#426B93]" />
+                  <span className="font-medium text-[#202832]">{post.hospitalName}</span>
+                </div>
+                <span>·</span>
+                <div>{location}</div>
+                <span>·</span>
+                <div>동행 시간: <span className="text-[#202832] font-medium">{duration}</span></div>
+              </div>
+            </div>
+
+            {/* 2. 기본 정보 */}
+            <div className="bg-white rounded-2xl border border-[#E1E5E8] p-6 sm:p-8 shadow-xs space-y-6">
+              <h2 className="text-xl font-semibold text-[#14243A]">기본 정보</h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+                <div>
+                  <span className="block text-xs font-semibold text-[#67717C] mb-1">방문 병원</span>
+                  <p className="font-medium text-[#202832]">{post.hospitalName}</p>
+                  <p className="text-xs text-[#67717C] mt-0.5">{post.hospitalAddress}</p>
+                </div>
+
+                <div>
+                  <span className="block text-xs font-semibold text-[#67717C] mb-1">동행 일시</span>
+                  <p className="font-medium text-[#202832] tabular-nums">{date} {post.startTime}</p>
+                  <p className="text-xs text-[#67717C] mt-0.5">예상 소요 시간: 약 {post.hours}시간</p>
+                </div>
+
+                <div>
+                  <span className="block text-xs font-semibold text-[#67717C] mb-1">이동 수단</span>
+                  <p className="text-[#202832]">갈 때: <span className="font-medium">{toHospitalTransport}</span></p>
+                  <p className="text-[#202832] mt-0.5">올 때: <span className="font-medium">{toHomeTransport}</span></p>
+                </div>
+
+                <div>
+                  <span className="block text-xs font-semibold text-[#67717C] mb-1">시간당 시급</span>
+                  <p className="text-lg font-bold text-[#14243A] tabular-nums">
+                    {post.hourlyPay.toLocaleString()}원
+                    <span className="text-xs font-normal text-[#67717C] ml-1">/ 시간당</span>
+                  </p>
+
+                </div>
+              </div>
+            </div>
+
+            {/* 3. 모집 정보 */}
+            <div className="bg-white rounded-2xl border border-[#E1E5E8] p-6 sm:p-8 shadow-xs space-y-4">
+              <h2 className="text-xl font-semibold text-[#14243A]">모집 정보</h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="bg-[#F7F8F8] p-4 rounded-xl border border-[#E1E5E8]">
+                  <span className="text-xs text-[#67717C] block mb-1">모집 마감 기한</span>
+                  <span className="font-medium text-[#202832]">{post.recruitPeriod}</span>
+                </div>
+                <div className="bg-[#F7F8F8] p-4 rounded-xl border border-[#E1E5E8]">
+                  <span className="text-xs text-[#67717C] block mb-1">진료 보고서 작성 요청</span>
+                  <span className="font-medium text-[#426B93] flex items-center gap-1.5">
+                    <FileCheck className="w-4 h-4" />
+                    {post.reportRequired ? '동행 후 보고서 작성을 요청합니다' : '보고서 작성 요청이 없습니다'}
                   </span>
                 </div>
-                <h1 className="text-2xl leading-6 font-semibold text-brand">{post.title}</h1>
-                <p className="flex flex-wrap items-center gap-x-[50px] gap-y-1 text-base leading-5 font-semibold text-brand">
-                  {post.hospitalName}
-                  <span className="flex items-center gap-[9px]">
-                    <Image src="/icons/pin.svg" alt="" width={15} height={18} />
-                    {location}
+              </div>
+            </div>
+
+            {/* 4. 공고 설명 */}
+            <div className="bg-white rounded-2xl border border-[#E1E5E8] p-6 sm:p-8 shadow-xs space-y-4">
+              <h2 className="text-xl font-semibold text-[#14243A]">공고 상세 설명</h2>
+              <p className="text-base text-[#202832] leading-relaxed whitespace-pre-line">
+                {post.details.length > 0 ? post.details.join('\n') : '등록된 상세 설명이 없습니다.'}
+              </p>
+            </div>
+
+            {/* 5. 민감 정보 (보호자 연락처 / 어르신 특이사항: 매칭된 매니저 또는 작성자만 열람) */}
+            <div className="bg-white rounded-2xl border border-[#E1E5E8] p-6 sm:p-8 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-[#14243A] flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-[#426B93]" />
+                  <span>보호자 정보 및 환자 특이사항</span>
+                </h2>
+                {!canViewSensitive && (
+                  <span className="text-xs text-[#B4413C] font-medium flex items-center gap-1">
+                    <Lock className="w-3.5 h-3.5" />
+                    비공개 보안 정보
                   </span>
-                </p>
-                <p className="text-base leading-5 font-medium text-brand">{post.description.join('   ')}</p>
+                )}
               </div>
-            </section>
 
-            {/* 기본 정보 */}
-            <Section title="기본 정보" titleGap="mb-[21px]" className="lg:min-h-[290px] lg:px-6 lg:pb-4">
-              <dl className="grid gap-x-[22px] lg:grid-cols-[1fr_1px_1fr]">
-                <div className="flex flex-col gap-[3px]">
-                  <InfoRow label="병원명" labelWidth={110}>{post.hospitalName}</InfoRow>
-                  <InfoRow label="병원 주소" labelWidth={110}>{post.hospitalAddress}</InfoRow>
-                  <InfoRow label="날짜" labelWidth={110}>{date}</InfoRow>
-                  <InfoRow label="시간" labelWidth={110}>{post.startTime}</InfoRow>
-                  <InfoRow label="시급" labelWidth={110}>{pay}</InfoRow>
+              {canViewSensitive ? (
+                <div className="bg-[#EDF0F2] rounded-xl p-5 border border-[#E1E5E8] space-y-4">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-4 h-4 text-[#426B93]" />
+                    <span className="text-sm text-[#67717C]">상세 출발지:</span>
+                    <span className="text-sm font-semibold text-[#14243A]">{post.pickupAddress}</span>
+                  </div>
+                  <div className="pt-3 border-t border-[#E1E5E8] space-y-1">
+                    <span className="text-xs font-semibold text-[#14243A] block">환자 특이사항:</span>
+                    <p className="text-sm text-[#202832] leading-relaxed">
+                      {post.patientNote.length > 0 ? post.patientNote.join('\n') : '등록된 특이사항이 없습니다.'}
+                    </p>
+                  </div>
                 </div>
-                <div aria-hidden="true" className="hidden self-center bg-[#e6e8ec] opacity-50 lg:block lg:h-40" />
-                <div className="flex flex-col gap-[3px]">
-                  <InfoRow label="출발지" labelWidth={124}>{post.pickupAddress}</InfoRow>
-                  <InfoRow label="예상 소요 시간" labelWidth={124}>{duration}</InfoRow>
-                  <InfoRow label="갈 때 이동수단" labelWidth={124}>{toHospitalTransport}</InfoRow>
-                  <InfoRow label="올 때 이동수단" labelWidth={124}>{toHomeTransport}</InfoRow>
-                  <InfoRow label="지역" labelWidth={124}>{location}</InfoRow>
+              ) : (
+                <div className="bg-[#F7F8F8] rounded-xl p-6 border border-[#E1E5E8] text-center space-y-2">
+                  <Lock className="w-6 h-6 text-[#67717C] mx-auto" />
+                  <p className="text-sm font-medium text-[#14243A]">
+                    환자 특이사항과 상세 출발지는 매칭된 매니저에게만 공개됩니다.
+                  </p>
+                  <p className="text-xs text-[#67717C]">
+                    개인정보 보호를 위해 지원 승인 전까지 상세 정보가 표시되지 않습니다.
+                  </p>
                 </div>
-              </dl>
-            </Section>
-
-            {/* 공고 설명 */}
-            <Section title="공고 설명">
-              <div className="text-base leading-6 font-semibold text-brand">
-                {post.details.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
-              </div>
-            </Section>
-
-            {/* 환자 특이사항 (작성하지 않았으면 섹션 자체를 생략) */}
-            {post.patientNote.length > 0 && (
-                <Section title="환자 특이사항" titleGap="mb-[26px]">
-                <ul className="flex flex-col gap-[7px] px-0.5">
-                  {post.patientNote.map((note) => (
-                    <li key={note} className="flex items-center gap-[15px] text-base leading-5 font-semibold text-brand">
-                      <Image src="/icons/check-circle-fill.svg" alt="" width={20} height={20} className="shrink-0" />
-                      {note}
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            )}
-
-            {/* 모집 정보 */}
-            <Section title="모집 정보" titleGap="mb-[22px]" className="lg:min-h-[120px]">
-              <dl className="flex flex-col gap-[3px]">
-                <InfoRow label="모집 기간" labelWidth={110}>{post.recruitPeriod}</InfoRow>
-                <InfoRow label="보고서 요청" labelWidth={110}>{post.reportRequired ? '동행 후 보고서 작성을 요청합니다.' : '보고서를 요청하지 않습니다.'}</InfoRow>
-              </dl>
-            </Section>
-
-            {/* "지원 전 안내"(지원 시 개인정보 제공 동의) 섹션은 보는 사람(비로그인/의뢰인/동행인)에
-                따라 조건을 맞추기가 계속 어긋나서, 요청에 따라 전체 삭제했습니다. */}
-
+              )}
+            </div>
             {/* 결제 정보 — 이 공고의 결제 전부(미결제·완료·취소). 최근 건이 위에 옵니다. */}
             {payments.length > 0 && (
               <Section title="결제 정보">
@@ -518,24 +624,24 @@ function PostDetailPageBody({ viewer }: Props) {
                     return (
                       <li
                         key={payment.id}
-                        className={cn('flex flex-col gap-[11px]', index > 0 && 'mt-5 border-t border-line-soft pt-5')}
+                        className={cn('flex flex-col gap-[11px]', index > 0 && 'mt-5 border-t border-[#E1E5E8] pt-5')}
                       >
                         {/* 배지는 내용만큼만 넓어야 해서 감싸 둡니다. (flex-col 안에서는 자식이 가로로 늘어납니다) */}
                         <div>
                           <StatusLabel tone={paymentLabel.tone}>{paymentLabel.text}</StatusLabel>
                         </div>
                         <dl className="flex flex-col gap-[3px]">
-                          <InfoRow label="결제 금액" labelWidth={140}>{`${payment.amount.toLocaleString()}원`}</InfoRow>
+                          <DetailRow label="결제 금액" labelWidth={140}>{`${payment.amount.toLocaleString()}원`}</DetailRow>
                           {/* 아직 내지 않은(READY) 건은 승인 시각이 없습니다. */}
-                          <InfoRow label={canceled ? '취소 일시' : '결제 일시'} labelWidth={140}>
+                          <DetailRow label={canceled ? '취소 일시' : '결제 일시'} labelWidth={140}>
                             {dateValue ? `${formatFullDate(parseDateTime(dateValue))} ${formatTime(dateValue)}` : '-'}
-                          </InfoRow>
+                          </DetailRow>
                         </dl>
 
                         {/* 아직 내지 않은 건에는 공고 목록 카드와 같은 결제 버튼을 답니다.
                             동행 완료 공고(추가 결제)는 바로 아래 "추가 결제 안내" 카드가 같은 버튼을 들고 있어 생략합니다. */}
                         {payment.id === unpaidPayment?.id && !isExtraPayment && (
-                          <Link href={unpaidHref} className={cn(BUTTON, 'mx-auto h-14 w-full max-w-sm bg-brand text-xl text-white hover:bg-brand-hover')}>
+                          <Link href={unpaidHref} className={cn(BUTTON, 'mx-auto h-11 w-full max-w-sm bg-[#14243A] text-sm text-white hover:bg-[#426B93]')}>
                             {`${payment.amount.toLocaleString()}원 결제하기`}
                           </Link>
                         )}
@@ -544,18 +650,18 @@ function PostDetailPageBody({ viewer }: Props) {
                           <button
                             type="button"
                             onClick={() => setCancelOpenId(payment.id)}
-                            className={cn(BUTTON, 'mx-auto h-14 w-full max-w-sm border border-line bg-white text-xl text-[#b91d1d] hover:bg-line-soft')}
+                            className={cn(BUTTON, 'mx-auto h-11 w-full max-w-sm border border-[#E1E5E8] bg-white text-sm text-[#b91d1d] hover:bg-[#F7F8F8]')}
                           >
                             결제 취소
                           </button>
                         )}
                         {cancelable && formOpen && (
                           <>
-                            <p className="text-base leading-6 font-medium text-brand-muted">
+                            <p className="text-base leading-6 font-medium text-[#67717C]">
                               결제를 취소하면 이 공고는 다시 미결제 상태가 되어 공개 목록에서 내려가고,
                               대기 중인 지원자는 모두 거절됩니다. 같은 금액으로 다시 결제할 수 있습니다.
                             </p>
-                            <label htmlFor="cancel-reason" className="px-0.5 text-base leading-5 font-semibold text-brand">
+                            <label htmlFor="cancel-reason" className="px-0.5 text-base leading-5 font-semibold text-[#14243A]">
                               결제 취소 사유
                             </label>
                             <textarea
@@ -566,7 +672,7 @@ function PostDetailPageBody({ viewer }: Props) {
                               disabled={canceling}
                               autoFocus
                               placeholder="예) 병원 예약이 취소되어 동행이 필요하지 않습니다."
-                              className="h-[99px] w-full resize-none rounded-[30px] border border-line bg-white p-5 text-sm leading-5 text-brand placeholder:text-brand-muted"
+                              className="h-[99px] w-full resize-none rounded-xl border border-[#E1E5E8] bg-white p-4 text-sm leading-5 text-[#14243A] placeholder:text-[#67717C]"
                             />
                             {/* 접힌 상태의 "결제 취소" 버튼과 같은 폭으로 가운데에 둡니다. */}
                             <div className="mx-auto flex w-full max-w-sm gap-[15px]">
@@ -574,7 +680,7 @@ function PostDetailPageBody({ viewer }: Props) {
                                 type="button"
                                 onClick={closeCancelForm}
                                 disabled={canceling}
-                                className={cn(BUTTON, 'h-14 flex-1 border border-line bg-white text-xl text-brand hover:bg-line-soft')}
+                                className={cn(BUTTON, 'h-11 flex-1 border border-[#E1E5E8] bg-white text-sm text-[#14243A] hover:bg-[#F7F8F8]')}
                               >
                                 닫기
                               </button>
@@ -583,7 +689,7 @@ function PostDetailPageBody({ viewer }: Props) {
                                 type="button"
                                 onClick={() => handleCancelPayment(payment.id)}
                                 disabled={canceling || !cancelReason.trim()}
-                                className={cn(BUTTON, 'h-14 flex-1 border border-line bg-white text-xl text-[#b91d1d] hover:bg-line-soft')}
+                                className={cn(BUTTON, 'h-11 flex-1 border border-[#E1E5E8] bg-white text-sm text-[#b91d1d] hover:bg-[#F7F8F8]')}
                               >
                                 {canceling ? '결제 취소 중…' : `${payment.amount.toLocaleString()}원 결제 취소`}
                               </button>
@@ -599,124 +705,111 @@ function PostDetailPageBody({ viewer }: Props) {
 
             {/* 추가 결제 안내 — 실제 동행 시간이 예상보다 길어져 차액이 남았을 때만 */}
             {isExtraPayment && unpaidPayment && (
-              <section className={cn(CARD, 'border-brand px-6 pt-7 pb-6 lg:px-[35px]')}>
+              <section className={cn(CARD, 'border-[#426B93]/30 p-6 sm:p-8')}>
                 <h2 className={cn(CARD_TITLE, 'mb-5')}>추가 결제 안내</h2>
-                <p className="mb-5 text-base leading-6 font-medium text-brand">
+                <p className="mb-5 text-base leading-6 font-medium text-[#14243A]">
                   실제 동행 시간이 예상보다 길어져 차액이 발생했습니다.
                   아래 금액을 결제하시면 동행 건이 최종 정산됩니다.
                 </p>
                 <dl className="mb-5 flex flex-col gap-[3px]">
-                  <InfoRow label="추가 결제 금액" labelWidth={140}>{`${unpaidPayment.amount.toLocaleString()}원`}</InfoRow>
-                  <InfoRow label="실제 동행 시간" labelWidth={140}>{`약 ${unpaidPayment.hours}시간`}</InfoRow>
-                  <InfoRow label="적용 시급" labelWidth={140}>{`${unpaidPayment.hourlyPaySnapshot.toLocaleString()}원`}</InfoRow>
+                  <DetailRow label="추가 결제 금액" labelWidth={140}>{`${unpaidPayment.amount.toLocaleString()}원`}</DetailRow>
+                  <DetailRow label="실제 동행 시간" labelWidth={140}>{`약 ${unpaidPayment.hours}시간`}</DetailRow>
+                  <DetailRow label="적용 시급" labelWidth={140}>{`${unpaidPayment.hourlyPaySnapshot.toLocaleString()}원`}</DetailRow>
                 </dl>
-                <Link href={unpaidHref} className={cn(BUTTON, 'h-14 w-full bg-brand text-xl text-white hover:bg-brand-hover')}>
+                <Link href={unpaidHref} className={cn(BUTTON, 'h-11 w-full bg-[#14243A] text-sm text-white hover:bg-[#426B93]')}>
                   {`${unpaidPayment.amount.toLocaleString()}원 추가 결제하기`}
                 </Link>
               </section>
             )}
 
-            {(deleteError || cancelError || applyError) && (
-              <p role="alert" className="px-2 text-sm font-medium text-[#b91d1d]">
-                {deleteError || cancelError || applyError}
-              </p>
-            )}
-            {!deleteError && educationRequired && (
-              <Link href="/mypage/education" className={cn(BUTTON, 'h-14 w-full bg-brand text-xl text-white hover:bg-brand-hover')}>
+
+            {actionErrors && <p role="alert" className="text-sm font-medium text-[#B4413C]">{actionErrors}</p>}
+            {educationRequired && (
+              <Link href="/mypage/education" className={cn(BUTTON, 'h-11 w-full bg-[#14243A] text-sm text-white hover:bg-[#426B93]')}>
                 교육 영상 보러 가기
               </Link>
             )}
-            <div className="flex gap-[15px]">
-              <Link href={listHref} className={cn(BUTTON, 'h-14 flex-1 border border-line bg-white text-xl text-brand hover:bg-line-soft')}>
-                목록으로
-              </Link>
-              {isClient ? (
-                <>
-                  {canDelete && (
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className={cn(BUTTON, 'h-14 flex-1 border border-line bg-white text-xl text-[#b91d1d] hover:bg-line-soft')}
-                    >
-                      {deleting ? '삭제 중…' : '삭제하기'}
-                    </button>
-                  )}
-                  {canEdit && (
-                    <Link href={editHref} className={cn(BUTTON, 'h-14 flex-1 bg-brand text-xl text-white hover:bg-brand-hover')}>
-                      수정하기
-                    </Link>
-                  )}
-                </>
-              ) : (
-                <button type="button" onClick={handleApply} disabled={applyDisabled} className={cn(BUTTON, 'h-14 flex-1 bg-brand text-xl text-white hover:bg-brand-hover')}>
-                  {applyLabel}
-                </button>
-              )}
-            </div>
           </div>
 
-          {/* 공고 요약 (오른쪽 고정 카드) */}
-          <aside className={cn(CARD, 'px-[35px] pt-7 pb-[30px] lg:sticky lg:top-6')}>
-            <h2 className={cn(CARD_TITLE, 'mb-[31px]')}>공고 요약</h2>
-            <dl className="flex flex-col gap-[3px]">
-              <InfoRow label="날짜" labelWidth={94}>{date}</InfoRow>
-              <InfoRow label="시간" labelWidth={94}>{post.startTime}</InfoRow>
-              <InfoRow label="소요 시간" labelWidth={94}>{duration}</InfoRow>
-              <InfoRow label="시급/보수" labelWidth={94}>{pay}</InfoRow>
-              <InfoRow label="지역" labelWidth={94}>{location}</InfoRow>
-            </dl>
-            <div className="mt-3.5 flex flex-col gap-[5px]">
-              {/* 미결제 공고는 결제해야 공개 목록에 올라가므로, 결제가 가장 급한 버튼입니다. (공고 목록 카드와 같은 기준) */}
-              {unpaidPayment && (
-                <Link href={unpaidHref} className={cn(BUTTON, 'h-11 bg-brand text-base text-white hover:bg-brand-hover')}>
-                  {`${unpaidPayment.amount.toLocaleString()}원 ${payLabel}`}
-                </Link>
-              )}
-              {isClient ? (
-                <>
-                  {canEdit && (
-                    <Link href={editHref} className={cn(BUTTON, 'h-11 bg-brand text-base text-white hover:bg-brand-hover')}>
-                      수정하기
+          {/* Sidebar / Sticky Action Area (col-span-4) */}
+          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-28">
+            {/* Pay & Policy Calculation Card */}
+            <div className="bg-white rounded-2xl border border-[#E1E5E8] p-6 shadow-xs space-y-4">
+              <span className="text-xs font-semibold text-[#67717C] uppercase tracking-wider block">
+                정산 및 결제 요약
+              </span>
+
+              <div className="space-y-3 pb-4 border-b border-[#E1E5E8] text-sm">
+                <div className="flex justify-between">
+                  <span className="text-[#67717C]">시간당 시급</span>
+                  <span className="font-medium text-[#202832] tabular-nums">
+                    {post.hourlyPay.toLocaleString()}원
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#67717C]">예상 활동 시간</span>
+                  <span className="font-medium text-[#202832] tabular-nums">
+                    {post.hours}시간
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#67717C]">총 기본 활동비</span>
+                  <span className="font-semibold text-[#14243A] tabular-nums">
+                    {estimatedTotal.toLocaleString()}원
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-[#67717C]">
+                  <span>플랫폼 중개 수수료</span>
+                  <span className="tabular-nums">정산 내역에서 확인</span>
+                </div>
+              </div>
+
+              <div className="flex items-baseline justify-between pt-1">
+                <span className="text-sm font-semibold text-[#14243A]">
+                  예상 활동비 합계
+                </span>
+                <span className="text-2xl font-bold text-[#14243A] tabular-nums">
+                  {estimatedTotal.toLocaleString()}
+                  <span className="text-sm font-normal text-[#67717C] ml-1">원</span>
+                </span>
+              </div>
+
+              {/* Policy note */}
+              <div className="bg-[#F7F8F8] p-3 rounded-lg text-[12px] text-[#67717C] space-y-1">
+                <p>• 실제 결제 및 정산 금액은 결제·정산 내역을 기준으로 합니다.</p>
+                <p>• 지원 및 취소는 서비스 운영 정책에 따라 처리됩니다.</p>
+              </div>
+
+              <div className="pt-2 space-y-3">
+                {isClient ? (
+                  <>
+                    <Link href={`/client/posts/${post.id}/applicants`} className="w-full h-[52px] rounded-[10px] bg-[#14243A] text-white font-semibold text-base hover:bg-[#1f3757] transition-colors sc-focus flex items-center justify-center gap-2">
+                      <Users className="w-5 h-5" aria-hidden="true" />
+                      <span>지원자 확인</span>
                     </Link>
-                  )}
-                  {canDelete && (
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className={cn(BUTTON, 'h-11 border border-line bg-white text-base text-[#b91d1d] hover:bg-line-soft')}
-                    >
-                      {deleting ? '삭제 중…' : '삭제하기'}
-                    </button>
-                  )}
-                </>
-              ) : (
-                <button type="button" onClick={handleApply} disabled={applyDisabled} className={cn(BUTTON, 'h-11 bg-brand text-base text-white hover:bg-brand-hover')}>
-                  {applyLabel}
-                </button>
-              )}
-              {/* 지원 전에 궁금한 걸 물어볼 수 있게, 지원하기 바로 아래에 둡니다. */}
-              {canContactAuthor && (
-                <button
-                  type="button"
-                  onClick={() => openChatWith(post.clientUserId)}
-                  className={cn(BUTTON, 'h-11 border border-line bg-white text-base text-brand hover:bg-line-soft')}
-                >
-                  의뢰인에게 연락하기
-                </button>
-              )}
-              <Link href={listHref} className={cn(BUTTON, 'h-11 border border-line bg-white text-base text-brand hover:bg-line-soft')}>
-                목록으로
-              </Link>
+                    {(canEdit || canDelete) && (
+                      <div className="flex items-center gap-2">
+                        {canEdit && <Link href={editHref} className="flex-1 h-[44px] rounded-[10px] border border-[#E1E5E8] text-sm font-semibold text-[#14243A] hover:bg-[#F7F8F8] flex items-center justify-center">수정하기</Link>}
+                        {canDelete && <button type="button" onClick={handleDelete} disabled={deleting} className="h-[44px] px-4 rounded-[10px] border border-[#B4413C]/30 text-sm font-semibold text-[#B4413C] hover:bg-[#B4413C]/5 disabled:opacity-50">{deleting ? '삭제 중…' : '삭제하기'}</button>}
+                      </div>
+                    )}
+                    {unpaidPayment && <Link href={unpaidHref} className="w-full h-[52px] rounded-[10px] bg-[#426B93] text-white font-semibold text-base hover:bg-[#345778] transition-colors flex items-center justify-center">{unpaidPayment.amount.toLocaleString()}원 {payLabel}</Link>}
+                  </>
+                ) : user?.role === 'ESCORT' ? (
+                  <button type="button" onClick={handleApply} disabled={applyDisabled} className="w-full h-[52px] rounded-[10px] bg-[#426B93] text-white font-semibold text-base hover:bg-[#345778] transition-colors disabled:bg-[#EDF0F2] disabled:text-[#67717C] disabled:cursor-not-allowed">
+                    {applyLabel === '지원하기' ? '이 공고에 지원하기' : applyLabel}
+                  </button>
+                ) : null}
+                {canContactAuthor && (
+                  <button type="button" onClick={() => openChatWith(post.clientUserId)} className="w-full h-[52px] rounded-[10px] border border-[#E1E5E8] text-sm font-semibold text-[#14243A] hover:bg-[#F7F8F8] transition-colors">의뢰인에게 연락하기</button>
+                )}
+                {user?.role === 'ESCORT' && <p className="flex items-center gap-2 text-xs text-[#67717C]"><Shield className="w-4 h-4 text-[#426B93] shrink-0" /> 지원 후 의뢰인 승인 시 매칭이 진행됩니다.</p>}
+              </div>
             </div>
-            <p className="mt-[17px] flex items-center gap-2 px-5 text-sm leading-4 font-semibold text-brand-muted">
-              <Image src="/icons/info-circle.svg" alt="" width={17.5} height={17.5} className="size-4 shrink-0" />
-              지원 후 의뢰인의 승인 시 매칭이 진행됩니다.
-            </p>
-          </aside>
-        </Container>
-      </section>
-    </AppShell>
+          </div>
+        </div>
+      </div>
+    </section>
+  </AppShell>
   );
 }
