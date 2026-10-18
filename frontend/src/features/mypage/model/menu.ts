@@ -20,6 +20,7 @@ export const MYPAGE_MENUS: Record<MyPageRole, MyPageMenuItem[]> = {
   client: [
     { label: '내 정보', href: '/client' },
     { label: '작성한 공고', href: '/client/posts' },
+    { label: '결제 내역', href: '/client/payments' },
     { label: '설정', href: '#' },
   ],
 };

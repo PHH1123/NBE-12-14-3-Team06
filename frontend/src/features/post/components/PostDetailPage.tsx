@@ -626,9 +626,17 @@ function PostDetailPageBody({ viewer }: Props) {
                         key={payment.id}
                         className={cn('flex flex-col gap-[11px]', index > 0 && 'mt-5 border-t border-[#E1E5E8] pt-5')}
                       >
-                        {/* 배지는 내용만큼만 넓어야 해서 감싸 둡니다. (flex-col 안에서는 자식이 가로로 늘어납니다) */}
-                        <div>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
                           <StatusLabel tone={paymentLabel.tone}>{paymentLabel.text}</StatusLabel>
+                          {cancelable && !formOpen && (
+                            <button
+                              type="button"
+                              onClick={() => setCancelOpenId(payment.id)}
+                              className={cn(BUTTON, 'h-9 border border-[#B4413C]/30 bg-white px-4 text-xs text-[#B4413C] hover:bg-[#F7F8F8]')}
+                            >
+                              결제 취소
+                            </button>
+                          )}
                         </div>
                         <dl className="flex flex-col gap-[3px]">
                           <DetailRow label="결제 금액" labelWidth={140}>{`${payment.amount.toLocaleString()}원`}</DetailRow>
@@ -646,15 +654,6 @@ function PostDetailPageBody({ viewer }: Props) {
                           </Link>
                         )}
 
-                        {cancelable && !formOpen && (
-                          <button
-                            type="button"
-                            onClick={() => setCancelOpenId(payment.id)}
-                            className={cn(BUTTON, 'mx-auto h-11 w-full max-w-sm border border-[#E1E5E8] bg-white text-sm text-[#b91d1d] hover:bg-[#F7F8F8]')}
-                          >
-                            결제 취소
-                          </button>
-                        )}
                         {cancelable && formOpen && (
                           <>
                             <p className="text-base leading-6 font-medium text-[#67717C]">
@@ -674,13 +673,12 @@ function PostDetailPageBody({ viewer }: Props) {
                               placeholder="예) 병원 예약이 취소되어 동행이 필요하지 않습니다."
                               className="h-[99px] w-full resize-none rounded-xl border border-[#E1E5E8] bg-white p-4 text-sm leading-5 text-[#14243A] placeholder:text-[#67717C]"
                             />
-                            {/* 접힌 상태의 "결제 취소" 버튼과 같은 폭으로 가운데에 둡니다. */}
-                            <div className="mx-auto flex w-full max-w-sm gap-[15px]">
+                            <div className="flex w-full flex-wrap justify-end gap-3">
                               <button
                                 type="button"
                                 onClick={closeCancelForm}
                                 disabled={canceling}
-                                className={cn(BUTTON, 'h-11 flex-1 border border-[#E1E5E8] bg-white text-sm text-[#14243A] hover:bg-[#F7F8F8]')}
+                                className={cn(BUTTON, 'h-11 min-w-[100px] border border-[#E1E5E8] bg-white text-sm text-[#14243A] hover:bg-[#F7F8F8]')}
                               >
                                 닫기
                               </button>
@@ -689,7 +687,7 @@ function PostDetailPageBody({ viewer }: Props) {
                                 type="button"
                                 onClick={() => handleCancelPayment(payment.id)}
                                 disabled={canceling || !cancelReason.trim()}
-                                className={cn(BUTTON, 'h-11 flex-1 border border-[#E1E5E8] bg-white text-sm text-[#b91d1d] hover:bg-[#F7F8F8]')}
+                                className={cn(BUTTON, 'h-11 min-w-[160px] border border-[#E1E5E8] bg-white text-sm text-[#B4413C] hover:bg-[#F7F8F8]')}
                               >
                                 {canceling ? '결제 취소 중…' : `${payment.amount.toLocaleString()}원 결제 취소`}
                               </button>
@@ -787,12 +785,21 @@ function PostDetailPageBody({ viewer }: Props) {
                       <Users className="w-5 h-5" aria-hidden="true" />
                       <span>지원자 확인</span>
                     </Link>
-                    {(canEdit || canDelete) && (
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        {canEdit && <Link href={editHref} className="flex-1 h-[44px] rounded-[10px] border border-[#E1E5E8] text-sm font-semibold text-[#14243A] hover:bg-[#F7F8F8] flex items-center justify-center">수정하기</Link>}
+                        {canEdit ? (
+                          <Link href={editHref} className="flex-1 h-[44px] rounded-[10px] border border-[#E1E5E8] text-sm font-semibold text-[#14243A] hover:bg-[#F7F8F8] flex items-center justify-center">수정하기</Link>
+                        ) : (
+                          <button type="button" disabled aria-describedby="post-edit-unavailable" className="flex-1 h-[44px] rounded-[10px] border border-[#E1E5E8] bg-[#F7F8F8] text-sm font-semibold text-[#8793A0] cursor-not-allowed">수정하기</button>
+                        )}
                         {canDelete && <button type="button" onClick={handleDelete} disabled={deleting} className="h-[44px] px-4 rounded-[10px] border border-[#B4413C]/30 text-sm font-semibold text-[#B4413C] hover:bg-[#B4413C]/5 disabled:opacity-50">{deleting ? '삭제 중…' : '삭제하기'}</button>}
                       </div>
-                    )}
+                      {!canEdit && (
+                        <p id="post-edit-unavailable" className="text-xs text-[#67717C]">
+                          {statusKey === 'open' ? '모집이 시작된 공고는 수정할 수 없습니다.' : '모집 중이며 모집 시작 전인 공고만 수정할 수 있습니다.'}
+                        </p>
+                      )}
+                    </div>
                     {unpaidPayment && <Link href={unpaidHref} className="w-full h-[52px] rounded-[10px] bg-[#426B93] text-white font-semibold text-base hover:bg-[#345778] transition-colors flex items-center justify-center">{unpaidPayment.amount.toLocaleString()}원 {payLabel}</Link>}
                   </>
                 ) : user?.role === 'ESCORT' ? (

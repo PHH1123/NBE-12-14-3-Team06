@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Activity, ChevronDown, CreditCard, FileText, LayoutDashboard,
+  Activity, ChevronDown, CreditCard, FileText, LayoutDashboard, Receipt,
   LogOut, PlusCircle, ShieldCheck, Star, UserCheck, Video,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -22,6 +22,7 @@ type Props = {
 };
 
 const iconFor = (label: string): LucideIcon => {
+  if (label.includes('결제 내역')) return Receipt;
   if (label.includes('정산')) return CreditCard;
   if (label.includes('리뷰')) return Star;
   if (label.includes('교육')) return Video;
