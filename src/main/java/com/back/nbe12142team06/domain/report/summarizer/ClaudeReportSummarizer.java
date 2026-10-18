@@ -3,11 +3,14 @@ package com.back.nbe12142team06.domain.report.summarizer;
 import com.back.nbe12142team06.domain.report.dto.ReportSummary;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.core.io.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -40,12 +43,12 @@ public class ClaudeReportSummarizer implements ReportSummarizer {
 
     @Override
     public ReportSummary summarize(String maskedContent) {
-        String text = chatClient.prompt()
+        ChatResponse response = chatClient.prompt()
                 .user("다음 진료 보고서를 요약해줘.\n\n" + maskedContent)
                 .call()
-                .content();
+                .chatResponse();
 
-        return parseSummary(text);
+        return parseSummary(extractText(response));
     }
 
     /**
@@ -73,5 +76,19 @@ public class ClaudeReportSummarizer implements ReportSummarizer {
         } catch (Exception e) {
             throw new IllegalStateException("Claude 응답을 요약 형식으로 변환하지 못했습니다.", e);
         }
+    }
+    private String extractText(ChatResponse response) {
+        if (response == null) {
+            return null;
+        }
+
+        return response.getResults().stream()
+                .map(Generation::getOutput)
+                .filter(output -> !output.getMetadata().containsKey("signature")
+                        && !output.getMetadata().containsKey("data"))
+                .map(AssistantMessage::getText)
+                .filter(text -> text != null && !text.isBlank())
+                .findFirst()
+                .orElse(null);
     }
 }
