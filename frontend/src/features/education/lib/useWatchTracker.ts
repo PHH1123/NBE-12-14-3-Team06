@@ -155,7 +155,7 @@ export function useWatchTracker(videoRef: RefObject<HTMLVideoElement | null>, { 
     };
 
     const handleVisibilityChange = () => {
-      if (document.hidden && !video.paused && !free) {
+      if (document.hidden && !video.paused) {
         video.pause();
         notify('다른 화면으로 이동해 영상을 일시정지했습니다.');
       }

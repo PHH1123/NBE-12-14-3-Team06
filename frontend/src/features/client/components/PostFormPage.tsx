@@ -611,7 +611,7 @@ function PostFormFields({ postId, initial }: FormFieldsProps) {
                 </div>
 
                 <div>
-                  <label htmlFor="post-note" className={LABEL}>어르신 보행 컨디션 및 주의사항</label>
+                  <label htmlFor="post-note" className={LABEL}>의뢰인 특이사항 및 주의사항</label>
                   <textarea id="post-note" name="note" rows={2} defaultValue={initial.note}
                     placeholder="예: 지팡이를 사용하시며 계단 이용 시 부축이 필요합니다."
                     className={`${FIELD} h-auto p-3.5 resize-none`} />

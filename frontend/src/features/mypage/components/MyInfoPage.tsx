@@ -32,9 +32,9 @@ export default function MyInfoPage({ role = 'escort' }: { role?: MyPageRole }) {
   }
   if (!user) return null;
 
-  return (
-    <MyPageShell role={role}>
-      {role === 'escort' ? <EscortInfoView /> : <ClientInfoView />}
-    </MyPageShell>
-  );
+  if (role === 'escort') {
+    return <AppShell><EscortInfoView /></AppShell>;
+  }
+
+  return <MyPageShell role="client"><ClientInfoView /></MyPageShell>;
 }

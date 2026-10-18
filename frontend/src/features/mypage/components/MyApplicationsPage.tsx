@@ -1,392 +1,329 @@
 'use client';
 
-import Image from 'next/image';
-import { useEffect, useState, type FormEvent } from 'react';
+import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Activity, ChevronLeft, ChevronRight, FileText, Search, X } from 'lucide-react';
 import { AppShell } from '@/components/layout';
-import { SectionHeading } from '@/components/ui';
+import DropdownSelect from '@/components/ui/DropdownSelect';
 import { cancelApplication, fetchMyApplications, type MyApplicationDto } from '@/features/application';
 import { useRequireAuth } from '@/features/auth';
-import { CardButton, PostCard } from '@/features/post';
-import { cn } from '@/lib/cn';
-import { STATUS_INFO, STATUS_TABS, type StatusTab } from '../model';
-import type { Application, ApplicationStatus } from '../types';
-import EmptyState from './EmptyState';
-import MyPageShell from './MyPageShell';
 
-type Sort = 'latest' | 'oldest';
+type ViewStatus = 'pending' | 'matched' | 'inProgress' | 'completed' | 'rejected' | 'canceled' | 'noShow';
+type StatusTab = 'all' | Exclude<ViewStatus, 'noShow'>;
+type SortOrder = 'latest' | 'oldest';
 
-function toApplicationStatus(application: MyApplicationDto): ApplicationStatus {
-  if (application.applicationStatus === 'PENDING') {
-    return 'pending';
-  }
+type ApplicationRow = {
+  id: number;
+  postId: number;
+  title: string;
+  hospitalName: string;
+  region: string;
+  date: string;
+  time: string;
+  hours: number;
+  pay: number;
+  status: ViewStatus;
+};
 
-  if (application.applicationStatus === 'CANCELED') {
-    return 'canceled';
-  }
+const TABS: { value: StatusTab; label: string }[] = [
+  { value: 'all', label: '전체' },
+  { value: 'pending', label: '대기 중' },
+  { value: 'matched', label: '매칭 완료' },
+  { value: 'inProgress', label: '진행 중' },
+  { value: 'completed', label: '완료' },
+  { value: 'rejected', label: '거절' },
+  { value: 'canceled', label: '지원 취소' },
+];
 
-  if (
-      application.applicationStatus === 'REJECTED' ||
-      application.applicationStatus === 'NO_SHOW'
-  ) {
-    return 'rejected';
-  }
+const BADGES: Record<ViewStatus, { label: string; style: string; dot: string }> = {
+  pending: { label: '대기 중', style: 'border-[#9A6B12]/30 bg-[#F7F0DE] text-[#84601B]', dot: 'bg-[#9A6B12]' },
+  matched: { label: '매칭 완료', style: 'border-[#2F7D5B]/35 bg-[#E5F1EA] text-[#286849]', dot: 'bg-[#2F7D5B]' },
+  inProgress: { label: '진행 중', style: 'border-[#14243A]/30 bg-[#E5E9F0] text-[#14243A]', dot: 'bg-[#14243A]' },
+  completed: { label: '완료', style: 'border-[#5E697A]/30 bg-[#E9EDF1] text-[#344055]', dot: 'bg-[#67717C]' },
+  rejected: { label: '거절', style: 'border-[#B4413C]/25 bg-[#F7ECEB] text-[#99433E]', dot: 'bg-[#B4413C]' },
+  canceled: { label: '지원 취소', style: 'border-[#67717C]/30 bg-[#EDF0F2] text-[#536273]', dot: 'bg-[#67717C]' },
+  noShow: { label: '노쇼', style: 'border-[#B4413C]/25 bg-[#F7ECEB] text-[#99433E]', dot: 'bg-[#B4413C]' },
+};
 
-  switch (application.postStatus) {
-    case 'IN_PROGRESS':
-      return 'inProgress';
-    case 'COMPLETED':
-      return 'completed';
-    case 'MATCHED':
-    default:
+const ACTION_SIZE = 'inline-flex h-9 w-[116px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition-colors';
+const PRIMARY = `${ACTION_SIZE} bg-[#14243A] text-white hover:bg-[#1F3757]`;
+const BLUE = `${ACTION_SIZE} bg-[#426B93] text-white hover:bg-[#345778]`;
+const SECONDARY = `${ACTION_SIZE} border border-[#E1E5E8] bg-white text-[#14243A] hover:bg-[#F7F8F8]`;
+const CANCEL = `${ACTION_SIZE} border border-[#B4413C]/40 bg-white text-[#B4413C] hover:bg-[#F7ECEB]`;
+
+function viewStatus(dto: MyApplicationDto): ViewStatus {
+  switch (dto.applicationStatus) {
+    case 'PENDING': return 'pending';
+    case 'REJECTED': return 'rejected';
+    case 'CANCELED': return 'canceled';
+    case 'NO_SHOW': return 'noShow';
+    case 'ACCEPTED':
+      if (dto.postStatus === 'IN_PROGRESS') return 'inProgress';
+      if (dto.postStatus === 'COMPLETED') return 'completed';
       return 'matched';
   }
 }
 
-function toApplication(dto: MyApplicationDto): Application {
+function mapApplication(dto: MyApplicationDto): ApplicationRow {
   const start = new Date(dto.escortStartAt);
-
-  const year = start.getFullYear();
-  const month = String(start.getMonth() + 1).padStart(2, '0');
-  const day = String(start.getDate()).padStart(2, '0');
-  const weekday = ['일', '월', '화', '수', '목', '금', '토'][start.getDay()];
-
+  const validDate = Number.isFinite(start.getTime());
   return {
     id: dto.applicationId,
     postId: dto.postId,
     title: dto.title,
     hospitalName: dto.hospitalName,
-    location: dto.region,
-    dateLabel: `${year}.${month}.${day}.(${weekday})`,
-    timeLabel: start.toLocaleTimeString('ko-KR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
-    durationLabel: `약 ${dto.escortHours}시간`,
-    payLabel: `시급 ${dto.hourlyPay.toLocaleString()}원`,
-    description: [dto.content],
-    status: toApplicationStatus(dto),
+    region: dto.region ?? '',
+    date: validDate ? new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }).format(start) : '일정 미정',
+    time: validDate ? new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true }).format(start) : '',
+    hours: dto.escortHours,
+    pay: dto.hourlyPay,
+    status: viewStatus(dto),
   };
 }
 
-/** 상태별 카드 아래쪽 버튼 (Figma: 지원 취소 / 동행 보기 / 보고서 보기 / 지원불가) */
-function ApplicationActions({
-                              application,
-                              onCancel,
-                            }: {
-  application: Application;
-  onCancel: (applicationId: number) => void;
-}) {
-  const detail = <CardButton href={`/posts/${application.postId}`}>상세보기</CardButton>;
+function StatusBadge({ status }: { status: ViewStatus }) {
+  const badge = BADGES[status];
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-bold ${badge.style}`}>
+      <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${badge.dot}`} />
+      {badge.label}
+    </span>
+  );
+}
 
-  switch (application.status) {
+function ApplicationAction({ row, onCancel }: { row: ApplicationRow; onCancel: (row: ApplicationRow) => void }) {
+  switch (row.status) {
     case 'pending':
-      return (
-          <>
-            {detail}
-            <CardButton
-                variant="solid"
-                onClick={() => onCancel(application.id)}
-            >
-              지원 취소
-            </CardButton>
-          </>
-      );
+      return <button type="button" onClick={() => onCancel(row)} className={CANCEL}>지원 취소</button>;
     case 'matched':
     case 'inProgress':
       return (
-        <>
-          {detail}
-          <CardButton variant="solid" href={`/escort/${application.id}`}>동행 보기</CardButton>
-        </>
+        <Link href={`/escort/${row.id}`} className={PRIMARY}>
+          <Activity aria-hidden="true" className="size-3.5 text-[#2F7D5B]" />동행 보기
+        </Link>
       );
     case 'completed':
       return (
-        <>
-          {detail}
-          <CardButton variant="solid" href={`/escort/${application.id}/report`}>보고서 보기</CardButton>
-        </>
+        <Link href={`/escort/${row.id}/report`} className={BLUE}>
+          <FileText aria-hidden="true" className="size-3.5" />보고서 보기
+        </Link>
       );
     case 'rejected':
-      return (
-        <>
-          {detail}
-          <CardButton variant="disabled">지원불가</CardButton>
-        </>
-      );
     case 'canceled':
-      return (
-          <>
-            {detail}
-            <CardButton variant="disabled">지원 취소</CardButton>
-          </>
-      );
+    case 'noShow':
+      return <span className="text-xs font-medium text-[#67717C]">처리 완료</span>;
   }
 }
 
-/**
- * 마이페이지 — 내가 신청한 공고 (Figma 525:5182 전체 · 529:7165 대기 중)
- *
- * GET /api/v1/applications/me 로 로그인한 동행 매니저의 지원 내역을 조회합니다.
- */
 export default function MyApplicationsPage() {
-  const { loading, user } = useRequireAuth('ESCORT');
+  const { loading: authLoading, user } = useRequireAuth('ESCORT');
+  const [rows, setRows] = useState<ApplicationRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>();
+  const [notice, setNotice] = useState<string>();
+  const [reloadKey, setReloadKey] = useState(0);
   const [tab, setTab] = useState<StatusTab>('all');
-  const [keywordInput, setKeywordInput] = useState('');
-  const [keyword, setKeyword] = useState('');
-  const [sort, setSort] = useState<Sort>('latest');
-  const [applicationData, setApplicationData] = useState<Application[]>([]);
-  const [applicationsLoading, setApplicationsLoading] = useState(true);
-  const [applicationsError, setApplicationsError] = useState<string>();
+  const [search, setSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('latest');
+  const [cancelTarget, setCancelTarget] = useState<ApplicationRow | null>(null);
+  const [canceling, setCanceling] = useState(false);
+  const [cancelError, setCancelError] = useState<string>();
+  const dismissButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!user) return;
-
-    let ignore = false;
-
-    fetchMyApplications()
-        .then((data) => {
-          if (ignore) return;
-
-          const latestApplications = data.filter(
-              (application, index, array) =>
-                  index === array.findIndex(
-                      (item) => item.postId === application.postId
-                  )
-          );
-
-          setApplicationData(latestApplications.map(toApplication));
-        })
-        .catch((error) => {
-          if (ignore) return;
-
-          setApplicationsError(
-              error instanceof Error
-                  ? error.message
-                  : '지원 목록을 불러오지 못했습니다.',
-          );
-        })
-        .finally(() => {
-          if (!ignore) {
-            setApplicationsLoading(false);
-          }
-        });
-
-    return () => {
-      ignore = true;
+    if (!cancelTarget) return;
+    dismissButtonRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !canceling) setCancelTarget(null);
     };
-  }, [user]);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [cancelTarget, canceling]);
 
-  const handleCancel = async (applicationId: number) => {
-    if (!window.confirm('지원을 취소하시겠습니까?')) return;
+  const reload = useCallback(() => setReloadKey((value) => value + 1), []);
 
+  useEffect(() => {
+    if (authLoading || user?.role !== 'ESCORT') return;
+    let ignored = false;
+    setLoading(true);
+    setError(undefined);
+    fetchMyApplications()
+      .then((result) => {
+        if (ignored) return;
+        // 동일 공고에 재지원한 경우도 별도의 지원 기록으로 취급합니다.
+        setRows(result.map(mapApplication));
+      })
+      .catch((cause: unknown) => {
+        if (!ignored) setError(cause instanceof Error ? cause.message : '지원 내역을 불러오지 못했습니다.');
+      })
+      .finally(() => { if (!ignored) setLoading(false); });
+    return () => { ignored = true; };
+  }, [authLoading, user?.role, user?.username, reloadKey]);
+
+  const confirmCancel = async () => {
+    if (!cancelTarget || canceling) return;
+    setCanceling(true);
+    setCancelError(undefined);
     try {
-      await cancelApplication(applicationId);
-
-      setApplicationData((current) =>
-          current.map((application) =>
-              application.id === applicationId
-                  ? { ...application, status: 'canceled' }
-                  : application,
-          ),
-      );
-    } catch (error) {
-      setApplicationsError(
-          error instanceof Error
-              ? error.message
-              : '지원 취소에 실패했습니다.',
-      );
+      await cancelApplication(cancelTarget.id);
+      setRows((current) => current.map((row) => row.id === cancelTarget.id ? { ...row, status: 'canceled' } : row));
+      setNotice('지원이 취소되었습니다.');
+      setCancelTarget(null);
+      reload();
+    } catch (cause: unknown) {
+      setCancelError(cause instanceof Error ? cause.message : '지원 취소에 실패했습니다.');
+    } finally {
+      setCanceling(false);
     }
   };
 
-  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setKeyword(keywordInput.trim());
-  };
+  const keyword = search.trim().toLocaleLowerCase('ko-KR');
+  const visibleRows = rows
+    .filter((row) => (tab === 'all' || row.status === tab || (tab === 'canceled' && row.status === 'noShow'))
+      && (!keyword || [row.title, row.hospitalName, row.region].some((item) => item.toLocaleLowerCase('ko-KR').includes(keyword))))
+    .sort((a, b) => sortOrder === 'latest' ? b.id - a.id : a.id - b.id);
 
-  const filtered = applicationData.filter((application) => {
-    if (tab !== 'all' && application.status !== tab) return false;
-    if (!keyword) return true;
-    return [application.title, application.hospitalName, application.location].some((text) =>
-      text.includes(keyword),
-    );
-  });
-  const applications = sort === 'latest' ? filtered : [...filtered].reverse();
-  const tabLabel = STATUS_TABS.find((item) => item.value === tab)?.label ?? '';
-
-  const emptyStateText = {
-    all: {
-      title: '아직 지원한 공고가 없습니다.',
-      description: '관심 있는 병원 동행 공고를 찾아 지원해보세요.',
-    },
-    pending: {
-      title: '대기 중인 공고가 없습니다.',
-    },
-    matched: {
-      title: '매칭 완료된 공고가 없습니다.',
-    },
-    inProgress: {
-      title: '진행 중인 공고가 없습니다.',
-    },
-    completed: {
-      title: '완료된 공고가 없습니다.',
-    },
-    rejected: {
-      title: '거절된 지원이 없습니다.',
-    },
-    canceled: {
-      title: '취소한 지원이 없습니다.',
-    },
-  }[tab];
-
-  if (loading) {
-    return (
-        <AppShell>
-          <section className="bg-white py-[100px] text-center">
-            <p className="text-xl font-semibold text-brand">불러오는 중입니다...</p>
-          </section>
-        </AppShell>
-    );
-  }
-
-  if (!user) return null;
-
-  if (applicationsLoading) {
-    return (
-        <AppShell>
-          <section className="bg-white py-[100px] text-center">
-            <p className="text-xl font-semibold text-brand">지원 내역을 불러오는 중입니다...</p>
-          </section>
-        </AppShell>
-    );
+  if (authLoading || !user || user.role !== 'ESCORT') {
+    return <AppShell><div className="min-h-[60vh] bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">확인 중입니다...</div></AppShell>;
   }
 
   return (
-    <MyPageShell>
-      <div className="max-w-[1000px] pt-8 lg:pt-[50px]">
-        <SectionHeading
-          title="내가 신청한 공고"
-          description="지원한 공고와 현재 상태를 확인할 수 있습니다."
-          className="mb-8 lg:mb-6"
-        />
+    <AppShell>
+      <div className="min-h-[calc(100vh-72px)] bg-[#F7F8F8] py-12 lg:py-16">
+        <div className="mx-auto max-w-[1240px] space-y-8 px-5 sm:px-8 lg:px-16">
+          <Link href="/mypage" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] transition-colors hover:text-[#14243A] sc-focus">
+            <ChevronLeft aria-hidden="true" className="h-4 w-4" />
+            마이페이지로 돌아가기
+          </Link>
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-[#14243A]">내가 신청한 공고</h1>
+            <p className="mt-1 text-sm text-[#67717C]">지원한 동행 공고의 매칭 결과와 진행 상태를 확인할 수 있습니다.</p>
+          </div>
 
-        {applicationsError && (
-            <p
-                role="alert"
-                className="mt-6 text-center text-sm font-medium text-[#b91d1d]"
-            >
-              {applicationsError}
-            </p>
-        )}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div role="tablist" aria-label="지원 상태" className="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-[#E1E5E8] bg-[#EDF0F2] p-1">
+              {TABS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === item.value}
+                  onClick={() => setTab(item.value)}
+                  className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${tab === item.value ? 'bg-white text-[#14243A] shadow-xs' : 'text-[#67717C] hover:text-[#14243A]'}`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="text-sm text-[#67717C]">총 <span className="font-semibold tabular-nums text-[#14243A]">{visibleRows.length}</span>건</div>
+          </div>
 
-        {/* 상태 탭 */}
-        <div
-          role="tablist"
-          aria-label="신청 상태"
-          className="mx-auto flex w-full max-w-[600px] rounded-[50px] border border-line-soft bg-white max-lg:overflow-x-auto"
-        >
-          {STATUS_TABS.map((item) => {
-            const selected = item.value === tab;
-            return (
-              <button
-                key={item.value}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                onClick={() => setTab(item.value)}
-                className={cn(
-                    'h-[35px] flex-1 rounded-[30px] px-3 text-lg leading-[18px] font-semibold whitespace-nowrap transition-colors',
-                    selected ? 'bg-brand text-white' : 'text-brand hover:bg-line-soft',
-                )}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 검색 + 정렬 (Figma는 공고 목록의 검색창을 0.8489배로 줄인 모양) */}
-        <form
-          onSubmit={handleSearch}
-          className="mt-[50px] flex max-w-[952px] flex-col gap-3 rounded-[25px] border-[0.85px] border-line bg-line-soft px-5 py-6 sm:flex-row lg:mx-auto lg:px-[30px] lg:py-[25.5px]"
-        >
-          <label className="flex h-[46.7px] min-w-0 flex-1 items-center gap-[17px] rounded-[25.5px] border-[0.85px] border-line bg-white px-6 lg:px-[29.7px]">
-            <Image src="/icons/search.svg" alt="" width={18} height={18} className="size-[13.6px] shrink-0" />
-            <input
-              type="search"
-              value={keywordInput}
-              onChange={(event) => setKeywordInput(event.target.value)}
-              placeholder="병원명, 지역, 공고 제목 등으로 검색해보세요."
-              aria-label="신청한 공고 검색"
-              className="min-w-0 flex-1 bg-transparent text-[13.6px] leading-4 font-semibold text-brand placeholder:text-brand-muted focus:outline-none"
-            />
-          </label>
-          <button
-            type="submit"
-            className="h-[46.7px] rounded-[25.5px] bg-brand px-6 text-[13.6px] leading-4 font-semibold text-white transition-colors hover:bg-brand-hover sm:w-[145px]"
-          >
-            검색하기
-          </button>
-          <div className="relative h-[46.7px] sm:w-[136px]">
-            <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value as Sort)}
-              aria-label="정렬"
-              className="h-full w-full cursor-pointer appearance-none rounded-[25.5px] border-[0.85px] border-line-soft bg-white pr-9 pl-[18.7px] text-[15.3px] leading-4 font-semibold text-brand-muted shadow-card"
-            >
-              <option value="latest">최신 순</option>
-              <option value="oldest">오래된 순</option>
-            </select>
-            <Image
-              src="/icons/select-chevron.svg"
-              alt=""
-              width={11.09}
-              height={6.14}
-              className="pointer-events-none absolute top-1/2 right-[18px] -translate-y-1/2"
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
+            <label className="flex h-[46px] w-full items-center gap-2.5 rounded-lg border border-[#E1E5E8] bg-white px-3.5 sm:max-w-[310px]">
+              <Search className="size-4 shrink-0 text-[#8793A0]" aria-hidden="true" />
+              <span className="sr-only">지원 내역 검색</span>
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="공고 제목, 병원명, 지역 검색"
+                className="min-w-0 flex-1 bg-transparent text-sm text-[#14243A] outline-none placeholder:text-[#98A1AD]"
+              />
+            </label>
+            <DropdownSelect
+              id="escort-applications-sort"
+              label="정렬"
+              value={sortOrder}
+              onValueChange={(value) => setSortOrder(value as SortOrder)}
+              options={[{ value: 'latest', label: '최신 순' }, { value: 'oldest', label: '오래된 순' }]}
+              size="filter"
+              className="w-full sm:w-[145px]"
             />
           </div>
-        </form>
 
-        <p className="mt-[50px] mb-2.5 text-[13.6px] leading-[15px] font-semibold text-brand lg:ml-[23px]">
-          총 {applications.length}개의 {tab === 'all' ? '신청' : tabLabel} 공고가 있습니다.
-        </p>
-
-        {applications.length > 0 ? (
-          <ul className="grid gap-x-[13.8px] gap-y-[17.2px] sm:grid-cols-2 lg:ml-[23px] lg:grid-cols-[repeat(3,309px)]">
-            {applications.map((application) => {
-              const status = STATUS_INFO[application.status];
-              return (
-                <li key={application.id} className="flex justify-center">
-                  <PostCard
-                    compact
-                    title={application.title}
-                    hospitalName={application.hospitalName}
-                    location={application.location}
-                    label={{ text: status.label, tone: status.tone }}
-                    dateLabel={application.dateLabel}
-                    timeLabel={application.timeLabel}
-                    durationLabel={application.durationLabel}
-                    payLabel={application.payLabel}
-                    description={application.description}
-                  >
-                    <ApplicationActions
-                        application={application}
-                        onCancel={handleCancel}
-                    />
-                  </PostCard>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-            <div className="mx-auto w-full max-w-[952px]">
-              <EmptyState
-                  title={emptyStateText.title}
-                  description={emptyStateText.description}
-                  action={tab === 'all' ? { label: '공고 찾기', href: '/posts' } : undefined}
-              />
+          {notice && <p role="status" className="text-sm font-medium text-[#2F7D5B]">{notice}</p>}
+          {error && (
+            <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#B4413C]/25 bg-[#F7ECEB] p-4 text-sm text-[#99433E]">
+              <span>{error}</span>
+              <button type="button" onClick={reload} className="rounded-lg border border-[#B4413C]/25 bg-white px-3 py-2 text-xs font-semibold">다시 시도</button>
             </div>
-        )}
+          )}
+
+          <div className="overflow-hidden rounded-2xl border border-[#E1E5E8] bg-white shadow-xs">
+            <div className="hidden grid-cols-[112px_minmax(0,1fr)_150px_72px_94px_125px] gap-4 border-b border-[#E1E5E8] bg-[#EDF0F2]/60 px-6 py-3.5 text-xs font-semibold text-[#67717C] min-[1100px]:grid" style={{ gridTemplateColumns: "88px minmax(0, 1fr) 150px 72px 94px 125px", columnGap: "12px" }}>
+              <div>상태</div>
+              <div>병원 및 공고</div>
+              <div>동행 일시</div>
+              <div>소요</div>
+              <div className="text-right">시급</div>
+              <div className="text-center">진행 액션</div>
+            </div>
+
+            {loading ? (
+              <div className="py-20 text-center text-sm text-[#67717C]">지원 내역을 불러오는 중입니다.</div>
+            ) : !error && visibleRows.length === 0 ? (
+              <div className="space-y-3 py-20 text-center">
+                <p className="text-base font-medium text-[#14243A]">{tab === 'all' && !search ? '아직 지원한 공고가 없습니다.' : '조건에 맞는 지원 내역이 없습니다.'}</p>
+                <p className="text-sm text-[#67717C]">{tab === 'all' && !search ? '관심 있는 병원 동행 공고를 찾아 지원해 보세요.' : '상태나 검색어를 바꿔 확인해 보세요.'}</p>
+                {tab === 'all' && !search && <Link href="/escort/posts" className={`${PRIMARY} mx-auto mt-3`}>공고 찾기 <ChevronRight aria-hidden="true" className="size-3.5" /></Link>}
+              </div>
+            ) : !error ? (
+              <div className="divide-y divide-[#E1E5E8]">
+                {visibleRows.map((row) => (
+                  <div key={row.id} className="px-6 py-5 transition-colors hover:bg-[#F7F8F8]">
+                    <div className="hidden grid-cols-[112px_minmax(0,1fr)_150px_72px_94px_125px] items-center gap-4 text-sm min-[1100px]:grid" style={{ gridTemplateColumns: "88px minmax(0, 1fr) 150px 72px 94px 125px", columnGap: "12px" }}>
+                      <div><StatusBadge status={row.status} /></div>
+                      <div className="min-w-0 pr-2">
+                        <Link href={`/posts/${row.postId}`} className="block truncate text-base font-semibold text-[#14243A] hover:text-[#426B93]">{row.title}</Link>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[#67717C]">
+                          <span className="font-medium text-[#202832]">{row.hospitalName}</span>
+                          {row.region && <><span aria-hidden="true">·</span><span>{row.region}</span></>}
+                        </div>
+                      </div>
+                      <div className="text-sm tabular-nums text-[#202832]">{row.date}<br />{row.time}</div>
+                      <div className="text-sm tabular-nums text-[#67717C]">약 {row.hours}시간</div>
+                      <div className="text-right font-bold tabular-nums text-[#14243A]">{row.pay.toLocaleString('ko-KR')}원</div>
+                      <div className="flex items-center justify-center"><ApplicationAction row={row} onCancel={(item) => { setCancelError(undefined); setCancelTarget(item); }} /></div>
+                    </div>
+                    <div className="space-y-3 min-[1100px]:hidden">
+                      <div className="flex items-center justify-between gap-3">
+                        <StatusBadge status={row.status} />
+                        <span className="text-xs tabular-nums text-[#67717C]">{row.date} {row.time}</span>
+                      </div>
+                      <Link href={`/posts/${row.postId}`} className="block text-base font-semibold text-[#14243A] hover:text-[#426B93]">{row.title}</Link>
+                      <p className="text-xs text-[#67717C]">{row.hospitalName}{row.region ? ` · ${row.region}` : ''} · 약 {row.hours}시간 · 시급 {row.pay.toLocaleString('ko-KR')}원</p>
+                      <div className="flex justify-end border-t border-[#E1E5E8] pt-3"><ApplicationAction row={row} onCancel={(item) => { setCancelError(undefined); setCancelTarget(item); }} /></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
-    </MyPageShell>
+
+      {cancelTarget && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-[#262626]/45 p-4"
+          onMouseDown={(event) => { if (event.target === event.currentTarget && !canceling) setCancelTarget(null); }}
+        >
+          <section role="alertdialog" aria-modal="true" aria-labelledby="cancel-application-title" aria-describedby="cancel-application-description" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-8">
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="cancel-application-title" className="text-xl font-semibold text-[#14243A]">지원 취소</h2>
+              <button type="button" disabled={canceling} aria-label="닫기" onClick={() => setCancelTarget(null)} className="rounded-lg p-1.5 text-[#67717C] hover:bg-[#F7F8F8]"><X aria-hidden="true" className="size-5" /></button>
+            </div>
+            <p id="cancel-application-description" className="mt-4 text-sm leading-6 text-[#67717C]">
+              <strong className="text-[#14243A]">{cancelTarget.title}</strong> 공고의 지원을 취소하시겠습니까?
+              <span className="mt-2 block">대기 중 지원 취소는 노쇼로 처리되지 않습니다.</span>
+            </p>
+            {cancelError && <p role="alert" className="mt-3 text-sm text-[#B4413C]">{cancelError}</p>}
+            <div className="mt-6 flex gap-3">
+              <button ref={dismissButtonRef} type="button" disabled={canceling} onClick={() => setCancelTarget(null)} className="h-11 flex-1 rounded-xl border border-[#E1E5E8] bg-white text-sm font-semibold text-[#14243A] hover:bg-[#F7F8F8] disabled:opacity-50">돌아가기</button>
+              <button type="button" disabled={canceling} onClick={() => void confirmCancel()} className="h-11 flex-1 rounded-xl bg-[#14243A] text-sm font-semibold text-white hover:bg-[#1F3757] disabled:cursor-not-allowed disabled:opacity-50">{canceling ? '처리 중...' : '지원 취소'}</button>
+            </div>
+          </section>
+        </div>
+      )}
+    </AppShell>
   );
 }

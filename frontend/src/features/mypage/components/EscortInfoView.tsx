@@ -1,12 +1,13 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import type { CurrentUser } from '@/features/auth';
-import { fetchMyProfile } from '@/features/auth';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, type FormEvent } from 'react';
+import {
+  User, FileText, CreditCard, Star, Video, ChevronRight, LogOut,
+} from 'lucide-react';
+import { fetchMyProfile, useAuth, type CurrentUser } from '@/features/auth';
 import { ApiError } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { REGIONS } from '@/lib/regions';
 import {
   createMyEscortProfile,
@@ -16,256 +17,232 @@ import {
   type EscortProfileWriteRequest,
 } from '../api';
 import type { EscortProfileDto } from '../types';
-import EscortGradeCard from './EscortGradeCard';
-import InfoCard from './InfoCard';
+import type { EscortGrade } from '@/features/application';
+import ManagerGradeCharacter from '@/components/ui/ManagerGradeCharacter';
+import DropdownSelect from '@/components/ui/DropdownSelect';
+import { BANKS } from '@/features/signup/model/banks';
 
-const FIELD = 'h-[47px] w-full rounded-[10px] border border-line-soft bg-white px-4 text-sm text-brand shadow-card placeholder:text-brand-muted';
-const LABEL = 'mb-1.5 block text-sm font-semibold text-brand';
-const ERROR_TEXT = 'text-sm font-medium text-[#b91d1d]';
-const GENDER_LABEL: Record<CurrentUser['gender'], string> = { MALE: '남', FEMALE: '여' };
+const GRADE_ORDER: EscortGrade[] = ['SEED', 'SPROUT', 'FLOWER', 'EGGPLANT'];
+const GRADE_DETAILS: Record<EscortGrade, { label: string; min: number; next: number | null }> = {
+  SEED: { label: '씨앗', min: 0, next: 5 },
+  SPROUT: { label: '새싹', min: 5, next: 10 },
+  FLOWER: { label: '꽃', min: 10, next: 30 },
+  EGGPLANT: { label: '가지', min: 30, next: null },
+};
+const INPUT = 'w-full h-11 rounded-lg border border-[#E1E5E8] bg-white px-3.5 text-sm text-[#14243A] placeholder:text-[#8B949E] outline-none focus:border-[#426B93] focus:ring-1 focus:ring-[#426B93]';
+const FIELD_LABEL = 'mb-1.5 block text-xs font-semibold text-[#14243A]';
+const PRIMARY = 'rounded-xl bg-[#14243A] px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#26394F] disabled:cursor-not-allowed disabled:opacity-60';
+const SECONDARY = 'rounded-xl border border-[#E1E5E8] bg-white px-5 py-2.5 text-xs font-semibold text-[#14243A] transition-colors hover:bg-[#F7F8F8]';
 
-/** "2026-09-22T10:00:00" · "2026-09-22" 를 <input type="date"> 가 먹는 "2026-09-22" 로 */
-function toDateInput(value: string): string {
-  return value.slice(0, 10);
-}
-
-/** 404(아직 프로필을 만든 적 없음)인지 확인 */
 function isNotFound(error: unknown): boolean {
-  // 500 등 RsData 형식이 아닌 응답(스프링 기본 에러 페이지)이면 statusCode 가 없을 수 있어 옵셔널 체이닝으로 방어합니다.
   return error instanceof ApiError && (error.statusCode?.startsWith('404') ?? false);
 }
+function maskAccount(accountNumber: string | null): string {
+  if (!accountNumber) return '미등록';
+  const compact = accountNumber.replace(/\s/g, '');
+  return compact.length > 4 ? `****${compact.slice(-4)}` : '****';
+}
+function ageOf(birthDate: string): number | null {
+  const [year, month, day] = birthDate.slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  const today = new Date();
+  const age = today.getFullYear() - year - (today.getMonth() + 1 < month || (today.getMonth() + 1 === month && today.getDate() < day) ? 1 : 0);
+  return age >= 0 && age < 130 ? age : null;
+}
 
-/** "기본 정보" 카드 — 조회 + 수정 (PATCH /api/v1/users/profile) */
-function BasicInfoCard({ user, onUpdated }: { user: CurrentUser; onUpdated: (user: CurrentUser) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [password, setPassword] = useState('');
-  const [email, setEmail] = useState(user.email);
-  const [name, setName] = useState(user.name);
-  const [birthDate, setBirthDate] = useState(toDateInput(user.birthDate));
-  const [phoneNum, setPhoneNum] = useState(user.phoneNum);
-  const [region, setRegion] = useState(user.region);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+const menuItems = [
+  { href: '/mypage', label: '내 정보', icon: User },
+  { href: '/mypage/applications', label: '내가 신청한 공고', icon: FileText },
+  { href: '/mypage/settlements', label: '내 정산', icon: CreditCard },
+  { href: '/mypage/reviews', label: '받은 리뷰', icon: Star },
+  { href: '/mypage/education', label: '교육 영상', icon: Video },
+];
 
-  const startEdit = () => {
-    setPassword('');
-    setEmail(user.email);
-    setName(user.name);
-    setBirthDate(toDateInput(user.birthDate));
-    setPhoneNum(user.phoneNum);
-    setRegion(user.region);
-    setError('');
-    setEditing(true);
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSaving(true);
-    setError('');
-    try {
-      // TODO: 백엔드가 정보 수정 때마다 현재 비밀번호를 다시 요구합니다.
-      const updated = await updateMyProfile({ password, email, name, birthDate, phoneNum, region });
-      onUpdated(updated);
-      setEditing(false);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '수정에 실패했습니다.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (!editing) {
-    return (
-      <InfoCard title="기본 정보" action="수정하기" onAction={startEdit} className="lg:min-h-[440px]">
-        <dl className="mt-[30px] flex flex-col gap-[3px]">
-          {[
-            ['아이디', user.username],
-            ['이메일', user.email],
-            ['실명', user.name],
-            ['생년월일', user.birthDate],
-            ['성별', GENDER_LABEL[user.gender]],
-            ['전화번호', user.phoneNum],
-            ['거주 지역', user.region],
-          ].map(([label, value]) => (
-            <div key={label} className="flex min-h-[47px] items-center gap-2.5">
-              <dt className="w-[92px] shrink-0 px-4 text-base leading-5 font-semibold text-brand">{label}</dt>
-              <dd className="min-w-0 flex-1 px-4 text-sm leading-5 font-medium text-brand">{value}</dd>
-            </div>
-          ))}
-        </dl>
-      </InfoCard>
-    );
-  }
+function GradeJourney({ name, profile }: { name: string; profile: EscortProfileDto }) {
+  const grade = profile.grade;
+  const info = GRADE_DETAILS[grade];
+  const completed = profile.completedCount;
+  const currentIndex = GRADE_ORDER.indexOf(grade);
+  const baseIndex = completed >= 30 ? 3 : completed >= 10 ? 2 : completed >= 5 ? 1 : 0;
+  const hasPenalty = currentIndex < baseIndex;
+  const progress = info.next === null ? 100 : Math.min(100, Math.max(0, ((completed - info.min) / (info.next - info.min)) * 100));
+  const rating = profile.averageRating;
 
   return (
-    <section className="rounded-[30px] border border-line bg-white px-6 pt-8 pb-6 shadow-card lg:min-h-[440px]">
-      <h2 className="mb-4 text-2xl leading-6 font-semibold text-brand">기본 정보 수정</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <p className="text-xs font-medium text-brand-muted">아이디·성별은 바꿀 수 없습니다.</p>
-        <div>
-          <label className={LABEL} htmlFor="edit-email">이메일</label>
-          <input id="edit-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} className={FIELD} />
+    <div className="bg-white rounded-2xl border border-[#E1E5E8] p-6 sm:p-8 shadow-xs space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <ManagerGradeCharacter grade={grade} className="w-16 h-16 shrink-0" />
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-xl font-bold text-[#14243A]">{name} 매니저</h2>
+              <span className="sr-only">현재 등급: {info.label}</span>
+
+            </div>
+            <p className="text-xs text-[#426B93] font-semibold mt-1">
+              {info.next === null ? `최고 등급 · 완료 동행 ${completed}건` : `다음 등급까지 ${Math.max(0, info.next - completed)}건 남음 (완료 동행 ${completed}건)`}
+            </p>
+          </div>
         </div>
-        <div>
-          <label className={LABEL} htmlFor="edit-name">실명</label>
-          <input id="edit-name" required value={name} onChange={(event) => setName(event.target.value)} className={FIELD} />
+        <div className="flex items-center gap-6 text-xs text-[#67717C] pt-2 sm:pt-0 sm:border-l border-[#E1E5E8] sm:pl-6">
+          <div>
+            <span className="block text-[11px]">평균 평점</span>
+            <span className="text-lg font-bold text-[#14243A]">{rating === null ? '평가 없음' : `★ ${rating.toFixed(1)}`}</span>
+          </div>
+          <div>
+            <span className="block text-[11px]">교육 인증</span>
+            <span className="text-lg font-bold text-[#14243A]">{profile.verified ? '완료' : '대기 중'}</span>
+          </div>
         </div>
-        <div>
-          <label className={LABEL} htmlFor="edit-birth">생년월일</label>
-          <input id="edit-birth" type="date" required value={birthDate} onChange={(event) => setBirthDate(event.target.value)} className={FIELD} />
+      </div>
+      <div className="space-y-2">
+        <div className="flex justify-between text-xs">
+          <span className="text-[#67717C]">{info.next === null ? '최고 등급 달성' : '다음 등급 승급 진행률'}</span>
+          <span className="font-bold text-[#14243A] tabular-nums">{Math.round(progress)}%</span>
         </div>
-        <div>
-          <label className={LABEL} htmlFor="edit-phone">전화번호</label>
-          <input id="edit-phone" required value={phoneNum} onChange={(event) => setPhoneNum(event.target.value)} className={FIELD} />
+        <div className="w-full h-2.5 bg-[#EDF0F2] rounded-full overflow-hidden">
+          <div className="h-full bg-[#426B93] transition-all duration-500 rounded-full" style={{ width: `${progress}%` }} />
         </div>
-        <div>
-          <label className={LABEL} htmlFor="edit-region">거주 지역</label>
-          <select id="edit-region" required value={region} onChange={(event) => setRegion(event.target.value)} className={FIELD}>
-            {REGIONS.map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className={LABEL} htmlFor="edit-password">현재 비밀번호</label>
-          <input id="edit-password" type="password" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="정보를 바꾸려면 비밀번호를 다시 입력해주세요." className={FIELD} />
-        </div>
-        {error && <p className={ERROR_TEXT}>{error}</p>}
-        <div className="mt-2 flex gap-2.5">
-          <button type="button" onClick={() => setEditing(false)} className="h-11 flex-1 rounded-[20px] border border-line text-sm font-semibold text-brand transition-colors hover:bg-line-soft">취소</button>
-          <button type="submit" disabled={saving} className="h-11 flex-1 rounded-[20px] bg-brand text-sm font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60">
-            {saving ? '저장 중…' : '저장'}
-          </button>
-        </div>
-      </form>
-    </section>
+      </div>
+      <div className="grid grid-cols-4 gap-2 pt-2 border-t border-[#E1E5E8] text-center text-xs">
+        {GRADE_ORDER.map((item) => {
+          const detail = GRADE_DETAILS[item];
+          const isCurrent = grade === item;
+          return (
+            <div key={item} className={`p-2.5 rounded-xl border ${isCurrent ? 'bg-[#426B93]/5 border-[#426B93]' : 'border-transparent'}`}>
+              <div className="flex items-center justify-center gap-1">
+                <ManagerGradeCharacter grade={item} className={`h-6 w-6 shrink-0 ${isCurrent ? '' : 'grayscale opacity-50'}`} bare />
+                <span className={`font-bold ${isCurrent ? 'text-[#426B93]' : 'text-[#8B949E]'}`}>{detail.label}</span>
+              </div>
+              <span className={`block text-[11px] ${isCurrent ? 'text-[#67717C]' : 'text-[#A3ABB4]'}`}>{detail.min}건 이상</span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-[#67717C] bg-[#F7F8F8] p-3 rounded-lg border border-[#E1E5E8]">
+        {hasPenalty ? '완료 동행 횟수에 따른 기본 등급과 실제 등급이 다릅니다. 노쇼 페널티가 반영되었을 수 있습니다.' : '등급은 완료 동행 횟수와 노쇼 페널티 정책을 함께 반영합니다.'}
+      </p>
+    </div>
   );
 }
 
-/** "추가 정보" 카드 — 자기소개·정산 계좌 (GET/POST/PUT /api/v1/users/profile/escort) */
-function EscortProfileCard({ profile, onSaved }: { profile: EscortProfileDto | null; onSaved: (profile: EscortProfileDto) => void }) {
-  const [editing, setEditing] = useState(profile === null);
+/** 자기소개와 계좌는 동일한 PUT API를 사용하므로, 수정하지 않은 필드를 함께 보존합니다. */
+function EscortProfileEditor({ profile, section, onSaved, onCancel }: {
+  profile: EscortProfileDto | null;
+  section: 'account' | 'intro';
+  onSaved: (value: EscortProfileDto) => void;
+  onCancel: () => void;
+}) {
   const [intro, setIntro] = useState(profile?.intro ?? '');
   const [bankName, setBankName] = useState(profile?.bankName ?? '');
   const [accountHolder, setAccountHolder] = useState(profile?.accountHolder ?? '');
   const [accountNumber, setAccountNumber] = useState(profile?.accountNumber ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // 기존 DB에 선택 목록에 없는 은행명이 저장되어 있어도 임의로 바꾸지 않습니다.
+  const bankOptions: { value: string; label: string }[] = BANKS.map((bank) => ({ value: bank, label: bank }));
+  if (bankName && !BANKS.some((bank) => bank === bankName)) {
+    bankOptions.unshift({ value: bankName, label: bankName });
+  }
 
-  const startEdit = () => {
-    setIntro(profile?.intro ?? '');
-    setBankName(profile?.bankName ?? '');
-    setAccountHolder(profile?.accountHolder ?? '');
-    setAccountNumber(profile?.accountNumber ?? '');
-    setError('');
-    setEditing(true);
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSaving(true);
     setError('');
-    const request: EscortProfileWriteRequest = { intro, bankName, accountHolder, accountNumber };
     try {
-      const saved = profile ? await updateMyEscortProfile(request) : await createMyEscortProfile(request);
-      onSaved(saved);
-      setEditing(false);
+      const body: EscortProfileWriteRequest = { intro, bankName, accountHolder, accountNumber };
+      if (profile) await updateMyEscortProfile(body);
+      else await createMyEscortProfile(body);
+      // 수정 API 응답에는 grade가 없으므로 전체 프로필을 다시 조회합니다.
+      const refreshed = await fetchMyEscortProfile();
+      onSaved(refreshed);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '저장에 실패했습니다.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (!editing && profile) {
-    return (
-      <InfoCard title="추가 정보" action="수정하기" onAction={startEdit} paddingBottom="pb-6" className="lg:min-h-[300px]">
-        <div className="mt-[9px] flex flex-col gap-[3px]">
-          {([
-            ['평점', profile.averageRating ? `${profile.averageRating.toFixed(1)}점` : '아직 없음'],
-            ['완료 동행', `${profile.completedCount}회`],
-            // 신원 인증 = 교육 이수. 필수 교육 영상을 모두 시청하면 백엔드가 verified 로 바꿉니다.
-            [
-              '신원 인증',
-              profile.verified ? (
-                '완료'
-              ) : (
-                <span className="flex flex-wrap items-center gap-2.5">
-                  대기 중
-                  <Link
-                    href="/mypage/education"
-                    className="flex h-[27px] items-center rounded-[30px] bg-brand px-4 text-xs leading-4 font-semibold text-white transition-colors hover:bg-brand-hover"
-                  >
-                    교육 이수하기
-                  </Link>
-                </span>
-              ),
-            ],
-            ['은행', profile.bankName || '-'],
-            ['예금주', profile.accountHolder || '-'],
-            ['계좌번호', profile.accountNumber || '-'],
-          ] as [string, ReactNode][]).map(([label, value]) => (
-            <div key={label} className="flex min-h-[40px] items-center gap-2.5">
-              <dt className="w-[92px] shrink-0 px-4 text-sm font-semibold text-brand">{label}</dt>
-              <dd className="min-w-0 flex-1 px-4 text-sm font-medium text-brand">{value}</dd>
-            </div>
-          ))}
-          <div className="px-4 pt-4">
-            <p className="text-sm font-semibold text-brand">자기소개</p>
-            <p className="mt-1.5 text-xs leading-5 font-medium text-brand">{profile.intro || '작성하지 않았습니다.'}</p>
-          </div>
-        </div>
-      </InfoCard>
-    );
+      setError(cause instanceof Error ? cause.message : '정보를 저장하지 못했습니다.');
+    } finally { setSaving(false); }
   }
 
   return (
-    <section className="rounded-[30px] border border-line bg-white px-6 pt-8 pb-6 shadow-card lg:min-h-[300px]">
-      <h2 className="mb-4 text-2xl leading-6 font-semibold text-brand">{profile ? '추가 정보 수정' : '추가 정보 등록'}</h2>
-      {!profile && <p className="mb-3 text-xs font-medium text-brand-muted">지원·정산을 받으려면 계좌 정보와 자기소개를 등록해주세요.</p>}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <div>
-          <label className={LABEL} htmlFor="edit-intro">자기소개</label>
-          <textarea id="edit-intro" required maxLength={500} value={intro} onChange={(event) => setIntro(event.target.value)} placeholder="경력, 보유 자격증, 성격 등을 적어주세요." className={cn(FIELD, 'h-[92px] resize-none py-3')} />
-        </div>
-        <div>
-          <label className={LABEL} htmlFor="edit-bank">은행</label>
-          <input id="edit-bank" required maxLength={20} value={bankName} onChange={(event) => setBankName(event.target.value)} placeholder="예) 국민은행" className={FIELD} />
-        </div>
-        <div>
-          <label className={LABEL} htmlFor="edit-holder">예금주</label>
-          <input id="edit-holder" required maxLength={50} value={accountHolder} onChange={(event) => setAccountHolder(event.target.value)} className={FIELD} />
-        </div>
-        <div>
-          <label className={LABEL} htmlFor="edit-account">계좌번호</label>
-          <input id="edit-account" required maxLength={30} value={accountNumber} onChange={(event) => setAccountNumber(event.target.value)} className={FIELD} />
-        </div>
-        {error && <p className={ERROR_TEXT}>{error}</p>}
-        <div className="mt-2 flex gap-2.5">
-          {profile && (
-            <button type="button" onClick={() => setEditing(false)} className="h-11 flex-1 rounded-[20px] border border-line text-sm font-semibold text-brand transition-colors hover:bg-line-soft">취소</button>
+    <form onSubmit={submit} className="space-y-4">
+      {section === 'account' ? (
+        <>
+          <p className="text-xs text-[#67717C]">실제 정산에 사용할 계좌 정보를 입력해주세요.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={FIELD_LABEL} htmlFor="mypage-bank">은행</label>
+              <DropdownSelect id="mypage-bank" name="bankName" required value={bankName} onValueChange={setBankName} placeholder="은행을 선택해주세요." options={bankOptions} size="form" />
+            </div>
+            <div><label className={FIELD_LABEL} htmlFor="mypage-holder">예금주</label><input id="mypage-holder" className={INPUT} maxLength={50} required value={accountHolder} onChange={(event) => setAccountHolder(event.target.value)} /></div>
+          </div>
+          <div><label className={FIELD_LABEL} htmlFor="mypage-account">계좌번호</label><input id="mypage-account" className={INPUT} inputMode="numeric" maxLength={30} required value={accountNumber} onChange={(event) => setAccountNumber(event.target.value)} /></div>
+          {!profile && (
+            <div>
+              <label className={FIELD_LABEL} htmlFor="mypage-first-intro">자기소개</label>
+              <textarea id="mypage-first-intro" className={`${INPUT} h-24 resize-y py-3`} required maxLength={500} value={intro} onChange={(event) => setIntro(event.target.value)} />
+              <p className="mt-1 text-[11px] text-[#67717C]">최초 등록 시에는 자기소개도 함께 입력해야 합니다.</p>
+            </div>
           )}
-          <button type="submit" disabled={saving} className="h-11 flex-1 rounded-[20px] bg-brand text-sm font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60">
-            {saving ? '저장 중…' : profile ? '저장' : '등록하기'}
-          </button>
+        </>
+      ) : (
+        <div>
+          <label className={FIELD_LABEL} htmlFor="mypage-intro">자기소개</label>
+          <textarea id="mypage-intro" className={`${INPUT} h-24 resize-y py-3`} required maxLength={500} value={intro} onChange={(event) => setIntro(event.target.value)} />
         </div>
-      </form>
-    </section>
+      )}
+      {error && <p role="alert" className="text-xs font-medium text-[#B4413C]">{error}</p>}
+      <div className="flex justify-end gap-2"><button type="button" className={SECONDARY} onClick={onCancel}>취소</button><button type="submit" className={PRIMARY} disabled={saving}>{saving ? '저장 중…' : '저장'}</button></div>
+    </form>
   );
 }
 
-/**
- * 동행 매니저 마이페이지 — 내 정보 (실제 API)
- *
- * - 기본 정보: GET/PATCH /api/v1/users/profile
- * - 추가 정보(자기소개·계좌): GET/POST/PUT /api/v1/users/profile/escort
- * ⚠️ "최근 활동 요약"(등록한 공고 수 등)을 주는 API 가 없어 그 섹션은 뺐습니다.
- */
+function BaseEditor({ user, onSaved, onCancel }: { user: CurrentUser; onSaved: (value: CurrentUser) => void; onCancel: () => void }) {
+  const [email, setEmail] = useState(user.email);
+  const [name, setName] = useState(user.name);
+  const [birthDate, setBirthDate] = useState(user.birthDate.slice(0, 10));
+  const [phoneNum, setPhoneNum] = useState(user.phoneNum);
+  const [region, setRegion] = useState(user.region);
+  const [password, setPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    setError('');
+    try {
+      const saved = await updateMyProfile({ password, email, name, birthDate, phoneNum, region });
+      onSaved(saved);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '기본 정보를 수정하지 못했습니다.');
+    } finally { setSaving(false); }
+  }
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <p className="text-xs text-[#67717C]">아이디와 성별은 변경할 수 없습니다. 수정하려면 현재 비밀번호를 입력해야 합니다.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label className={FIELD_LABEL} htmlFor="mypage-email">이메일</label><input type="email" id="mypage-email" className={INPUT} required value={email} onChange={(event) => setEmail(event.target.value)} /></div>
+        <div><label className={FIELD_LABEL} htmlFor="mypage-name">성명</label><input id="mypage-name" className={INPUT} required value={name} onChange={(event) => setName(event.target.value)} /></div>
+        <div><label className={FIELD_LABEL} htmlFor="mypage-birth">생년월일</label><input type="date" id="mypage-birth" className={INPUT} required value={birthDate} onChange={(event) => setBirthDate(event.target.value)} /></div>
+        <div><label className={FIELD_LABEL} htmlFor="mypage-phone">전화번호</label><input id="mypage-phone" className={INPUT} required value={phoneNum} onChange={(event) => setPhoneNum(event.target.value)} /></div>
+        <div><label className={FIELD_LABEL} htmlFor="mypage-region">거주 지역</label><DropdownSelect id="mypage-region" name="region" required value={region} onValueChange={setRegion} placeholder="지역을 선택해주세요." options={[...(!REGIONS.includes(region as typeof REGIONS[number]) && region ? [{ value: region, label: region }] : []), ...REGIONS.map((value) => ({ value, label: value }))]} size="form" /></div>
+        <div><label className={FIELD_LABEL} htmlFor="mypage-password">현재 비밀번호</label><input type="password" id="mypage-password" className={INPUT} required value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" /></div>
+      </div>
+      {error && <p role="alert" className="text-xs font-medium text-[#B4413C]">{error}</p>}
+      <div className="flex justify-end gap-2"><button type="button" className={SECONDARY} onClick={onCancel}>취소</button><button type="submit" className={PRIMARY} disabled={saving}>{saving ? '저장 중…' : '수정 완료'}</button></div>
+    </form>
+  );
+}
+
 export default function EscortInfoView() {
+  const router = useRouter();
+  const { signOut, reload } = useAuth();
   const [state, setState] = useState<{ user?: CurrentUser; profile: EscortProfileDto | null; error?: string }>();
+  const [editBase, setEditBase] = useState(false);
+  const [editAccount, setEditAccount] = useState(false);
+  const [editIntro, setEditIntro] = useState(false);
 
   useEffect(() => {
-    let ignore = false;
+    let canceled = false;
     Promise.all([
       fetchMyProfile(),
       fetchMyEscortProfile().catch((error) => {
@@ -273,50 +250,106 @@ export default function EscortInfoView() {
         throw error;
       }),
     ])
-      .then(([user, profile]) => !ignore && setState({ user, profile }))
-      .catch((error: Error) => !ignore && setState({ profile: null, error: error.message }));
-    return () => {
-      ignore = true;
-    };
+      .then(([user, profile]) => { if (!canceled) setState({ user, profile }); })
+      .catch((error: Error) => { if (!canceled) setState({ profile: null, error: error.message }); });
+    return () => { canceled = true; };
   }, []);
 
   if (!state?.user) {
     return (
-      <div className="flex max-w-[858px] flex-col gap-[22px] pt-8 lg:pt-[41px]">
-        <p className="text-base font-semibold text-brand">{state?.error ? `불러오지 못했습니다. (${state.error})` : '불러오는 중입니다.'}</p>
+      <div className="w-full py-12 lg:py-16">
+        <div className="max-w-[1240px] mx-auto px-5 sm:px-8 lg:px-16">
+          <h1 className="text-3xl font-semibold text-[#14243A] tracking-tight">매니저 마이페이지</h1>
+          <p role={state?.error ? 'alert' : 'status'} className="mt-6 text-sm text-[#67717C]">{state?.error ? `프로필을 불러오지 못했습니다. (${state.error})` : '내 정보를 불러오는 중입니다.'}</p>
+        </div>
       </div>
     );
   }
 
   const { user, profile } = state;
+  const age = ageOf(user.birthDate);
+  const registeredAccount = profile?.accountNumber ? `${profile.bankName || '은행 미등록'} ${maskAccount(profile.accountNumber)} (예금주: ${profile.accountHolder || '-'})` : '등록된 정산 계좌가 없습니다.';
 
   return (
-    <div className="flex max-w-[858px] flex-col gap-[22px] pt-8 lg:pt-[41px]">
-      <section className="flex flex-col gap-8 rounded-[30px] border border-line-soft bg-white p-8 shadow-card sm:flex-row lg:min-h-[210px]">
-        <div className="grid size-[101px] shrink-0 place-items-center self-center rounded-[30px] bg-line-soft sm:self-start lg:self-center">
-          <Image src="/images/post/eggplant.png" alt="" width={36} height={38} className="object-contain" />
+    <div className="w-full py-12 lg:py-16">
+      <div className="max-w-[1240px] mx-auto px-5 sm:px-8 lg:px-16 space-y-8">
+        <div>
+          <h1 className="text-3xl font-semibold text-[#14243A] tracking-tight">매니저 마이페이지</h1>
+          <p className="text-sm text-[#67717C] mt-1">동행 매니저 프로필 및 등급 승급 현황, 계좌 설정을 관리합니다.</p>
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-3 lg:gap-[9px]">
-          <div className="flex items-center gap-2.5">
-            <p className="text-2xl leading-6 font-semibold text-brand">{user.name}</p>
-            <span className="inline-flex h-[35px] items-center rounded-[10px] bg-brand px-[14px] text-base font-semibold whitespace-nowrap text-white">동행 매니저</span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <nav aria-label="매니저 마이페이지 메뉴" className="lg:col-span-3 bg-white rounded-2xl border border-[#E1E5E8] p-3 shadow-xs space-y-1">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const active = item.href === '/mypage';
+              return (
+                <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold transition-colors sc-focus ${active ? 'bg-[#14243A] text-white shadow-xs' : 'text-[#67717C] hover:bg-[#F7F8F8] hover:text-[#14243A]'}`}>
+                  <span className="flex items-center gap-2.5"><Icon className="w-4 h-4" /><span>{item.label}</span></span>
+                  <ChevronRight className={`w-3.5 h-3.5 ${active ? 'text-white/60' : 'text-[#67717C]'}`} />
+                </Link>
+              );
+            })}
+            <button type="button" onClick={async () => { await signOut(); router.replace('/'); }} className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold transition-colors text-[#B4413C] hover:bg-[#F7F8F8]">
+              <span className="flex items-center gap-2.5"><LogOut className="w-4 h-4" />로그아웃</span><ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </nav>
+          <div className="lg:col-span-9 space-y-6">
+            {profile ? <GradeJourney name={user.name} profile={profile} /> : (
+              <div className="bg-white rounded-2xl border border-[#E1E5E8] p-6 sm:p-8 shadow-xs">
+                <h2 className="text-xl font-bold text-[#14243A]">동행 매니저 정보</h2>
+                <p className="mt-2 text-sm text-[#67717C]">등록된 추가 프로필이 없습니다. 자기소개 및 정산 계좌를 등록해주세요.</p>
+                <button className={`${PRIMARY} mt-4`} onClick={() => { setEditAccount(true); setEditBase(false); setEditIntro(false); }}>추가 정보 등록하기</button>
+              </div>
+            )}
+            <div className="bg-white rounded-2xl border border-[#E1E5E8] p-6 sm:p-8 shadow-xs space-y-6">
+              <div className="flex items-center justify-between border-b border-[#E1E5E8] pb-3 gap-4">
+                <h3 className="text-base font-semibold text-[#14243A]">기본 등록 정보</h3>
+                {!editBase && <button type="button" onClick={() => { setEditBase(true); setEditAccount(false); setEditIntro(false); }} className="text-xs font-semibold text-[#426B93] hover:text-[#14243A]">수정하기</button>}
+              </div>
+              {editBase ? (
+                <BaseEditor user={user} onCancel={() => setEditBase(false)} onSaved={(next) => { setState((old) => old && { ...old, user: next }); setEditBase(false); void reload(); }} />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
+                  <div><span className="text-[#67717C] block mb-1">성명 / 성별 / 나이</span><span className="font-semibold text-sm text-[#14243A]">{user.name} ({user.gender === 'FEMALE' ? '여성' : '남성'}{age === null ? '' : `, ${age}세`})</span></div>
+                  <div><span className="text-[#67717C] block mb-1">연락처</span><span className="font-semibold text-sm text-[#14243A]">{user.phoneNum}</span></div>
+                  <div><span className="text-[#67717C] block mb-1">활동 거점 지역</span><span className="font-semibold text-sm text-[#14243A]">{user.region}</span></div>
+                  <div>
+                    <span className="text-[#67717C] block mb-1">정산 계좌 정보</span>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="font-semibold text-sm text-[#14243A]">{registeredAccount}</span>
+                      {!editAccount && <button type="button" onClick={() => { setEditAccount(true); setEditBase(false); setEditIntro(false); }} className="text-xs font-semibold text-[#426B93] hover:text-[#14243A]">{profile ? '계좌 변경' : '계좌 등록'}</button>}
+                    </div>
+                  </div>
+                  <div><span className="text-[#67717C] block mb-1">아이디</span><span className="font-semibold text-sm text-[#14243A]">{user.username}</span></div>
+                  <div><span className="text-[#67717C] block mb-1">이메일</span><span className="font-semibold text-sm text-[#14243A] break-all">{user.email}</span></div>
+                </div>
+              )}
+              {editAccount && (
+                <div className="pt-4 border-t border-[#E1E5E8] space-y-3">
+                  <h4 className="text-sm font-semibold text-[#14243A]">정산 계좌 정보 {profile ? '변경' : '등록'}</h4>
+                  <EscortProfileEditor key={profile ? 'account-edit' : 'account-create'} section="account" profile={profile} onCancel={() => setEditAccount(false)} onSaved={(next) => { setState((old) => old && { ...old, profile: next }); setEditAccount(false); }} />
+                </div>
+              )}
+              <div className="pt-4 border-t border-[#E1E5E8] space-y-2 text-xs">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-semibold text-[#14243A] block">교육 이수 인증 및 자기소개</span>
+                  {!editIntro && profile && <button type="button" onClick={() => { setEditIntro(true); setEditBase(false); setEditAccount(false); }} className="text-xs font-semibold text-[#426B93] hover:text-[#14243A]">자기소개 수정</button>}
+                </div>
+                {profile?.verified ? (
+                  <span className="inline-flex px-3 py-1 rounded-lg bg-[#2F7D5B]/10 text-[#2F7D5B] border border-[#2F7D5B]/20 font-medium">✓ 필수 교육 인증 완료</span>
+                ) : <Link href="/mypage/education" className="inline-flex items-center px-3 py-1 rounded-lg bg-[#F7F8F8] text-[#426B93] border border-[#E1E5E8] font-semibold">필수 교육 이수 확인하기</Link>}
+                {editIntro && profile ? (
+                  <div className="pt-3"><EscortProfileEditor key="intro-edit" section="intro" profile={profile} onCancel={() => setEditIntro(false)} onSaved={(next) => { setState((old) => old && { ...old, profile: next }); setEditIntro(false); }} /></div>
+                ) : (
+                  <>
+                    <p className="pt-2 text-xs text-[#67717C]">자기소개</p>
+                    <p className="text-xs leading-5 text-[#14243A] whitespace-pre-wrap">{profile?.intro || '등록된 자기소개가 없습니다.'}</p>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-          <p className="text-base leading-6 font-semibold text-brand-muted underline">{user.email}</p>
-          <p className="text-base leading-6 font-semibold text-brand-muted">{user.phoneNum}</p>
-          <p className="text-base leading-6 font-semibold text-brand-muted">{user.region}</p>
         </div>
-      </section>
-
-      {profile && (
-          <EscortGradeCard
-              grade={profile.grade}
-              completedCount={profile.completedCount}
-          />
-      )}
-
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-[22px] lg:grid-cols-[375px_1fr]">
-        <BasicInfoCard user={user} onUpdated={(next) => setState((prev) => prev && { ...prev, user: next })} />
-        <EscortProfileCard profile={profile} onSaved={(next) => setState((prev) => prev && { ...prev, profile: next })} />
       </div>
     </div>
   );
