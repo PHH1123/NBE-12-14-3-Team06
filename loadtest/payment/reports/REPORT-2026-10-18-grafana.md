@@ -169,13 +169,18 @@ p95 가 한 자릿수 ms 에 붙어 있습니다.*
 `PaymentService.confirm` 이 `@Transactional` 이 아니고 `PaymentPersistenceService` 의 각 메서드가
 자기 트랜잭션을 열기 때문입니다.
 
+> **이 4회가 전부 요청 스레드에서 일어나는 건 아닙니다.** 마지막 알림(`NoticeService.send`)은
+> `@Async` + `@Transactional` 이라 별도 스레드에서 돕니다. 즉 **요청 스레드 3회 + 비동기 1회**입니다.
+> 이 지표(`획득 수 ÷ HTTP 요청 수`)는 스레드를 가리지 않고 **같은 풀에서 나간 커넥션을 전부** 세므로
+> 풀 포화 관점에서는 4회가 맞고, **요청 지연 관점에서는 3회**로 읽어야 합니다.
+
 ```java
 // PaymentService.confirm — 트랜잭션 경계가 4개로 쪼개져 있다
-paymentPersistenceService.findById(userId, paymentId);        // ① readOnly 트랜잭션
-paymentPersistenceService.confirmUpdateStatus(payment.getId()); // ② 조건부 UPDATE
+paymentPersistenceService.findById(userId, paymentId);        // ① readOnly 트랜잭션   (요청 스레드)
+paymentPersistenceService.confirmUpdateStatus(payment.getId()); // ② 조건부 UPDATE      (요청 스레드)
 tossPaymentClient.callApiConfirm(...);                         // 외부 호출 (트랜잭션 밖 — 올바름)
-paymentPersistenceService.paymentSaveDb(...);                  // ③ 상태 반영
-noticeService.send(...);                                       // ④ 알림 저장
+paymentPersistenceService.paymentSaveDb(...);                  // ③ 상태 반영          (요청 스레드)
+noticeService.send(...);                                       // ④ 알림 저장          (@Async — 별도 스레드)
 ```
 
 풀 크기가 10 이므로 **승인 요청 2~3건이면 풀을 한 번씩 다 돌립니다.** 지금 부하에서는 문제가 되지

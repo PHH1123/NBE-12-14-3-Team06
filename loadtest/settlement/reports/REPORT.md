@@ -209,6 +209,11 @@ update Settlement s set s.settlementStatus=PROCESSING
 
 **정확히 5.0회입니다.** 세 도메인 중 가장 많습니다 (결제 4.0, 이동수단 1.0).
 
+> **5회가 전부 요청 스레드는 아닙니다.** 마지막 알림(`NoticeService.send`)은 `@Async` +
+> `@Transactional` 이라 별도 스레드에서 돕니다 — **요청 스레드 4회 + 비동기 1회**입니다.
+> 이 지표는 스레드를 가리지 않고 같은 풀에서 나간 커넥션을 전부 세므로, 풀 포화 관점에서는
+> 5회가 맞고 **요청 지연 관점에서는 4회**로 읽어야 합니다.
+
 `SettlementService.request` 에 `@Transactional` 이 없고 `SettlementPersistenceService` 의
 메서드들이 각자 트랜잭션을 엽니다.
 
@@ -217,8 +222,8 @@ settlementPersistenceService.findAccountDto(userId, settlementId);  // ① readO
 settlementPersistenceService.processingSettlement(settlementId);    // ② 조건부 UPDATE
 settlementApi(...);                                                 //   외부 호출 (트랜잭션 밖 — 올바름)
 settlementPersistenceService.updateSettlement(id, COMPLETED);       // ③ 상태 반영
-settlementPersistenceService.findById(settlementId);                // ④ 알림용 재조회
-noticeService.send(...);                                            // ⑤ 알림 저장
+settlementPersistenceService.findById(settlementId);                // ④ 알림용 재조회 (요청 스레드)
+noticeService.send(...);                                            // ⑤ 알림 저장 (@Async — 별도 스레드)
 ```
 
 외부 호출을 트랜잭션에 넣지 않으려는 구조라 방향은 맞지만, **풀 크기가 10 이므로 정산 요청 2건이면
@@ -309,8 +314,11 @@ spring:
 
 ### ⑤ 정산 요청의 트랜잭션 경계 정리
 
-요청당 커넥션 5회는 풀 크기 10에서 부담입니다. 외부 호출 앞뒤의 DB 작업을 각각 묶으면
-**5회 → 2회**가 됩니다. 특히 ④ 알림용 재조회(`findById`)는 ③에서 이미 읽은 데이터라 없앨 수 있습니다.
+요청당 커넥션 5회(요청 스레드 4 + 비동기 1)는 풀 크기 10에서 부담입니다. 외부 호출 **앞의**
+DB 작업(계좌 조회 + 조건부 UPDATE)을 한 트랜잭션으로 묶으면 요청 스레드가 4회 → 3회가 되고,
+④ 알림용 재조회(`findById`)는 ③에서 이미 읽은 데이터라 없애면 **2회**까지 내려갑니다.
+결제 도메인에서 같은 변경을 적용해 4.0 → 3.0 으로 줄인 사례가 있습니다
+([결제 보고서 권고 ③](../../payment/reports/REPORT-2026-10-18-grafana.md#-승인취소의-트랜잭션-경계-정리)).
 
 ### ⑥ 서버 측 백분위수·Tomcat 스레드 지표 노출
 

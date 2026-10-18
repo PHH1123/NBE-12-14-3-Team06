@@ -125,8 +125,14 @@ docker exec -i escort-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" escort < loadt
 **취소는 HTTP 204** — 컨트롤러가 `"204-41"` 을 돌려주고 `ResponseAspect` 가 204 로 세팅합니다.
 200 을 기대하면 전부 실패로 잡힙니다.
 
-**금액은 문자열로 비교** — `PaymentService.verifyAmount` 가 저장된 금액과 요청 `amount` 를
-문자열 비교합니다. 그래서 스크립트는 `GET /api/v1/payments` 로 받은 금액을 그대로 되돌려 보냅니다.
+**금액은 숫자로 비교** — `Payment.verifyAmount` 가 `Integer.parseInt(request.amount())` 로
+저장된 `amount(int)` 와 비교합니다. 스크립트는 `GET /api/v1/payments` 로 받은 금액을 그대로
+되돌려 보내므로 영향이 없습니다.
+
+> ⚠️ `amount` 가 **null 이거나 숫자가 아니면 `NumberFormatException` 으로 HTTP 500** 이 납니다
+> (`PaymentConfirmRequest` 에 검증 애너테이션이 없고 컨트롤러에도 `@Valid` 가 없습니다).
+> 예전 문자열 비교 시절에는 같은 입력이 `400-42` 였습니다. 부하 스크립트는 정상 금액만 보내므로
+> 측정에는 영향이 없지만, 경계값 테스트를 추가한다면 이 차이를 알고 있어야 합니다.
 
 **중복 승인 방어선은 조건부 UPDATE 한 줄** — `PaymentRepository.paymentInProgress`
 (`WHERE id=? AND payment_status='READY'`). 영향 행이 0이면 `400-44`.
