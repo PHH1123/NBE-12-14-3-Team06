@@ -786,7 +786,8 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.msg").value("회원이 기간 정지되었습니다."))
                 .andExpect(jsonPath("$.data.username").value("user1"))
                 .andExpect(jsonPath("$.data.startAt").isNotEmpty())
-                .andExpect(jsonPath("$.data.endAt").isNotEmpty());
+                .andExpect(jsonPath("$.data.endAt").isNotEmpty())
+                .andExpect(jsonPath("$.data.userStatus").value("SUSPENDED"));
 
         em.flush();
         em.clear();
@@ -927,7 +928,7 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.msg").value("회원이 영구 정지되었습니다."))
                 .andExpect(jsonPath("$.data.username").value("user1"))
                 .andExpect(jsonPath("$.data.startAt").isNotEmpty())
-                .andExpect(jsonPath("$.data.endAt").doesNotExist());
+                .andExpect(jsonPath("$.data.userStatus").value("BANNED"));
 
         em.flush();
         em.clear();

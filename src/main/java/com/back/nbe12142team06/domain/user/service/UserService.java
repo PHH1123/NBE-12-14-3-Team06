@@ -480,6 +480,22 @@ public class UserService {
         return history;
     }
 
+    // [관리자] 정지된 계정을 활성 상태로 변경
+    @Transactional
+    public UserStatusHistory releaseUser(Long adminId, Long userId, String reason) {
+        // 회원 존재 여부 확인
+        User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        1,
+                        "회원 정보를 찾을 수 없습니다."
+                ));
+
+        UserStatusHistory history = this.userStatusHistoryRepository.save(user.release(adminId, reason));
+
+        log.info("[회원 정지 해제] adminId={}, userId={}", adminId, userId);
+        return history;
+    }
+
     // 프로필 삭제, 리프레시 토큰 폐기, 회원 정보 삭제
     private void withdraw(User user) {
         Long userId = user.getId();
