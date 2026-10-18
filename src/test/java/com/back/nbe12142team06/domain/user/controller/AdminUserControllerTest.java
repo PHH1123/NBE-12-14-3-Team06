@@ -1127,15 +1127,21 @@ public class AdminUserControllerTest {
     }
 
 
-//    @Test
-//    @DisplayName("[AdminUserController] 정지 해제 요청 - 활성 상태의 회원에 대한 정지 해제 요청 시 400-8 반환")
-//    void t35() throws Exception {
-//        createTestAdmin();
-//        Cookie adminToken = loginAsAdmin();
-//
-//      signUp("user1");
-//        Long user1Id = findUserId("user1");
+    @Test
+    @DisplayName("[AdminUserController] 정지 해제 요청 - 활성 상태의 회원에 대한 정지 해제 요청 시 400-8 반환")
+    void t35() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
 
-//    }
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+
+        requestRelease(user1Id, adminToken)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value("400-8"))
+                .andExpect(jsonPath("$.msg").value("이미 활성 상태인 계정입니다."));
+
+    }
 
 }
