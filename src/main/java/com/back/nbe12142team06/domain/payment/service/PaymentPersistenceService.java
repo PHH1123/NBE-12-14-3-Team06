@@ -1,7 +1,5 @@
 package com.back.nbe12142team06.domain.payment.service;
 
-import com.back.nbe12142team06.domain.application.entity.Application;
-import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
@@ -20,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -148,7 +145,6 @@ public class PaymentPersistenceService {
 
     @Transactional
     public void rejectApplication(Post post) {
-        applicationRepository.findAllByPostAndStatus(post, ApplicationStatus.PENDING)
-                .forEach(Application::reject);
+        applicationRepository.rejectAllByPost(post, LocalDateTime.now());
     }
 }

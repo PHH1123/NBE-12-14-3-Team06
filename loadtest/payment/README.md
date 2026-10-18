@@ -14,9 +14,10 @@ payment/
 │  ├─ reset.sql             소모한 결제 상태 복구 (반복 측정용, 빠름)
 │  └─ teardown.sql          시드 전부 삭제
 ├─ reports/
-│  ├─ REPORT-2026-10-18-grafana.md  최신. Grafana 캡처 포함
-│  ├─ REPORT.md                     같은 날 1차 측정 (서버 지표 없음)
-│  └─ images/                       Grafana 캡처
+│  ├─ REPORT-2026-10-18-bulk-reject.md  최신. 벌크 UPDATE 전후 A/B
+│  ├─ REPORT-2026-10-18-grafana.md      전 시나리오 측정 + Grafana 캡처
+│  ├─ REPORT.md                         같은 날 1차 측정 (서버 지표 없음)
+│  └─ images/                           Grafana 캡처
 ├─ smoke.js        1 VU 로 전 경로 1회 — 제일 먼저 돌릴 것
 ├─ read.js         조회 3종 부하 (load / stress / soak)
 ├─ confirm.js      결제 승인 부하 (load / stress / spike)
@@ -141,8 +142,16 @@ docker exec -i escort-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" escort < loadt
 
 | 보고서 | 내용 |
 |---|---|
-| [REPORT-2026-10-18-grafana.md](reports/REPORT-2026-10-18-grafana.md) | **최신.** 전 시나리오 재측정 + Grafana 캡처 9장 |
+| [REPORT-2026-10-18-bulk-reject.md](reports/REPORT-2026-10-18-bulk-reject.md) | **최신.** `rejectApplication` 벌크 UPDATE 전후 A/B 비교 |
+| [REPORT-2026-10-18-grafana.md](reports/REPORT-2026-10-18-grafana.md) | 전 시나리오 측정 + Grafana 캡처 9장 |
 | [REPORT.md](reports/REPORT.md) | 같은 날 1차 측정. 8081 인스턴스라 서버 지표가 Prometheus 에 없음 |
 
-두 보고서의 **읽기 한계점 수치가 3배 다릅니다.** 승인·취소·동시성 결과는 거의 일치합니다.
-원인과 판단은 [최신 보고서 5절](reports/REPORT-2026-10-18-grafana.md#5-이전-보고서와-다른-결과가-나온-지점)에 있습니다.
+`REPORT.md` 와 `REPORT-2026-10-18-grafana.md` 의 **읽기 한계점 수치가 3배 다릅니다.**
+승인·취소·동시성 결과는 거의 일치합니다. 원인과 판단은
+[grafana 보고서 5절](reports/REPORT-2026-10-18-grafana.md#5-이전-보고서와-다른-결과가-나온-지점)에 있습니다.
+
+### 취소 비용 재측정 시 주의
+
+`rejectApplication` 이 벌크 UPDATE 로 바뀌어 **취소 응답시간이 더는 지원자 수에 비례하지 않습니다.**
+`seed-applications.sql` 로 지원자를 늘려도 평평하게 나오는 게 정상입니다
+([A/B 보고서](reports/REPORT-2026-10-18-bulk-reject.md)).

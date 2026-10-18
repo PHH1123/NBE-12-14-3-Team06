@@ -23,7 +23,7 @@ loadtest/
 
 | 도메인 | 성격 | 상태 | 문서 |
 |---|---|---|---|
-| 결제 (payment) | 읽기 + 쓰기 + 동시성 | 측정 완료 | [README](payment/README.md) · [보고서](payment/reports/REPORT-2026-10-18-grafana.md) |
+| 결제 (payment) | 읽기 + 쓰기 + 동시성 | 측정 완료 · **개선 A/B 완료** | [README](payment/README.md) · [보고서](payment/reports/REPORT-2026-10-18-grafana.md) · [벌크 UPDATE A/B](payment/reports/REPORT-2026-10-18-bulk-reject.md) |
 | 이동수단 (ride) | **조회 전용** (노출 API 가 GET 둘뿐) | 측정 완료 | [README](ride/README.md) · [보고서](ride/reports/REPORT.md) |
 | 정산 (settlement) | 읽기 + 쓰기 + 동시성 + **관리자** | 측정 완료 | [README](settlement/README.md) · [보고서](settlement/reports/REPORT.md) |
 
