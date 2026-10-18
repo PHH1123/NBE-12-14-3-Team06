@@ -15,7 +15,9 @@ loadtest/
 │  ├─ sql/              결제 전용 시딩·정리 SQL
 │  ├─ reports/          측정 보고서 + Grafana 캡처
 │  └─ *.js              시나리오
-└─ ride/                이동수단 도메인 ✅ (조회 전용)
+├─ ride/                이동수단 도메인 ✅ (조회 전용)
+│  └─ (같은 구조)
+└─ settlement/          정산 도메인 ✅ (조회 + 쓰기 + 관리자)
    └─ (같은 구조)
 ```
 
@@ -23,6 +25,7 @@ loadtest/
 |---|---|---|---|
 | 결제 (payment) | 읽기 + 쓰기 + 동시성 | 측정 완료 | [README](payment/README.md) · [보고서](payment/reports/REPORT-2026-10-18-grafana.md) |
 | 이동수단 (ride) | **조회 전용** (노출 API 가 GET 둘뿐) | 측정 완료 | [README](ride/README.md) · [보고서](ride/reports/REPORT.md) |
+| 정산 (settlement) | 읽기 + 쓰기 + 동시성 + **관리자** | 측정 완료 | [README](settlement/README.md) · [보고서](settlement/reports/REPORT.md) |
 
 도메인마다 테스트 모양이 다릅니다. 쓰기가 없으면 `reset.sql` 도 race 시나리오도 필요 없습니다 —
 **그 도메인에 실제로 열려 있는 API 를 먼저 세어 보고** 세트를 정하세요.
@@ -90,7 +93,7 @@ cd /Users/admin/DevCProject
 
 쿼리 전건 + 바인딩 파라미터 전건을 찍으면 측정값이 왜곡됩니다. 측정할 때는 `WARN` 으로 내리세요. `/actuator/loggers` 가 노출돼 있지 않아 런타임 변경이 안 되므로, 기동 시 커맨드라인으로 넘기는 게 가장 간단합니다 ([3절](#3-측정용-인스턴스-띄우기)).
 
-**2) 스케줄러가 간섭합니다.** `PaymentScheduler` 는 매시 30분(`cron = "0 30 * * * *"`)에 삭제된 결제를 훑고, `SettlementScheduler` 는 평일 10시에 정산 전건을 돕니다. 측정 구간이 그 시각과 겹치지 않게 잡거나, 겹친 채로 재서 간섭을 함께 보세요.
+**2) 스케줄러가 간섭합니다.** `PaymentScheduler` 는 매시 30분(`cron = "0 30 * * * *"`)에 삭제된 결제를 훑고, `SettlementScheduler` 는 **평일 10시**(`0 0 10 * * 1-5`)에 PENDING·FAILED 정산 전건을 훑어 정산합니다. 측정 구간이 그 시각과 겹치지 않게 잡거나, 겹친 채로 재서 간섭을 함께 보세요. 정산 시드는 그 시각에 멋대로 COMPLETED 로 바뀝니다.
 
 **3) ⚠️ 백엔드를 재시작하면 시드가 전부 날아갑니다.** dev 프로파일은 `ddl-auto: create` 입니다 (`application-dev.yaml`). 서버가 뜰 때마다 스키마를 드롭·재생성하고 `BaseInitData` 가 다시 심습니다 — `BaseInitData` 주석에도 명시된 의도된 설계입니다.
 
@@ -189,6 +192,7 @@ k6 지표는 들어오지만 **서버 지표(Hikari, http_server_requests)가 �
 | GAJI Backend Monitoring | `monitoring/grafana/dashboards/gaji-backend-monitoring.json` | `ad86lzc` |
 | 결제 도메인 부하테스트 (k6 + Hikari) | `monitoring/grafana/dashboards/payment-loadtest.json` | `payment-loadtest` |
 | 이동수단 도메인 부하테스트 (k6 + Hikari) | `monitoring/grafana/dashboards/ride-loadtest.json` | `ride-loadtest` |
+| 정산 도메인 부하테스트 (k6 + Hikari) | `monitoring/grafana/dashboards/settlement-loadtest.json` | `settlement-loadtest` |
 
 새 도메인은 기존 JSON 을 복사해 `uri=~".*<도메인>.*"` 필터와 `uid`/`title` 만 바꾸면 됩니다.
 
