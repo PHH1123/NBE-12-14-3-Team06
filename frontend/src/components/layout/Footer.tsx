@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { openGajiGuide } from '@/lib/gajiGuide';
+import { openGajiSupport } from '@/lib/gajiSupport';
 
-/** GAJI 최종 원본 Footer의 레이아웃/스타일. 모달은 별도 단계에서 연결 예정. */
 export default function Footer() {
   const linkClass = 'text-left transition-colors duration-200 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white';
   return (
@@ -40,18 +40,18 @@ export default function Footer() {
           </div>
           <div className="space-y-3 md:col-span-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-white">고객센터</h4>
-            <p className="text-xs leading-relaxed text-white/60">서비스 이용 중 문의사항이나 동행 지원이 필요하시면 1:1 온라인 상담을 통해 문의해 주세요.</p>
+            <p className="text-xs leading-relaxed text-white/60">서비스 이용 중 궁금한 점은 고객센터에서 자주 묻는 질문과 문의 안내를 확인해 주세요.</p>
             <div className="pt-1">
-              <Link href="/support" className="inline-flex items-center gap-2 rounded-lg border border-white/25 px-3.5 py-2 text-xs text-white transition-all duration-200 hover:border-white/50 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+              <button type="button" onClick={openGajiSupport} className="inline-flex items-center gap-2 rounded-lg border border-white/25 px-3.5 py-2 text-xs text-white transition-all duration-200 hover:border-white/50 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
                 <svg aria-hidden="true" className="h-3.5 w-3.5 text-[#426B93]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 14v-3a9 9 0 0 1 18 0v3M3 14v4a2 2 0 0 0 2 2h3v-8H5a2 2 0 0 0-2 2Zm18 0v4a2 2 0 0 1-2 2h-3v-8h3a2 2 0 0 1 2 2Z"/></svg>
-                1:1 온라인 상담 문의
-              </Link>
+                고객센터 및 문의 안내
+              </button>
             </div>
           </div>
         </div>
         <div className="flex flex-col items-start justify-between gap-4 pt-8 text-xs text-white/40 md:flex-row md:items-center">
           <p>GAJI는 의뢰인과 동행 매니저를 연결하는 중개 플랫폼이며, 의료법상 의료행위를 직접 제공하지 않습니다. 명시된 병원명은 이용 고객의 방문 목적지이며 공식 제휴 관계를 의미하지 않습니다.</p>
-          <div className="flex shrink-0 items-center gap-2"><span className="rounded bg-white/10 px-2 py-0.5 font-mono text-[11px] text-white/70">시연용 데이터 포함</span><span>© 2026 GAJI Care. All rights reserved.</span></div>
+          <div className="flex shrink-0 items-center gap-2"><span>© 2026 GAJI Care. All rights reserved.</span></div>
         </div>
       </div>
     </footer>

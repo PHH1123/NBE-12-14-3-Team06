@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { openGajiGuide } from '@/lib/gajiGuide';
+import { openGajiSupport } from '@/lib/gajiSupport';
 import { useCurrentUser } from '@/features/auth';
 
 /** FAQ: GAJI 최종 디자인(HomeView.tsx)의 질문과 답변을 그대로 이식. */
@@ -99,10 +100,10 @@ export default function FaqSection() {
             </div>
             <div>
               <p className="text-sm font-semibold text-[#14243A]">원하시는 답변을 찾지 못하셨나요?</p>
-              <p className="text-xs text-[#67717C]">고객지원팀에 1:1 온라인 문의를 남겨주시면 빠르게 답변드립니다.</p>
+              <p className="text-xs text-[#67717C]">고객센터에서 자주 묻는 질문과 온라인 문의 안내를 확인해 보세요.</p>
             </div>
           </div>
-          <Link href="/support" className="shrink-0 rounded-lg border border-[#E1E5E8] bg-white px-4 py-2 text-xs font-semibold text-[#14243A] shadow-xs transition-colors duration-200 hover:bg-[#EDF0F2]">1:1 문의하기</Link>
+          <button type="button" onClick={openGajiSupport} className="shrink-0 rounded-lg border border-[#E1E5E8] bg-white px-4 py-2 text-xs font-semibold text-[#14243A] shadow-xs transition-colors duration-200 hover:bg-[#EDF0F2]">고객센터 열기</button>
         </div>
       </div>
     </section>

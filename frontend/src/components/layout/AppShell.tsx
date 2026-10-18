@@ -10,6 +10,7 @@ import type { GajiGuideTab } from '@/lib/gajiGuide';
 import Header from './Header';
 import Footer from './Footer';
 import { ManagerGradeModal } from './ManagerGradeModal';
+import SupportModal from '@/features/support/components/SupportModal';
 
 type Props = {
   children: ReactNode;
@@ -21,6 +22,7 @@ export default function AppShell({ children, user }: Props) {
   const { user: me, loading, signOut } = useAuth();
   const [guideTab, setGuideTab] = useState<GajiGuideTab>('grade');
   const [guideOpen, setGuideOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   useEffect(() => {
     const handleOpen = (event: Event) => {
@@ -30,6 +32,12 @@ export default function AppShell({ children, user }: Props) {
     };
     window.addEventListener('gaji:open-guide', handleOpen);
     return () => window.removeEventListener('gaji:open-guide', handleOpen);
+  }, []);
+
+  useEffect(() => {
+    const open = () => setSupportOpen(true);
+    window.addEventListener('gaji:open-support', open);
+    return () => window.removeEventListener('gaji:open-support', open);
   }, []);
 
   const menuRole = me?.role === 'CLIENT' ? 'client' : me?.role === 'ESCORT' ? 'escort' : undefined;
@@ -47,6 +55,7 @@ export default function AppShell({ children, user }: Props) {
     <>
       <Header
         user={user ?? session}
+        role={me?.role}
         pending={!user && loading}
         onLogout={handleLogout}
         canRegisterPost={canRegisterPost}
@@ -54,6 +63,7 @@ export default function AppShell({ children, user }: Props) {
       />
       <main>{children}</main>
       <Footer />
+      <SupportModal isOpen={supportOpen} onClose={() => setSupportOpen(false)} />
       <ManagerGradeModal
         isOpen={guideOpen}
         onClose={() => setGuideOpen(false)}
