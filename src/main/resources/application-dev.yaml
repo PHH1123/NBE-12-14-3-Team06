@@ -34,4 +34,4 @@ custom:
     secret-key: ${TOSS_SECRET}
   ai:
     report-summary:
-      prompt-version: v1
+      prompt-version: v2

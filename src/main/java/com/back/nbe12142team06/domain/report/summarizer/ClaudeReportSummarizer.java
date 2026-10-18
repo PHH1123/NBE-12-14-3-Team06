@@ -34,7 +34,7 @@ public class ClaudeReportSummarizer implements ReportSummarizer {
 
     public ClaudeReportSummarizer(
             ChatClient.Builder builder,
-            @Value("classpath:prompts/report-summary/${custom.ai.report-summary.prompt-version:v1}.txt")
+            @Value("classpath:prompts/report-summary/${custom.ai.report-summary.prompt-version:v2}.txt")
             Resource systemPrompt) {
         this.chatClient = builder.defaultSystem(systemPrompt, StandardCharsets.UTF_8).build();
     }
