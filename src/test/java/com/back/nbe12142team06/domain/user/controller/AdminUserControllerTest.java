@@ -1090,7 +1090,7 @@ public class AdminUserControllerTest {
         signUp("user1");
         Long user1Id = findUserId("user1");
 
-        // 기간 정지
+        // 영구 정지
         requestBan(user1Id, adminToken)
                 .andExpect(status().isOk());
 
@@ -1143,5 +1143,15 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.msg").value("이미 활성 상태인 계정입니다."));
 
     }
+    @Test
+    @DisplayName("[AdminUserController] 정지 해제 요청 - 존재하지 않는 회원을 정지 해제 요청 시 404-1 반환")
+    void t36() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
 
+        requestRelease(Long.MAX_VALUE, adminToken)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.statusCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("회원 정보를 찾을 수 없습니다."));
+    }
 }
