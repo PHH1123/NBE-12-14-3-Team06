@@ -286,6 +286,14 @@ int updateProcessingForAdmin(Long settlementId, LocalDateTime now, LocalDateTime
 - **정렬 키를 정산이 가진 컬럼으로** — `settlement.settledDate` 나 `settlement.id` 로 정렬하면
   `settlement(escort_id, id)` 인덱스로 바로 끊을 수 있습니다. 화면 요구사항이 "동행일 기준 정렬"이라면
   `settlement` 에 동행일을 **역정규화**해 두는 편이 낫습니다.
+- **`join fetch` 가 지금 동작하지 않습니다.** `findAllByUserIdAndDate` 의
+  `join fetch User u on s.escort=u` / `join fetch Application a on ...` / `join fetch Post p on ...` 는
+  **엔티티를 ON 으로 붙이는 형태라 실제로 페치되지 않습니다.** 측정해 보니 목록 1건당
+  **SELECT 5개**(목록 + count + application + post + 인증용 users)가 나갔고, 연관 경로
+  (`join fetch s.escort` / `join fetch s.application a` / `join fetch a.post p`)로 바꾸니 **3개**로 줄었습니다.
+  `default_batch_fetch_size: 100` 덕에 10건이 각 1쿼리로 묶여 5개에서 멈춘 것이지, 그게 없으면 더 많습니다.
+  같은 함정을 이동수단 도메인에서 먼저 확인했습니다
+  ([이동수단 보고서 4-②](../../ride/reports/REPORT.md#-riderepository-에-fetch-join-을-걸어라--적용-완료-2026-10-19)).
 - **그게 어렵다면 복합 인덱스** — `post(escort_start_at)` 단독은 이번 측정에서 역효과였지만
   ([3-4](#3-4-진단--목록과-상세를-떼어-재다-)), 그건 시드의 고유값이 40개뿐이라 생긴 결과입니다.
   **실제 데이터 분포로 다시 재 보고** 판단하세요.

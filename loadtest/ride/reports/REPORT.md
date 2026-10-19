@@ -15,6 +15,7 @@
 | 요청당 커넥션 획득 | **1.0회** (결제는 4.0회) | [3-4](#3-4-요청-1건당-커넥션-획득-횟수) |
 | 기능 검증 | 체크 12종 전부 통과 (소유권 검증 포함) | [3-1](#3-1-스모크--기능-검증) |
 | 치명적 결함 | 없음. 다만 **목록 API 에 소유권 검증이 없습니다** | [5](#5-부하와-무관하게-눈에-띈-것) |
+| 후속 개선 | 목록 fetch join 적용 → **SELECT 2 → 1, 목록 서버 평균 −13.3%** (2026-10-19) | [4-②](#-riderepository-에-fetch-join-을-걸어라--적용-완료-2026-10-19) |
 
 **이 도메인의 핵심은 "결제에서 재현되지 않았던 커넥션 풀 포화가 여기서는 선명하게 재현됐다"는 점입니다.**
 결제 재측정은 3,096 req/s 에서도 pending 0 이었는데, 이동수단은 1,500 req/s 부근에서 대기 스레드가
@@ -155,6 +156,9 @@ active 는 10에 붙어 더 올라갈 수 없고, 나머지 요청은 전부 줄
 
 `RideRepository` 의 쿼리가 `join Post p` 를 쓰지만 **fetch join 이 아니라서** 생기는 비용입니다.
 
+> **이 측정 이후 목록 쪽은 고쳐졌습니다** — `findAllByPostId` 에 `join fetch r.post` 를 적용해
+> 목록은 SELECT 1개가 됐습니다. 상세는 그대로 2개입니다. [4-②](#-riderepository-에-fetch-join-을-걸어라--적용-완료-2026-10-19) 참고.
+
 > 즉 이 도메인에서 풀이 터진 이유는 "커넥션을 많이 잡아서"가 아니라 **"한 번 잡은 커넥션을
 > 쿼리 여러 개 도는 동안 붙잡고 있어서"** 입니다. 결제 취소에서 본 것과 같은 구조의 문제입니다.
 
@@ -190,71 +194,81 @@ spring:
 
 풀 크기도 설정에 없어 **기본값 10에 암묵적으로 기대고 있는 상태**입니다. 값을 적어 두세요.
 
-### ② `RideRepository` 에 fetch join 을 걸어라 — 적용 시도됨, **아직 안 먹었습니다**
+### ② `RideRepository` 에 fetch join 을 걸어라 — **적용 완료 (2026-10-19)**
 
-두 경로 모두 post 를 추가 SELECT 로 끌어옵니다. 커넥션 점유 시간이 그만큼 길어지고,
+두 조회 경로 모두 post 를 추가 SELECT 로 끌어왔습니다. 커넥션 점유 시간이 그만큼 길어지고,
 그게 ①의 포화를 앞당깁니다.
 
 ```java
-@Query("select r from Ride r join fetch r.post p where p.id = :postId")
-List<Ride> findAllByPostId(@Param("postId") Long postId);
+// 적용된 코드
+@Query("select r from Ride r join fetch r.post p where p.id=:postId")
+List<Ride> findAllByPostId(@Param("postId") Long postId);   // 목록 API 가 쓰는 쿼리
 ```
 
-#### 2026-10-19 후속: 커밋 `057c14a` 검증 결과
+#### 요청 1건당 SELECT 수
 
-SQL 로그로 요청 1건당 SELECT 수를 세어 확인했습니다 (`ride` 20건 시드, 워밍업 후 1회 호출).
+SQL 로그로 직접 셌습니다 (`ride` 20건 시드, 워밍업 후 1회 호출).
 
 | 버전 | 목록 `GET /rides/posts/{id}` | 상세 `GET /rides/{id}` |
 |---|---|---|
-| 커밋 `057c14a` (현재) | **SELECT 2** (`ride` + `post`) | SELECT 2 |
-| `findAllByPostId` 에 `join fetch Post p on r.post=p` | **SELECT 2** (변화 없음) | SELECT 2 |
-| `findAllByPostId` 에 **`join fetch r.post p`** | **SELECT 1** ✅ | SELECT 2 |
+| 적용 전 | **SELECT 2** (`ride` + `post`) | SELECT 2 |
+| **적용 후** | **SELECT 1** ✅ | SELECT 2 (변화 없음) |
 
-**두 가지가 걸려 있습니다.**
+**목록이 2 → 1 로 줄었습니다.** 상세는 `findById`(JpaRepository 기본)를 쓰고 `validUser` 가
+`ride.getPost().getClient()` 를 타므로 여전히 2개입니다 — 이번 변경 대상이 아니었습니다.
 
-**(a) 고친 메서드가 목록 경로가 아닙니다.** `057c14a` 는 `findByPostId` 에 join fetch 를 넣었는데,
-목록 API(`RideService.getListByPostId`)가 쓰는 건 **`findAllByPostId`** 입니다.
-`findByPostId` 의 호출처는 `updateRide`(컨트롤러에서 주석 처리됨)와 `move`(application 도메인
-내부 호출)뿐이고, **둘 다 `post` 를 읽지 않아** 거기 fetch 를 걸어도 얻을 게 없습니다.
+#### 적용 전/후 부하 비교
 
-**(b) `join fetch <엔티티> <별칭> on ...` 문법은 페치가 되지 않습니다.** 파싱·실행은 되지만
-연관을 초기화하지 않아 `post` 를 다시 SELECT 합니다. **연관 경로(`join fetch r.post`)로 걸어야**
-합니다. 위 표 2행과 3행이 그 차이입니다.
+100 iter/s(= 목록 + 상세 200 req/s), 90초. Hikari pending 이 0 인 **포화 전 구간**에서 쟀습니다.
+효과가 10% 대라 **순서 효과를 배제하려고 before/after 를 교대로 2라운드** 돌렸습니다.
 
-```java
-// 이렇게 고쳐야 합니다 (findByPostId 가 아니라 findAllByPostId)
-@Query("select r from Ride r join fetch r.post p where p.id=:postId")
-List<Ride> findAllByPostId(@Param("postId") Long postId);
-```
-
-#### 고쳤을 때의 효과 — 포화 전 구간에서 측정
-
-100 iter/s(= 200 req/s), 90초. 이 구간은 Hikari pending 이 0 이라 쿼리 수 차이가 그대로 보입니다.
-
-| 지표 | 커밋 상태 (SELECT 2) | 수정판 (SELECT 1) | 차이 |
+| | 목록 서버 평균 | 상세 서버 평균 *(대조군)* | 요청당 총 커넥션 점유 |
 |---|---|---|---|
-| **목록 서버 평균** | 4.26ms | **3.75ms** | **-12%** |
-| 전체 서버 평균 | 4.26ms | 4.07ms | -4.5% |
-| **요청당 총 커넥션 점유** | 3.81ms | **3.58ms** | **-6%** |
-| k6 p95 | 5.91ms | 5.72ms | -3% |
-| 획득/요청 | 1.0 | 1.0 | 동일 |
+| 적용 전 | 4.79ms | 4.34ms | 4.07ms |
+| **적용 후** | **4.15ms** | 4.41ms | **3.81ms** |
+| 차이 | **−13.3%** | +1.6% | **−6.6%** |
+
+라운드별로도 일관됩니다 (목록: 적용 전 4.82 / 4.76ms, 적용 후 4.10 / 4.20ms — 구간이 겹치지 않음).
+
+**상세가 그대로인 게 중요합니다.** 건드리지 않은 경로는 움직이지 않고 바꾼 경로만 좋아졌으니,
+측정 드리프트가 아니라 **이 변경의 효과**입니다.
+
+k6 p95 는 적용 전 6.92 / 6.40ms, 적용 후 5.48 / 6.79ms 로 **방향이 일정하지 않았습니다.**
+네트워크·스케줄링 잡음이 10% 차이를 덮습니다 — 서버 측 평균이 더 신뢰할 수 있는 지표입니다.
 
 > ⚠️ **한계점(stress) 구간에서는 차이가 안 보입니다.** 같은 A/B 를 `STAGE=stress` 로 돌리면
 > 양쪽 다 피크 1,39x req/s, pending 189, 획득 대기 3초로 **똑같이 무너집니다.**
 > 그 구간은 쿼리 수가 아니라 **풀(10)과 머신이 한계**라 차이가 묻히기 때문입니다.
 > 쿼리 수 개선은 포화 전 구간에서 재야 보입니다.
 
-**정리하면 — 고치는 게 맞지만 기대치는 조정하세요.** `post` 조회가 PK 단건이라 한 번 아끼는 효과가
-크지 않습니다(목록 12%). ①의 커넥션 타임아웃·풀 설정이 처리량에는 훨씬 큰 영향을 줍니다.
+**정리 — 고친 게 맞지만 기대치는 조정하세요.** `post` 조회가 PK 단건이라 한 번 아끼는 효과가
+목록 13% 수준입니다. 처리량 상한에는 ①의 풀·타임아웃 설정이 훨씬 크게 작용합니다.
 
-상세(`findById`)는 `JpaRepository` 기본 메서드라 fetch join 을 걸 수 없으니, post 를 함께 가져오는
-전용 쿼리를 추가하는 편이 낫습니다.
+#### 거쳐 간 두 번의 헛발질 — 같은 실수를 반복하지 않으려면
 
-> ⚠️ **상세 경로는 지금 우연히 동작합니다.** `open-in-view: false` 인데 컨트롤러가 트랜잭션 **밖에서**
-> `new RideResponse(ride)` 를 만들며 post 필드를 읽습니다. 터지지 않는 유일한 이유는 바로 앞의
-> `validUser` 가 `ride.getPost().getClient()` 를 타면서 트랜잭션 안에서 post 를 이미 초기화했기
-> 때문입니다. **소유권 검증을 지우거나 순서를 바꾸면 `LazyInitializationException` 이 납니다.**
-> fetch join 으로 명시하면 이 의존이 사라집니다.
+처음 커밋(`057c14a`)은 효과가 없었습니다. 원인이 둘이었고, 둘 다 **조용히 실패**합니다.
+
+**(a) 고친 메서드가 목록 경로가 아니었습니다.** `findByPostId` 에 넣었는데 목록 API
+(`RideService.getListByPostId`)가 쓰는 건 **`findAllByPostId`** 입니다. `findByPostId` 의 호출처는
+`updateRide`(컨트롤러에서 주석 처리됨)와 `move`(application 도메인 내부 호출)뿐이고,
+**둘 다 `post` 를 읽지 않아** 거기 fetch 를 걸어도 얻을 게 없습니다.
+
+**(b) `join fetch <엔티티> <별칭> on ...` 문법은 페치가 되지 않습니다.**
+
+```java
+"select r from Ride r join fetch Post p on r.post=p where p.id=:postId"   // ❌ SELECT 2 그대로
+"select r from Ride r join fetch r.post p      where p.id=:postId"        // ✅ SELECT 1
+```
+
+파싱·실행은 되는데 연관을 초기화하지 않아 `post` 를 다시 SELECT 합니다. **에러가 안 나므로
+쿼리 수를 세지 않으면 고쳐진 줄 압니다.** 올바른 메서드에 (a)를 고쳐 넣어도 (b) 때문에
+여전히 SELECT 2 였습니다.
+
+> **같은 패턴이 정산 도메인에도 3곳 있습니다** — `SettlementRepository.findAllByUserIdAndDate` 의
+> `join fetch User u on ...`, `join fetch Application a on ...`, `join fetch Post p on ...`.
+> 측정해 보니 정산 목록은 요청당 **SELECT 5개**(목록 + count + application + post + 인증용 users)이고,
+> 연관 경로로 고치면 **3개**로 줄었습니다. 자세한 건
+> [정산 보고서 4-②](../../settlement/reports/REPORT.md#-정산-목록-쿼리를-정산에서-출발하게-바꿔라) 참고.
 
 ### ③ 서버 측 응답시간 백분위수를 노출
 
