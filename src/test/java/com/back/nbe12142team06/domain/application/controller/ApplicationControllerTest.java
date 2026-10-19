@@ -1046,10 +1046,11 @@ public class ApplicationControllerTest {
         ).andDo(print());
 
         resultActions
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.statusCode").value("400-24"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.statusCode").value("409-34"))
                 .andExpect(jsonPath("$.msg")
-                        .value("대기 중인 지원만 승인할 수 있습니다."));
+                        .value("이미 다른 동행매니저가 승인되었거나 동행 일정이 중복되어 승인할 수 없습니다."));
+
     }
 
     @Test
@@ -1420,10 +1421,11 @@ public class ApplicationControllerTest {
         resultActions
                 .andExpect(handler().handlerType(ApplicationController.class))
                 .andExpect(handler().methodName("accept"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.statusCode").value("400-26"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.statusCode").value("409-35"))
                 .andExpect(jsonPath("$.msg")
                         .value("이미 매칭된 다른 공고와 동행 시간이 겹칩니다."));
+
 
         // 승인 실패했으므로 두 번째 지원은 PENDING 유지
         Application pendingApplication = applicationRepository

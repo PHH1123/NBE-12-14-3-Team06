@@ -82,6 +82,14 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     @Query("SELECT a FROM Application a WHERE a.id = :id")
     Optional<Application> findByIdWithLock(@Param("id") Long id);
 
+    // 지원 ID로 공고 ID만 조회
+    @Query("SELECT a.post.id FROM Application a WHERE a.id = :id")
+    Optional<Long> findPostIdById(@Param("id") Long id);
+
+    // 지원 ID로 동행매니저 ID만 조회
+    @Query("SELECT a.escort.id FROM Application a WHERE a.id = :id")
+    Optional<Long> findEscortIdById(@Param("id") Long id);
+
     // 동행 매니저의 최근 위치 저장. 위치 컬럼만 바꾸는 조건부 UPDATE 다.
     // 엔티티를 불러와 고치면(더티체킹) 하이버네이트가 status 같은 안 바뀐 컬럼까지 함께 UPDATE 해서,
     // 같은 순간에 처리된 노쇼 취소·승인 등의 상태를 이전 값으로 되돌릴 수 있다. 그래서 위치 컬럼만 직접 바꾼다.

@@ -14,4 +14,15 @@ public enum ApplicationStatus {
     NO_SHOW("노쇼");
 
     private final String description;
+
+    // 지원 상태 전환 가능 여부 확인
+    public boolean canTransitionTo(ApplicationStatus next) {
+        if (next == null) return false;
+
+        return switch (this) {
+            case PENDING -> next == ACCEPTED || next == REJECTED || next == CANCELED;
+            case ACCEPTED -> next == CANCELED || next == NO_SHOW;
+            case REJECTED, CANCELED, NO_SHOW -> false;
+        };
+    }
 }
