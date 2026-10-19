@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.global.entity.BaseTimeEntity;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -84,33 +85,45 @@ public class Application extends BaseTimeEntity {
         syncActivePostId();
     }
 
+    //공통 상태 전환 검증
+    private void changeStatus(ApplicationStatus next){
+        if(!this.status.canTransitionTo(next)) {
+            throw new InvalidException(37, "변경할 수 없는 지원 상태입니다.");
+        }
+
+        this.status = next;
+        syncActivePostId();
+    }
+
+    // 지원 승인
     public void accept() {
-        this.status = ApplicationStatus.ACCEPTED;
+        changeStatus(ApplicationStatus.ACCEPTED);
         this.acceptedPostId = this.post.getId();
-        syncActivePostId();
     }
 
+    // 지원 거절
     public void reject() {
-        this.status = ApplicationStatus.REJECTED;
-        syncActivePostId();
+        changeStatus(ApplicationStatus.REJECTED);
     }
 
+    // 승인 전 지원 취소
     public void cancel() {
-        this.status = ApplicationStatus.CANCELED;
-        syncActivePostId();
+        if (this.status != ApplicationStatus.PENDING) {
+            throw new InvalidException(37, "대기 중인 지원만 일반 취소할 수 있습니다.");
+        }
+
+        changeStatus(ApplicationStatus.CANCELED);
     }
 
+    // 승인 후 동행매니저의 취소
     public void noShow() {
-        this.status = ApplicationStatus.NO_SHOW;
-        // 재매칭을 위해 승인된 공고 ID 초기화
+        changeStatus(ApplicationStatus.NO_SHOW);
         this.acceptedPostId = null;
-        syncActivePostId();
     }
 
     // 회원 탈퇴·정지로 인한 패널티 없는 지원취소
     public void cancelWithoutPenalty() {
-        this.status = ApplicationStatus.CANCELED;
+        changeStatus(ApplicationStatus.CANCELED);
         this.acceptedPostId = null;
-        syncActivePostId();
     }
 }
