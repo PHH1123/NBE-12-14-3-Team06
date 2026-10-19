@@ -13,7 +13,7 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@Profile("dev")
+@Profile({"dev", "test"})
 public class TossPaymentClientDev implements TossPaymentClient{
 
     private final RestClient tossRestClient;
