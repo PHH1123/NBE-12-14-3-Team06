@@ -147,4 +147,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             "where p.id=:postId and e.id=:escortId")
     List<Application> findByPostIdAndEscortId(@Param("postId") Long postId,
                                             @Param("escortId") Long escortId);
+           
+    // 이 공고에 승인(ACCEPTED)된 동행인인지
+    boolean existsByPostIdAndEscortIdAndStatus(Long postId, Long escortId, ApplicationStatus status);
 }

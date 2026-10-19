@@ -56,7 +56,7 @@ export async function fetchMyPostsRaw(page = 0, size = 100): Promise<PostPage> {
   };
 }
 
-/** 공고 상세 조회 — GET /api/v1/posts/{postId} (로그인 없이도 됩니다) */
+/** 공고 상세 조회 — GET /api/v1/posts/{postId} (로그인 필요. 환자 특이사항은 권한이 있을 때만 옴) */
 export async function fetchPost(postId: number): Promise<PostDetail> {
   const dto = await api<PostDto>(`/api/v1/posts/${postId}`);
   return toPostDetail(dto);

@@ -26,6 +26,7 @@ import com.back.nbe12142team06.domain.user.service.EscortService;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
+import com.back.nbe12142team06.global.security.SecurityUser;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -381,4 +382,22 @@ public class PostService {
             pendingApplication.cancelWithoutPenalty();
         }
     }
+    @Transactional
+    public boolean canViewSensitive(Post post, Long userId) {
+        // 작성자
+        if (post.getClient().getId().equals(userId)) {
+            return true;
+        }
+
+        // 관리자
+        User user = getUser(userId);
+        if (user.getRole() == Role.ADMIN) {
+            return true;
+        }
+
+        // 이 공고에 승인된 동행인
+        return applicationRepository.existsByPostIdAndEscortIdAndStatus(
+                post.getId(), userId, ApplicationStatus.ACCEPTED);
+    }
+
 }

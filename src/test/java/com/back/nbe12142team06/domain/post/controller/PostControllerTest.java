@@ -190,7 +190,7 @@ public class PostControllerTest {
 
         ResultActions resultActions = mvc
                 .perform(get("/api/v1/posts")
-                        .cookie(new Cookie("accessToken", "")))
+                        .cookie(accessTokenCookie))
                 .andDo(print());
 
         resultActions
@@ -209,7 +209,7 @@ public class PostControllerTest {
     void t2() throws Exception {
         ResultActions resultActions = mvc
                 .perform(get("/api/v1/posts")
-                        .cookie(new Cookie("accessToken", "")))
+                        .cookie(accessTokenCookie))
                 .andDo(print());
 
         resultActions
@@ -243,7 +243,7 @@ public class PostControllerTest {
         // 등록된 공고 조회
         ResultActions resultActions = mvc
                 .perform(get("/api/v1/posts/{id}", postId)
-                        .cookie(new Cookie("accessToken", "")))
+                        .cookie(accessTokenCookie))
                 .andDo(print());
 
         resultActions
@@ -264,7 +264,7 @@ public class PostControllerTest {
 
         ResultActions resultActions = mvc
                 .perform(get("/api/v1/posts/{id}", notExistingId)
-                        .cookie(new Cookie("accessToken", "")))
+                        .cookie(accessTokenCookie))
                 .andDo(print());
 
         resultActions
@@ -654,7 +654,7 @@ public class PostControllerTest {
 
         ResultActions resultActions = mvc
                 .perform(get("/api/v1/posts")
-                        .cookie(new Cookie("accessToken", "")))
+                        .cookie(accessTokenCookie))
                 .andDo(print());
 
         resultActions
@@ -682,7 +682,7 @@ public class PostControllerTest {
 
         ResultActions resultActions = mvc
                 .perform(get("/api/v1/posts")
-                        .cookie(new Cookie("accessToken", "")))
+                        .cookie(accessTokenCookie))
                 .andDo(print());
 
         resultActions
@@ -765,7 +765,7 @@ public class PostControllerTest {
 
         ResultActions resultActions = mvc
                 .perform(get("/api/v1/posts")
-                        .cookie(new Cookie("accessToken", "")))
+                        .cookie(accessTokenCookie))
                 .andDo(print());
 
         resultActions
@@ -781,7 +781,7 @@ public class PostControllerTest {
         ResultActions resultActions = mvc
                 .perform(get("/api/v1/posts")
                         .param("keyword", "정형외과")
-                        .cookie(new Cookie("accessToken", "")))
+                        .cookie(accessTokenCookie))
                 .andDo(print());
 
         resultActions
@@ -993,5 +993,104 @@ public class PostControllerTest {
         resultActions
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.statusCode").value("400-81"));
+    }
+
+    // ===== 공고 조회 권한 / 환자 특이사항 노출 =====
+
+    private User saveUser(String username, String email, Role role) {
+        return userRepository.save(new User(
+                username, passwordEncoder.encode("pw1234!"),
+                email, username, role, Gender.MALE,
+                LocalDate.of(1990, 1, 1), "010-5555-6666", "서울"
+        ));
+    }
+
+    @Test
+    @DisplayName("[PostController] 공고 조회 - 비로그인은 목록·상세 모두 401")
+    void sensitive1() throws Exception {
+        Long postId = registerPost();
+
+        mvc.perform(get("/api/v1/posts")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/posts/{postId}", postId)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("[PostController] 공고 상세 - 작성자는 환자 특이사항을 본다")
+    void sensitive2() throws Exception {
+        Long postId = registerPost();
+
+        mvc.perform(get("/api/v1/posts/{postId}", postId).cookie(accessTokenCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.patientNote").value("거동이 불편하신 70대 어르신"))
+                .andExpect(jsonPath("$.data.canViewSensitive").value(true));
+    }
+
+    @Test
+    @DisplayName("[PostController] 공고 상세 - 승인되지 않은 일반 회원은 환자 특이사항이 가려진다")
+    void sensitive3() throws Exception {
+        Long postId = registerPost();
+        saveUser("stranger", "stranger@test.com", Role.ESCORT);
+        Cookie cookie = login("stranger", "pw1234!");
+
+        mvc.perform(get("/api/v1/posts/{postId}", postId).cookie(cookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.title").exists())
+                .andExpect(jsonPath("$.data.patientNote").doesNotExist())
+                .andExpect(jsonPath("$.data.canViewSensitive").value(false));
+    }
+
+    @Test
+    @DisplayName("[PostController] 공고 상세 - 대기 중인 지원자는 가려지고, 승인된 동행인은 본다")
+    void sensitive4() throws Exception {
+        Long postId = registerPost();
+        Post post = postRepository.findById(postId).orElseThrow();
+        User escort = saveUser("escortA", "escortA@test.com", Role.ESCORT);
+        Application application = applicationRepository.saveAndFlush(
+                Application.builder().post(post).escort(escort).build());
+        Cookie cookie = login("escortA", "pw1234!");
+
+        // 대기(PENDING) 상태
+        mvc.perform(get("/api/v1/posts/{postId}", postId).cookie(cookie))
+                .andExpect(jsonPath("$.data.patientNote").doesNotExist())
+                .andExpect(jsonPath("$.data.canViewSensitive").value(false));
+
+        // 승인(ACCEPTED) 후
+        application.accept();
+        applicationRepository.saveAndFlush(application);
+
+        mvc.perform(get("/api/v1/posts/{postId}", postId).cookie(cookie))
+                .andExpect(jsonPath("$.data.patientNote").value("거동이 불편하신 70대 어르신"))
+                .andExpect(jsonPath("$.data.canViewSensitive").value(true));
+    }
+
+    @Test
+    @DisplayName("[PostController] 공고 상세 - 관리자는 환자 특이사항을 본다")
+    void sensitive5() throws Exception {
+        Long postId = registerPost();
+        saveUser("adminUser2", "admin2@test.com", Role.ADMIN);
+        Cookie cookie = login("adminUser2", "pw1234!");
+
+        mvc.perform(get("/api/v1/posts/{postId}", postId).cookie(cookie))
+                .andExpect(jsonPath("$.data.patientNote").value("거동이 불편하신 70대 어르신"))
+                .andExpect(jsonPath("$.data.canViewSensitive").value(true));
+    }
+
+    @Test
+    @DisplayName("[PostController] 공고 목록 - 작성자가 봐도 환자 특이사항은 내려가지 않는다")
+    void sensitive6() throws Exception {
+        Long postId = registerPost();
+        // 결제 완료된 공고만 목록에 나온다
+        Payment payment = paymentRepository.findAll().stream()
+                .filter(p -> p.getPost().getId().equals(postId))
+                .findFirst()
+                .orElseThrow();
+        payment.statusUpdate(PaymentStatus.DONE);
+        paymentRepository.saveAndFlush(payment);
+
+        mvc.perform(get("/api/v1/posts").cookie(accessTokenCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].title").exists())
+                .andExpect(jsonPath("$.data.content[0].patientNote").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].canViewSensitive").value(false));
     }
 }
