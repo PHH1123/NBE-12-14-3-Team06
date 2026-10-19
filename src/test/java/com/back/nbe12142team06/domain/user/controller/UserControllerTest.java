@@ -532,7 +532,9 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.data.phoneNum").value("010-1234-5678"))
                 .andExpect(jsonPath("$.data.region").value("서울시"))
                 .andExpect(jsonPath("$.data.createdAt").exists())
-                .andExpect(jsonPath("$.data.password").doesNotExist());
+                .andExpect(jsonPath("$.data.password").doesNotExist())
+                .andExpect(jsonPath("$.data.userStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.suspendEndAt").value(nullValue()));
     }
 
     @Test

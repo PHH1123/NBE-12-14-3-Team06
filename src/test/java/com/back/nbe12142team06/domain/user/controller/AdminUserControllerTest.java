@@ -261,7 +261,9 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.data.region").value("서울시"))
                 .andExpect(jsonPath("$.data.createdAt").exists())
                 .andExpect(jsonPath("$.data.password").doesNotExist())
-                .andExpect(jsonPath("$.data.deletedAt").value(nullValue()));
+                .andExpect(jsonPath("$.data.deletedAt").value(nullValue()))
+                .andExpect(jsonPath("$.data.userStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.suspendEndAt").value(nullValue()));
     }
 
     @Test
