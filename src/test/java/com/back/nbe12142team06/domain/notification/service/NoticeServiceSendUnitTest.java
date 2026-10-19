@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
@@ -39,6 +40,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
  * 실제 SSE 전송은 NotificationEventListener 가 커밋 후에 하므로 여기서는 다루지 않습니다.
  */
 @ExtendWith(MockitoExtension.class)
+@Transactional
 class NoticeServiceSendUnitTest {
 
     @Mock
