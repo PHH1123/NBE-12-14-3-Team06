@@ -1169,4 +1169,30 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.statusCode").value("401-113"))
                 .andExpect(jsonPath("$.msg").value("로그인 후 이용해주세요."));
     }
+
+    @Test
+    @DisplayName("[AdminUserController] 회원 단건 조회 - 영구 정지된 회원은 userStatus=BANNED, suspendEndAt=null, statusReason 반환")
+    void t38() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        requestBan(user1Id, adminToken)
+                .andExpect(status().isOk());
+
+        ResultActions resultActions = mvc.perform(
+                get("/api/v1/admin/users/{id}", user1Id)
+                        .cookie(adminToken)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-1"))
+                .andExpect(jsonPath("$.data.id").value(user1Id))
+                .andExpect(jsonPath("$.data.userStatus").value("BANNED"))
+                .andExpect(jsonPath("$.data.suspendEndAt").value(nullValue()))
+                .andExpect(jsonPath("$.data.statusReason").value("욕설"));
+    }
 }
