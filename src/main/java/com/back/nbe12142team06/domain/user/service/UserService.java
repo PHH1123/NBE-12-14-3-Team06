@@ -143,6 +143,15 @@ public class UserService {
                 .orElseThrow(() -> new UnauthorizedException(3, "회원 정보를 찾을 수 없습니다. 다시 로그인해주세요."));
     }
 
+    // 정지 계정의 마지막 상태 이력 (ACTIVE는 null 반환)
+    @Transactional(readOnly = true)
+    public UserStatusHistory findCurrentSanction(User user) {
+        if (user.isActive()) return null;
+        return this.userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)
+                .filter(history -> history.getStatus() == user.getUserStatus())
+                .orElse(null);
+    }
+
     // username 중복 검사
     @Transactional(readOnly = true)
     public boolean isUsernameAvailable(String username) {

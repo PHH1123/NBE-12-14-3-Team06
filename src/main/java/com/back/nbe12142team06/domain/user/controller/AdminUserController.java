@@ -37,7 +37,7 @@ public class AdminUserController {
         return new RsData<>(
                 "200-1",
                 "회원 정보 조회가 완료되었습니다.",
-                new AdminUserResponse(user)
+                new AdminUserResponse(user, this.userService.findCurrentSanction(user))
         );
     }
 
@@ -76,7 +76,7 @@ public class AdminUserController {
         return new RsData<>(
                 "200-3",
                 "회원 정보가 수정되었습니다.",
-                new AdminUserResponse(user)
+                new AdminUserResponse(user, this.userService.findCurrentSanction(user))
         );
     }
 

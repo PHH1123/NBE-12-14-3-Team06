@@ -539,6 +539,10 @@ class ApplicationConcurrencyTest {
         application.accept();
         application = applicationRepository.save(application);
 
+        // 지원이 승인되면 공고도 매칭 완료 상태여야 출발(동행 진행 중) 처리를 할 수 있다
+        post.match();
+        postRepository.save(post);
+
         Long applicationId = application.getId();
 
         ExecutorService executorService =
