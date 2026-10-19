@@ -65,6 +65,8 @@ public class PaymentService {
         verifyAmount(String.valueOf(payment.getAmount()), new SaveAmountRequest(payment.getId(), null, amount));
         if (paymentPersistenceService.confirmUpdateStatus(payment.getId()) <= 0) {
             throw new InvalidException(44, "결제 대기 중인 데이터가 없습니다.");
+        } else {
+            payment.statusUpdate(PaymentStatus.IN_PROGRESS);
         }
 
         // 2. 외부 API 호출
@@ -276,6 +278,12 @@ public class PaymentService {
         int failedCount = 0;
 
         for (Payment payment : payments) {
+
+            if (payment.getPaymentKey() == null) {
+                paymentPersistenceService.paymentCancelDb(payment.getId(), "미결제 공고 삭제", false);
+                continue;
+            }
+
             String tossPaymentKey = payment.getPaymentKey();
             String cancelReason = "공고 삭제로 인한 결제 취소";
 

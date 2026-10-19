@@ -3,6 +3,7 @@ package com.back.nbe12142team06.domain.payment.entity;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.settlement.entity.Settlement;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -90,6 +91,10 @@ public class Payment extends BaseSoftDeleteTimeEntity {
     private Settlement settlement;
 
     public void statusUpdate(PaymentStatus status) {
+        if (!paymentStatus.canTransitionTo(status)) {
+            throw new InvalidException(72, "'%s' 상태의 결제는 '%s' 상태로 바꿀 수 없습니다."
+                    .formatted(this.paymentStatus.getDescription(), status.getDescription()));
+        }
         this.paymentStatus = status;
     }
 

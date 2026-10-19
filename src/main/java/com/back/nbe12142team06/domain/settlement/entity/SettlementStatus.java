@@ -12,4 +12,12 @@ public enum SettlementStatus {
     FAILED("정산 실패");
 
     private final String description;
+
+    public boolean canTransitionTo(SettlementStatus next) {
+        return switch (this) {
+            case PENDING, FAILED -> next == PROCESSING;
+            case PROCESSING -> next == COMPLETED || next == FAILED;
+            case COMPLETED -> false;
+        };
+    }
 }
