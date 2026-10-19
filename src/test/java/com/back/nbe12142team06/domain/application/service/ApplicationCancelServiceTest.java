@@ -72,16 +72,16 @@ class ApplicationCancelServiceTest {
         Application application = mock(Application.class);
         Post post = mock(Post.class);
 
-        when(applicationRepository.findById(applicationId))
+        when(applicationRepository.findPostIdById(applicationId))
+                .thenReturn(Optional.of(postId));
+
+        when(applicationRepository.findByIdWithLock(applicationId))
                 .thenReturn(Optional.of(application));
 
         when(application.getEscort()).thenReturn(escort);
         when(escort.getId()).thenReturn(escortId);
-        when(application.getPost()).thenReturn(post);
         when(application.getStatus())
                 .thenReturn(com.back.nbe12142team06.domain.application.enums.ApplicationStatus.ACCEPTED);
-
-        when(post.getId()).thenReturn(postId);
         when(post.getPostStatus()).thenReturn(status);
 
         when(postRepository.findByIdWithLock(postId))
@@ -113,15 +113,23 @@ class ApplicationCancelServiceTest {
     @Test
     @DisplayName("대기 중인 지원은 정상적으로 취소할 수 있다")
     void cancel_whenPending_success() {
-        // given
         Long applicationId = 1L;
         Long escortId = 2L;
+        Long postId = 3L;
 
         User escort = mock(User.class);
         Application application = mock(Application.class);
+        Post post = mock(Post.class);
 
-        when(applicationRepository.findById(applicationId))
+        when(applicationRepository.findPostIdById(applicationId))
+                .thenReturn(Optional.of(postId));
+
+        when(postRepository.findByIdWithLock(postId))
+                .thenReturn(Optional.of(post));
+
+        when(applicationRepository.findByIdWithLock(applicationId))
                 .thenReturn(Optional.of(application));
+
         when(application.getEscort()).thenReturn(escort);
         when(escort.getId()).thenReturn(escortId);
         when(application.getStatus())
@@ -133,7 +141,6 @@ class ApplicationCancelServiceTest {
         // then
         verify(application).cancel();
         verifyNoInteractions(
-                postRepository,
                 noShowPenaltyService,
                 paymentService,
                 noticeService
@@ -153,11 +160,13 @@ class ApplicationCancelServiceTest {
         Post post = mock(Post.class);
         EscortProfile escortProfile = mock(EscortProfile.class);
 
-        when(applicationRepository.findById(applicationId))
+        when(applicationRepository.findPostIdById(applicationId))
+                .thenReturn(Optional.of(postId));
+
+        when(applicationRepository.findByIdWithLock(applicationId))
                 .thenReturn(Optional.of(application));
         when(application.getEscort()).thenReturn(escort);
         when(escort.getId()).thenReturn(escortId);
-        when(application.getPost()).thenReturn(post);
         when(application.getStatus()).thenReturn(ApplicationStatus.ACCEPTED);
 
         when(post.getId()).thenReturn(postId);

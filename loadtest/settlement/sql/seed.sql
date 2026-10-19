@@ -29,6 +29,8 @@ SET @lt_escort_name := 'escort01';
 SET @lt_client_name := 'client03';
 
 -- 정산 요청 부하용 (한 건당 한 번만 요청 가능)
+-- ⚠️ spike 프로파일은 약 30,000 반복을 돌립니다. 그걸 재려면 35000 이상으로 올리세요.
+--    (RATE × DURATION 이 아니라 프로파일 전체 반복 수가 기준입니다)
 SET @pending_count := 8000;
 -- 조회 부하용
 SET @completed_count := 4000;

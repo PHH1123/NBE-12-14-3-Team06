@@ -53,7 +53,7 @@ public class SettlementController {
         Long userId = actor.getId();
 
         startDate = startDate == null ? LocalDate.now().minusMonths(1) : startDate;
-        endDate = endDate == null ? LocalDate.now() : endDate;
+        endDate = endDate == null ? LocalDate.now().plusDays(1) : endDate.plusDays(1);
 
         Page<SettlementResponse> response = settlementService.findAll(userId, startDate, endDate, PageRequest.of(page, size,
                 Sort.by(sort, "settledDate")));

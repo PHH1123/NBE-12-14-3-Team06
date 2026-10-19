@@ -34,8 +34,10 @@ export const SEED_POST_PREFIX = '[LT-SETL-';
  * 시드는 escortStartAt 을 "지난 1~25일"에 흩어 두므로 기본값으로도 잡히지만,
  * setup 에서 전건을 긁을 때는 넉넉하게 넓혀 둡니다.
  */
-export const LIST_FROM = __ENV.LIST_FROM || '2000-01-01T00:00:00';
-export const LIST_TO = __ENV.LIST_TO || '2100-01-01T00:00:00';
+// ⚠️ 2026-10-19 부터 컨트롤러 파라미터가 LocalDateTime -> LocalDate 로 바뀌었습니다.
+//    '2000-01-01T00:00:00' 형식을 보내면 400 입니다. 날짜만 보내세요.
+export const LIST_FROM = __ENV.LIST_FROM || '2000-01-01';
+export const LIST_TO = __ENV.LIST_TO || '2100-01-01';
 
 /** setup 이 정산 목록을 긁을 때 한 페이지 크기 */
 export const LIST_PAGE_SIZE = Number(__ENV.LIST_PAGE_SIZE || 2000);

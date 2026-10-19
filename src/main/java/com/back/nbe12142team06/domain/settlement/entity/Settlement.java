@@ -1,14 +1,13 @@
 package com.back.nbe12142team06.domain.settlement.entity;
 
 import com.back.nbe12142team06.domain.application.entity.Application;
-import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**
  * 정산 엔티티
@@ -72,10 +71,14 @@ public class Settlement extends BaseSoftDeleteTimeEntity {
     private User escort;
 
     private void updateStatus(SettlementStatus status) {
+        if (!this.settlementStatus.canTransitionTo(status)) {
+            throw new InvalidException(72, "'%s' 상태의 정산은 '%s' 상태로 바꿀 수 없습니다."
+                    .formatted(this.settlementStatus.getDescription(), status.getDescription()));
+        }
         this.settlementStatus = status;
     }
 
-    public void settlementDone() {
+    public void settlementCompleted() {
         updateStatus(SettlementStatus.COMPLETED);
     }
 

@@ -52,7 +52,7 @@ public class PaymentService {
         String tossPaymentKey = request.paymentKey();
         String tossOrderId = request.orderId();
         String amount = request.amount();
-
+        
         // 2. 외부 API 호출
         ResponseEntity<TossConfirmResponse> response;
         try {
@@ -255,6 +255,12 @@ public class PaymentService {
         int failedCount = 0;
 
         for (Payment payment : payments) {
+
+            if (payment.getPaymentKey() == null) {
+                paymentPersistenceService.paymentCancelDb(payment.getId(), "미결제 공고 삭제", false);
+                continue;
+            }
+
             String tossPaymentKey = payment.getPaymentKey();
             String cancelReason = "공고 삭제로 인한 결제 취소";
 

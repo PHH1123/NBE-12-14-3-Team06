@@ -248,32 +248,33 @@ public class SettlementServiceAdminTest {
         assertThat(result.getLast().userId()).isEqualTo(escort.getId());
     }
 
-    @Test
-    @DisplayName("[SettlementService] 관리자 정산 요청 - PROCESSING 상태여도 정산된다")
-    void requestForAdmin() {
-        User client = createClient();
-        User escort = createEscort();
-        userRepository.save(client);
-        escort = userRepository.save(escort);
-        escortProfileRepository.save(createEscortProfile(escort));
-
-        Post post = postRepository.save(createPost(client, null, 10));
-        Application application = applicationRepository.save(createApplication(escort, post));
-
-        Settlement settlement = settlementRepository.save(
-                createSettlement(null, 135_000, 15_000, 0,
-                        SettlementStatus.PROCESSING, LocalDate.now(), application, escort));
-
-        doReturn(new SettlementClientResponse("123-000000-123", "동행매니저", 135_000))
-                .when(settlementClient).settlementRequest(any());
-
-        settlementService.requestForAdmin(settlement.getId());
-
-        em.flush();
-        em.clear();
-
-        Settlement result = settlementRepository.findById(settlement.getId()).get();
-
-        assertThat(result.getSettlementStatus()).isEqualTo(SettlementStatus.COMPLETED);
-    }
+    // deprecated - PROCESSING 상태도 정산 되도록 하면 관리자의 부주의 이중 정산의 위험성이 있어 삭제 예정
+//    @Test
+//    @DisplayName("[SettlementService] 관리자 정산 요청 - PROCESSING 상태여도 정산된다")
+//    void requestForAdmin() {
+//        User client = createClient();
+//        User escort = createEscort();
+//        userRepository.save(client);
+//        escort = userRepository.save(escort);
+//        escortProfileRepository.save(createEscortProfile(escort));
+//
+//        Post post = postRepository.save(createPost(client, null, 10));
+//        Application application = applicationRepository.save(createApplication(escort, post));
+//
+//        Settlement settlement = settlementRepository.save(
+//                createSettlement(null, 135_000, 15_000, 0,
+//                        SettlementStatus.PROCESSING, LocalDate.now(), application, escort));
+//
+//        doReturn(new SettlementClientResponse("123-000000-123", "동행매니저", 135_000))
+//                .when(settlementClient).settlementRequest(any());
+//
+//        settlementService.requestForAdmin(settlement.getId());
+//
+//        em.flush();
+//        em.clear();
+//
+//        Settlement result = settlementRepository.findById(settlement.getId()).get();
+//
+//        assertThat(result.getSettlementStatus()).isEqualTo(SettlementStatus.COMPLETED);
+//    }
 }

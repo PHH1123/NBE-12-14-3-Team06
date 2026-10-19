@@ -14,4 +14,14 @@ public enum PaymentStatus {
     DELETED("공고 삭제된 결제");
 
     private final String description;
+
+    public boolean canTransitionTo(PaymentStatus next) {
+        return switch (this) {
+            case READY -> next == IN_PROGRESS || next == DELETED;
+            case IN_PROGRESS -> next == DONE;
+            case DONE -> next == CANCELED || next == PARTIAL_CANCELED || next == DELETED;
+            case CANCELED, PARTIAL_CANCELED -> false;
+            case DELETED -> next == CANCELED;
+        };
+    }
 }

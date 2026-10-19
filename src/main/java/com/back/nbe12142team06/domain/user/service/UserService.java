@@ -237,7 +237,7 @@ public class UserService {
     // 일반 회원의 회원 탈퇴
     @Transactional
     public void deleteMyProfile(Long id) {
-        User user = this.userRepository.findById(id)
+        User user = this.userRepository.findByIdWithLock(id)
                 .orElseThrow(() -> new UnauthorizedException(3, "회원 정보를 찾을 수 없습니다. 다시 로그인해주세요."));
 
         if (user.getRole() == Role.ADMIN) {
@@ -439,7 +439,7 @@ public class UserService {
     @Transactional
     public UserStatusHistory suspendUser(Long adminId, Long userId, String reason) {
         // 패널티 대상이 존재하는 회원인지 확인
-        User user = this.userRepository.findById(userId)
+        User user = this.userRepository.findByIdWithLock(userId)
                 .orElseThrow(() -> new NotFoundException(
                         1,
                         "회원 정보를 찾을 수 없습니다."
@@ -466,7 +466,7 @@ public class UserService {
     @Transactional
     public UserStatusHistory banUser(Long adminId, Long userId, String reason) {
         // 패널티 대상이 존재하는 회원인지 확인
-        User user = this.userRepository.findById(userId)
+        User user = this.userRepository.findByIdWithLock(userId)
                 .orElseThrow(() -> new NotFoundException(
                         1,
                         "회원 정보를 찾을 수 없습니다."
