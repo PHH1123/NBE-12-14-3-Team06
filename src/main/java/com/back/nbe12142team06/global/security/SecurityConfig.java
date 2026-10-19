@@ -42,7 +42,7 @@ public class SecurityConfig {
                     // 교육영상
                     .requestMatchers("/api/v1/education-videos/**").hasRole("ESCORT")  // 교육 영상 목록, 단건, 시청 기록
                     // 공고
-                    .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/**").permitAll() //공고
+                    .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/**").authenticated() //공고
                     .requestMatchers(HttpMethod.POST,"/api/v1/posts").hasAnyRole("CLIENT","ADMIN") //공고 생성
                     .requestMatchers(HttpMethod.PUT, "/api/v1/posts/*").hasAnyRole("CLIENT", "ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/api/v1/posts/*").hasAnyRole("CLIENT", "ADMIN")

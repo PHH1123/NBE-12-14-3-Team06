@@ -29,16 +29,20 @@ public record PostDto(
         String postStatus,
         boolean reportRequired,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        boolean canViewSensitive //민감정보 권한
 ) {
     public PostDto(Post post) {
+        this(post, true);
+    }
+    public PostDto(Post post,boolean canViewSensitive) {
         this(
                 post.getId(),
                 post.getClient().getId(),
                 post.getClient().getUsername(),
                 post.getTitle(),
                 post.getContent(),
-                post.getPatientNote(),
+                canViewSensitive ? post.getPatientNote() : null,
                 post.getRegion(),
                 post.getHospitalName(),
                 post.getHospitalAddress(),
@@ -57,7 +61,10 @@ public record PostDto(
                 post.getPostStatus().getDescription(),
                 post.isReportRequired(),
                 post.getCreatedAt(),
-                post.getUpdatedAt()
+                post.getUpdatedAt(),
+                canViewSensitive
         );
     }
+
+
 }
