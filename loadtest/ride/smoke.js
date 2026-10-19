@@ -91,17 +91,17 @@ export default function (data) {
       '남의 상세 statusCode 403-81': (r) => peekStatusCode(r) === '403-81',
     });
 
-    // ⚠️ 목록(GET /rides/posts/{postId})에는 소유권 검증이 없습니다.
-    // SecurityConfig 에서 /api/** 가 authenticated() 로만 걸려 있어 로그인만 하면 통과합니다.
-    // 아래 체크는 "막힌다"가 아니라 **지금 동작을 기록해 두는 것**입니다.
-    // 서버에 소유권 검증이 추가되면 이 체크가 깨지면서 알려 줍니다.
+    // 목록도 2026-10-19 부터 소유권 검증이 들어갔습니다
+    // (RideService.getListByPostIdAndUserId -> 공고 작성자이거나 그 공고에 지원한 동행 매니저만 통과).
+    // 그 전에는 로그인만 하면 누구나 볼 수 있었습니다.
     const otherList = http.get(`${BASE_URL}/api/v1/rides/posts/${postId}`, {
       headers: authHeaders(OTHER_CLIENT),
-      tags: { endpoint: 'ride_list_other_user' },
+      tags: { endpoint: 'ride_list_forbidden' },
     });
 
     check(otherList, {
-      '남의 공고 목록은 현재 200 (소유권 검증 없음)': (r) => r.status === 200,
+      '남의 공고 목록 403': (r) => r.status === 403,
+      '남의 공고 목록 403-81': (r) => peekStatusCode(r) === '403-81',
     });
   });
 }

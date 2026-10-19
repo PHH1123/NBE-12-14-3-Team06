@@ -56,7 +56,7 @@ public class SettlementController {
         endDate = endDate == null ? LocalDate.now().plusDays(1) : endDate.plusDays(1);
 
         Page<SettlementResponse> response = settlementService.findAll(userId, startDate, endDate, PageRequest.of(page, size,
-                Sort.by(sort, "settledDate")));
+                Sort.by(sort, "settledDate").and(Sort.by(sort, "id"))));
 
         return new RsData<>("200-72", "정산 목록을 가져왔습니다.",
                 response);

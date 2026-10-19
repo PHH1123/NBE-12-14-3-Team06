@@ -21,6 +21,10 @@ loadtest/
    └─ (같은 구조)
 ```
 
+> 📘 **어떻게 재고 무엇을 봐야 하는지는 [GUIDE.md](GUIDE.md) 에 정리돼 있습니다.**
+> 목적(용량 산정 / 병목 진단 / 회귀 확인)별로 봐야 할 지표와, 이번에 실제로 빠졌던
+> 측정 함정들을 모아 뒀습니다.
+
 | 도메인 | 성격 | 상태 | 문서 |
 |---|---|---|---|
 | 결제 (payment) | 읽기 + 쓰기 + 동시성 | 측정 완료 · **개선 A/B 완료** | [README](payment/README.md) · [보고서](payment/reports/REPORT-2026-10-18-grafana.md) · [벌크 UPDATE A/B](payment/reports/REPORT-2026-10-18-bulk-reject.md) |
