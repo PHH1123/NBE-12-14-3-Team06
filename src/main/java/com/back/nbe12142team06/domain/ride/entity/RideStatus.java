@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.ride.entity;
 
+import com.back.nbe12142team06.domain.settlement.entity.SettlementStatus;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -11,4 +12,12 @@ public enum RideStatus {
     COMPLETED("이동 완료");
 
     private final String description;
+
+    public boolean canTransitionTo(RideStatus next) {
+        return switch (this) {
+            case ACCEPTED -> next == IN_PROGRESS;
+            case IN_PROGRESS -> next == COMPLETED;
+            case COMPLETED -> false;
+        };
+    }
 }
