@@ -49,5 +49,6 @@ export function toPostDetail(dto: PostDto): PostDetail {
     reportRequired: dto.reportRequired,
     recruitPeriod: `${formatMonthDayTime(dto.recruitStartAt)} ~ ${formatMonthDayTime(dto.recruitEndAt)}`,
     recruitStarted: parseDateTime(dto.recruitStartAt).getTime() <= Date.now(),
+    canViewSensitive: dto.canViewSensitive,
   };
 }
