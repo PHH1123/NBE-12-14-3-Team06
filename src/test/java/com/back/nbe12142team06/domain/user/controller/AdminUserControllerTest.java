@@ -64,6 +64,23 @@ public class AdminUserControllerTest {
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
+    // 정지 해제 요청
+    private ResultActions requestRelease(Long userId, Cookie token) throws Exception {
+        var request = post("/api/v1/admin/users/{userId}/release", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "reason": "관리자 실수 ㅈㅅㅈㅅ"
+                    }
+                    """);
+
+        if (token != null) {
+            request.cookie(token);
+        }
+
+        return mvc.perform(request).andDo(print());
+    }
+
     // 기간 정지 요청
     private ResultActions requestSuspension(Long userId, Cookie token) throws Exception {
         var request = post("/api/v1/admin/users/{userId}/suspension", userId)
@@ -81,6 +98,22 @@ public class AdminUserControllerTest {
         return mvc.perform(request).andDo(print());
     }
 
+    // 영구 정지 요청
+    private ResultActions requestBan(Long userId, Cookie token) throws Exception {
+        var request = post("/api/v1/admin/users/{userId}/ban", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "reason": "욕설"
+                    }
+                    """);
+
+        if (token != null) {
+            request.cookie(token);
+        }
+
+        return mvc.perform(request).andDo(print());
+    }
     // 관리자 계정 주입
     private void createTestAdmin() {
         User admin = new User(
@@ -770,7 +803,8 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.msg").value("회원이 기간 정지되었습니다."))
                 .andExpect(jsonPath("$.data.username").value("user1"))
                 .andExpect(jsonPath("$.data.startAt").isNotEmpty())
-                .andExpect(jsonPath("$.data.endAt").isNotEmpty());
+                .andExpect(jsonPath("$.data.endAt").isNotEmpty())
+                .andExpect(jsonPath("$.data.userStatus").value("SUSPENDED"));
 
         em.flush();
         em.clear();
@@ -803,7 +837,7 @@ public class AdminUserControllerTest {
         requestSuspension(user1Id, adminToken)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.statusCode").value("400-8"))
-                .andExpect(jsonPath("$.msg").value("이미 정지 상태인 계정입니다."));
+                .andExpect(jsonPath("$.msg").value("이미 기간 정지 상태인 계정입니다."));
     }
 
     @Test
@@ -882,5 +916,255 @@ public class AdminUserControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.statusCode").value("403-1"))
                 .andExpect(jsonPath("$.msg").value("권한이 없습니다."));
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 영구 정지 요청 - 관리자가 ACTIVE 상태의 유저를 정지 요청 시 유저 상태를 BANNED로 변경 후 200-11 반환")
+    void t27() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+        Long adminId = findUserId(ADMIN_USERNAME);
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/admin/users/{userId}/ban",  user1Id)
+                        .cookie(adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "reason": "욕설"
+                                }
+                                """)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-11"))
+                .andExpect(jsonPath("$.msg").value("회원이 영구 정지되었습니다."))
+                .andExpect(jsonPath("$.data.username").value("user1"))
+                .andExpect(jsonPath("$.data.startAt").isNotEmpty())
+                .andExpect(jsonPath("$.data.userStatus").value("BANNED"));
+
+        em.flush();
+        em.clear();
+
+        User user = this.userRepository.findById(user1Id).orElseThrow();
+        assertThat(user.getUserStatus()).isEqualTo(UserStatus.BANNED);
+
+        UserStatusHistory history = this.userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElseThrow();
+        assertThat(history.getStatus()).isEqualTo(UserStatus.BANNED);
+        assertThat(history.getAdminId()).isEqualTo(adminId);
+        assertThat(history.getReason()).isEqualTo("욕설");
+        assertThat(history.getEndAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 영구 정지 요청 - 이미 영구 정지된 회원을 정지 요청 시 400-8 반환")
+    void t28() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        // 첫 번째 정지
+        requestBan(user1Id, adminToken)
+                .andExpect(status().isOk());
+
+        // 두 번째 정지
+        requestBan(user1Id, adminToken)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value("400-8"))
+                .andExpect(jsonPath("$.msg").value("이미 영구 정지 상태인 계정입니다."));
+    }
+    @Test
+    @DisplayName("[AdminUserController] 영구 정지 요청 - 관리자 계정을 정지 요청 시 400-6 반환")
+    void t29() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+        Long adminId = findUserId(ADMIN_USERNAME);
+
+        requestBan(adminId, adminToken)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value("400-6"))
+                .andExpect(jsonPath("$.msg").value("관리자의 계정을 정지시킬 수 없습니다."));
+
+        // 상태 유지 확인
+        em.flush();
+        em.clear();
+
+        User admin = userRepository.findById(adminId).orElseThrow();
+        assertThat(admin.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 영구 정지 요청 - 존재하지 않는 회원을 정지 요청 시 404-1 반환")
+    void t30() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        requestBan(Long.MAX_VALUE, adminToken)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.statusCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("회원 정보를 찾을 수 없습니다."));
+    }
+    @Test
+    @DisplayName("[AdminUserController] 영구 정지 요청 - 로그인 없이 요청 시 401-113 반환")
+    void t31() throws Exception {
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        requestBan(user1Id, null)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.statusCode").value("401-113"))
+                .andExpect(jsonPath("$.msg").value("로그인 후 이용해주세요."));
+    }
+    @Test
+    @DisplayName("[AdminUserController] 영구 정지 요청 - 일반 회원이 요청 시 403-1 반환")
+    void t32() throws Exception {
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+        Cookie user2Token = signUp("user2");
+
+        requestBan(user1Id, user2Token)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-1"))
+                .andExpect(jsonPath("$.msg").value("권한이 없습니다."));
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 정지 해제 요청 - 관리자의 기간 정지 회원에 대한 정지 해제 요청 시 200-12 반환")
+    void t33() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+        Long adminId = findUserId(ADMIN_USERNAME);
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        // 기간 정지
+        requestSuspension(user1Id, adminToken)
+                .andExpect(status().isOk());
+
+        // 정지 해제 요청
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/admin/users/{userId}/release", user1Id)
+                        .cookie(adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "reason": "그냥 그냥 그냥 그냥"
+                                }
+                                """)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-12"))
+                .andExpect(jsonPath("$.msg").value("회원의 정지가 해제되었습니다."))
+                .andExpect(jsonPath("$.data.username").value("user1"))
+                .andExpect(jsonPath("$.data.userStatus").value("ACTIVE"));
+
+        em.flush();
+        em.clear();
+
+        User user = this.userRepository.findById(user1Id).orElseThrow();
+        assertThat(user.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+
+        UserStatusHistory history = this.userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElseThrow();
+        assertThat(history.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(history.getAdminId()).isEqualTo(adminId);
+        assertThat(history.getReason()).isEqualTo("그냥 그냥 그냥 그냥");
+        assertThat(history.getEndAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 정지 해제 요청 - 관리자의 영구 정지 회원에 대한 정지 해제 요청 시 200-12 반환")
+    void t34() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+        Long adminId = findUserId(ADMIN_USERNAME);
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        // 영구 정지
+        requestBan(user1Id, adminToken)
+                .andExpect(status().isOk());
+
+        // 정지 해제 요청
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/admin/users/{userId}/release", user1Id)
+                        .cookie(adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "reason": "진짜 그냥 그냥 그냥 그냥"
+                                }
+                                """)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-12"))
+                .andExpect(jsonPath("$.msg").value("회원의 정지가 해제되었습니다."))
+                .andExpect(jsonPath("$.data.username").value("user1"))
+                .andExpect(jsonPath("$.data.userStatus").value("ACTIVE"));
+
+        em.flush();
+        em.clear();
+
+        User user = this.userRepository.findById(user1Id).orElseThrow();
+        assertThat(user.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+
+        UserStatusHistory history = this.userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElseThrow();
+        assertThat(history.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(history.getAdminId()).isEqualTo(adminId);
+        assertThat(history.getReason()).isEqualTo("진짜 그냥 그냥 그냥 그냥");
+        assertThat(history.getEndAt()).isNull();
+    }
+
+
+    @Test
+    @DisplayName("[AdminUserController] 정지 해제 요청 - 활성 상태의 회원에 대한 정지 해제 요청 시 400-8 반환")
+    void t35() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+
+        requestRelease(user1Id, adminToken)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value("400-8"))
+                .andExpect(jsonPath("$.msg").value("이미 활성 상태인 계정입니다."));
+
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 정지 해제 요청 - 존재하지 않는 회원을 정지 해제 요청 시 404-1 반환")
+    void t36() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        requestRelease(Long.MAX_VALUE, adminToken)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.statusCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("회원 정보를 찾을 수 없습니다."));
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 정지 해제 요청 - 로그인 없이 요청 시 401-113 반환")
+    void t37() throws Exception {
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        requestRelease(user1Id, null)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.statusCode").value("401-113"))
+                .andExpect(jsonPath("$.msg").value("로그인 후 이용해주세요."));
     }
 }

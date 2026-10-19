@@ -449,7 +449,50 @@ public class UserService {
         // 공고 취소, 지원 취소
         cancelAllByUser(user);
 
-        log.info("[회원 정지] adminId={}, userId={}", adminId, userId);
+        log.info("[회원 기간 정지] adminId={}, userId={}", adminId, userId);
+        return history;
+    }
+
+    // [관리자] 회원 계정에 영구 정지 패널티 부여
+    @Transactional
+    public UserStatusHistory banUser(Long adminId, Long userId, String reason) {
+        // 패널티 대상이 존재하는 회원인지 확인
+        User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        1,
+                        "회원 정보를 찾을 수 없습니다."
+                ));
+
+        // 관리자에게 정지 불가
+        if (user.getRole() == Role.ADMIN){
+            throw new InvalidException(
+                    6,
+                    "관리자의 계정을 정지시킬 수 없습니다."
+            );
+        }
+
+        UserStatusHistory history = this.userStatusHistoryRepository.save(user.ban(adminId, reason));
+
+        // 공고 취소, 지원 취소
+        cancelAllByUser(user);
+
+        log.info("[회원 영구 정지] adminId={}, userId={}", adminId, userId);
+        return history;
+    }
+
+    // [관리자] 정지된 계정을 활성 상태로 변경
+    @Transactional
+    public UserStatusHistory releaseUser(Long adminId, Long userId, String reason) {
+        // 회원 존재 여부 확인
+        User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        1,
+                        "회원 정보를 찾을 수 없습니다."
+                ));
+
+        UserStatusHistory history = this.userStatusHistoryRepository.save(user.release(adminId, reason));
+
+        log.info("[회원 정지 해제] adminId={}, userId={}", adminId, userId);
         return history;
     }
 
@@ -500,5 +543,6 @@ public class UserService {
             case ADMIN -> {}
         }
     }
+
 
 }
