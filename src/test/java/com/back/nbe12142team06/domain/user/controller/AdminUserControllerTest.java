@@ -261,7 +261,9 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.data.region").value("서울시"))
                 .andExpect(jsonPath("$.data.createdAt").exists())
                 .andExpect(jsonPath("$.data.password").doesNotExist())
-                .andExpect(jsonPath("$.data.deletedAt").value(nullValue()));
+                .andExpect(jsonPath("$.data.deletedAt").value(nullValue()))
+                .andExpect(jsonPath("$.data.userStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.suspendEndAt").value(nullValue()));
     }
 
     @Test
@@ -1166,5 +1168,65 @@ public class AdminUserControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.statusCode").value("401-113"))
                 .andExpect(jsonPath("$.msg").value("로그인 후 이용해주세요."));
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 회원 단건 조회 - 영구 정지된 회원은 userStatus=BANNED, suspendEndAt=null, statusReason 반환")
+    void t38() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        requestBan(user1Id, adminToken)
+                .andExpect(status().isOk());
+
+        ResultActions resultActions = mvc.perform(
+                get("/api/v1/admin/users/{id}", user1Id)
+                        .cookie(adminToken)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-1"))
+                .andExpect(jsonPath("$.data.id").value(user1Id))
+                .andExpect(jsonPath("$.data.userStatus").value("BANNED"))
+                .andExpect(jsonPath("$.data.suspendEndAt").value(nullValue()))
+                .andExpect(jsonPath("$.data.statusReason").value("욕설"));
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 회원 단건 조회 - 기간 정지 후 탈퇴한 회원도 정지 정보 반환")
+    void t39() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        Cookie user1Token = signUp("user1");
+        Long user1Id = findUserId("user1");
+
+        // 정지 먼저 (탈퇴 후에는 findById 로 못 찾아서 정지 요청이 404)
+        requestSuspension(user1Id, adminToken)
+                .andExpect(status().isOk());
+
+        // 정지된 상태로 탈퇴
+        mvc.perform(delete("/api/v1/users/profile")
+                        .cookie(user1Token))
+                .andExpect(status().isNoContent());
+
+        ResultActions resultActions = mvc.perform(
+                get("/api/v1/admin/users/{id}", user1Id)
+                        .cookie(adminToken)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-1"))
+                .andExpect(jsonPath("$.data.id").value(user1Id))
+                .andExpect(jsonPath("$.data.deleted").value(true))
+                .andExpect(jsonPath("$.data.deletedAt").exists())
+                .andExpect(jsonPath("$.data.userStatus").value("SUSPENDED"))
+                .andExpect(jsonPath("$.data.suspendEndAt").isNotEmpty())
+                .andExpect(jsonPath("$.data.statusReason").value("노쇼 3회 누적"));
     }
 }

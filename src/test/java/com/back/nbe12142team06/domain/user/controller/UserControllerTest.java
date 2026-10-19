@@ -532,7 +532,9 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.data.phoneNum").value("010-1234-5678"))
                 .andExpect(jsonPath("$.data.region").value("서울시"))
                 .andExpect(jsonPath("$.data.createdAt").exists())
-                .andExpect(jsonPath("$.data.password").doesNotExist());
+                .andExpect(jsonPath("$.data.password").doesNotExist())
+                .andExpect(jsonPath("$.data.userStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.suspendEndAt").value(nullValue()));
     }
 
     @Test
@@ -2351,5 +2353,68 @@ public class UserControllerTest {
         assertThat(history.getEndAt()).isNull();
         assertThat(history.getCreatedAt()).isNotNull();
 
+    }
+
+    @Test
+    @DisplayName("[UserController] 내 정보 조회 - 기간 정지된 회원은 userStatus, suspendEndAt, statusReason 반환")
+    void t64() throws Exception {
+        Cookie accessToken = signUp("user1");
+
+        User user = this.userRepository.findByUsername("user1").orElseThrow();
+        this.userStatusHistoryRepository.save(user.suspend(1L, "노쇼 3회 누적"));
+        em.flush();
+        em.clear();
+
+        ResultActions resultActions = mvc.perform(
+                        get("/api/v1/users/profile")
+                                .cookie(accessToken)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-3"))
+                .andExpect(jsonPath("$.data.username").value("user1"))
+                .andExpect(jsonPath("$.data.userStatus").value("SUSPENDED"))
+                .andExpect(jsonPath("$.data.suspendEndAt").isNotEmpty())
+                .andExpect(jsonPath("$.data.statusReason").value("노쇼 3회 누적"));
+    }
+
+    @Test
+    @DisplayName("[UserController] 회원 정보 수정 - 기간 정지된 회원은 수정 응답에도 정지 정보 반환")
+    void t65() throws Exception {
+        Cookie accessToken = signUp("user1");
+
+        User user = this.userRepository.findByUsername("user1").orElseThrow();
+        this.userStatusHistoryRepository.save(user.suspend(1L, "노쇼 3회 누적"));
+        em.flush();
+        em.clear();
+
+        String updateBody = """
+                {
+                    "password": "newPassword",
+                    "email": "changed@user.user",
+                    "name": "김춘자",
+                    "birthDate": "1990-05-29",
+                    "phoneNum": "010-1334-5678",
+                    "region": "경기도"
+                }
+                """;
+
+        ResultActions resultActions = mvc.perform(
+                        patch("/api/v1/users/profile")
+                                .cookie(accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(updateBody)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-4"))
+                .andExpect(jsonPath("$.data.name").value("김춘자"))
+                .andExpect(jsonPath("$.data.userStatus").value("SUSPENDED"))
+                .andExpect(jsonPath("$.data.suspendEndAt").isNotEmpty())
+                .andExpect(jsonPath("$.data.statusReason").value("노쇼 3회 누적"));
     }
 }
