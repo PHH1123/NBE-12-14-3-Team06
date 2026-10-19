@@ -12,6 +12,8 @@
 | **중복 정산 (관리자 경로)** | **동시 20건 중 6건이 통과** — 50라운드 전부 | [3-2](#3-2-동시성-정합성-) |
 | 중복 정산 (동행 매니저 경로) | **정확히 1건만 통과** — 방어선 정상 | [3-2](#3-2-동시성-정합성-) |
 | **정산 목록 조회** | **200 req/s 도 못 버팀.** p95 5.2초, 커넥션 풀 포화 | [3-3](#3-3-조회--목록이-병목이다-) |
+| 후속 개선 | `join fetch` 수정 → **SELECT 5 → 3, 50 req/s 포화 해소.** 단 **정렬·필터 변경은 역효과** | [4-②](#-정산-목록-쿼리--join-fetch-수정은-성공-정렬-변경은-되돌리세요-2026-10-19-측정) |
+| 🚨 현재 상태 | **목록 API 500** (LocalDate/LocalDateTime 타입 불일치). 2단계 조회로 가면 **150 req/s 실패 0%** | [4-② 후속](#2026-10-19-후속-필터를-settleddate-로-옮긴-결과) |
 | 정산 상세 조회 | 50 req/s 에서 p95 15ms — 빠름. 목록에 끌려 같이 죽음 | [3-4](#3-4-진단--목록과-상세를-떼어-재다-) |
 | 정산 요청 (쓰기) | 300 req/s 급증을 전부 소화 (p95 36ms, 에러 0%) | [3-5](#3-5-정산-요청--부하) |
 | 요청당 커넥션 획득 | **5.0회** (결제 4.0, 이동수단 1.0) | [3-6](#3-6-요청-1건당-커넥션-획득-횟수) |
@@ -278,26 +280,215 @@ int updateProcessingForAdmin(Long settlementId, LocalDateTime now, LocalDateTime
 어느 쪽을 택하든 `request-race.js -e MODE=admin` 으로 검증할 수 있습니다. 고치고 나면
 그 스크립트의 임계값을 `MODE=user` 와 같게 올리세요.
 
-### ② 정산 목록 쿼리를 "정산에서 출발"하게 바꿔라
+### ② 정산 목록 쿼리 — **join fetch 수정은 성공, 정렬 변경은 되돌리세요 (2026-10-19 측정)**
 
-지금은 정렬·필터 키가 `post.escortStartAt` 이라 옵티마이저가 공고를 전체 스캔합니다.
-**200 req/s 도 못 버티는 직접 원인입니다.**
+커밋 `c9ac3fc` 에 **두 가지 변경**이 함께 들어갔습니다. 기여를 분리해 쟀더니 **방향이 정반대**였습니다.
 
-- **정렬 키를 정산이 가진 컬럼으로** — `settlement.settledDate` 나 `settlement.id` 로 정렬하면
-  `settlement(escort_id, id)` 인덱스로 바로 끊을 수 있습니다. 화면 요구사항이 "동행일 기준 정렬"이라면
-  `settlement` 에 동행일을 **역정규화**해 두는 편이 낫습니다.
-- **`join fetch` 가 지금 동작하지 않습니다.** `findAllByUserIdAndDate` 의
-  `join fetch User u on s.escort=u` / `join fetch Application a on ...` / `join fetch Post p on ...` 는
-  **엔티티를 ON 으로 붙이는 형태라 실제로 페치되지 않습니다.** 측정해 보니 목록 1건당
-  **SELECT 5개**(목록 + count + application + post + 인증용 users)가 나갔고, 연관 경로
-  (`join fetch s.escort` / `join fetch s.application a` / `join fetch a.post p`)로 바꾸니 **3개**로 줄었습니다.
-  `default_batch_fetch_size: 100` 덕에 10건이 각 1쿼리로 묶여 5개에서 멈춘 것이지, 그게 없으면 더 많습니다.
-  같은 함정을 이동수단 도메인에서 먼저 확인했습니다
-  ([이동수단 보고서 4-②](../../ride/reports/REPORT.md#-riderepository-에-fetch-join-을-걸어라--적용-완료-2026-10-19)).
-- **그게 어렵다면 복합 인덱스** — `post(escort_start_at)` 단독은 이번 측정에서 역효과였지만
-  ([3-4](#3-4-진단--목록과-상세를-떼어-재다-)), 그건 시드의 고유값이 40개뿐이라 생긴 결과입니다.
-  **실제 데이터 분포로 다시 재 보고** 판단하세요.
-- **count 쿼리도 같은 조인을 돕니다.** 무한 스크롤이면 `Slice` 로 바꿔 count 를 없앨 수 있습니다.
+1. `join fetch` 문법 수정 — `join fetch User u on s.escort=u` → `join fetch s.escort u` 등 3곳
+2. 정렬 기준 변경 — `Sort.by(sort, "application.post.escortStartAt")` → `Sort.by(sort, "settledDate")`
+
+#### 요청 1건당 SELECT 수
+
+| 버전 | 목록 1건당 SELECT |
+|---|---|
+| 적용 전 | **5개** (목록 + count + application + post + 인증용 users) |
+| **join fetch 수정 후** | **3개** (목록 + count + 인증용 users) ✅ |
+
+`default_batch_fetch_size: 100` 덕에 10건이 각 1쿼리로 묶여 5개에서 멈춘 것이지,
+그게 없었으면 훨씬 많았습니다.
+
+#### 부하 비교 — 세 변형
+
+`ONLY=list` 로 목록만 떼어 60초씩. 같은 시드(정산 12,000건)에서 레이트별로 연달아 돌렸습니다.
+
+**20 iter/s (포화 전)**
+
+| 변형 | 서버 평균 | k6 p95 | pending |
+|---|---|---|---|
+| 적용 전 (무효 fetch + 옛 정렬) | 93.96ms | 103.88ms | 0 |
+| **join fetch 만 수정 + 옛 정렬** | **55.41ms** ✅ | **89.54ms** | 0 |
+| 현재 커밋 (fetch 수정 + `settledDate` 정렬) | **123.25ms** ❌ | 134.47ms | 0 |
+| 현재 커밋 + `settlement(escort_id, settled_date)` 인덱스 | 127.23ms | 139.77ms | 0 |
+
+**50 iter/s (기존에 무너지던 지점)**
+
+| 변형 | 달성 | 실패율 | k6 p95 | 서버 평균 | pending |
+|---|---|---|---|---|---|
+| 적용 전 | 47.6/s | 9.19% | 3.25s | 2,623ms | **163** |
+| **join fetch 만 수정** | **50.0/s** | **0%** ✅ | **120ms** | **65ms** | **0** ✅ |
+| 현재 커밋 | 47.8/s | **16.38%** ❌ | 3.31s | 2,878ms | 164 |
+| 현재 커밋 + 인덱스 | 47.5/s | 11.54% | 3.26s | 2,843ms | 157 |
+
+**join fetch 수정만으로 50 req/s 의 포화가 완전히 사라집니다** (실패 9.19% → 0%, pending 163 → 0,
+p95 3.25초 → 120ms). 그런데 정렬을 `settledDate` 로 바꾸면 **다시 포화로 돌아가고 오히려 더 나빠집니다.**
+
+#### 왜 정렬 변경이 역효과인가 — 실행계획
+
+```
+-- 옛 정렬: ORDER BY p.escort_start_at   (6.85ms)
+-> Limit/Offset: 10/100 (actual time=6.83..6.85 rows=10)
+    -> Nested loop inner join (actual rows=110)
+        -> Sort: p.escort_start_at DESC (actual rows=124)      ← 124행만 만지고 끝
+            -> Table scan on p (actual rows=12016)
+
+-- 새 정렬: ORDER BY s.settled_date      (33.9ms)
+-> Limit/Offset: 10/100 (actual time=33.9..33.9 rows=10)
+    -> Sort: s.settled_date DESC (actual rows=110)
+        -> Stream results (actual rows=12000)                  ← 조인 결과 12,000행 전부 만든 뒤 정렬
+            -> Nested loop inner join (actual rows=12000)
+```
+
+**정렬 키가 어느 테이블에 있느냐가 전부입니다.**
+
+- 옛 정렬은 키가 **구동 테이블(post)** 에 있어, post 를 정렬한 뒤 `LIMIT` 에서 **조기 종료**합니다
+  (124행만 처리).
+- 새 정렬은 키가 **조인을 거쳐야 닿는 테이블(settlement)** 에 있어, **조인 결과 12,000행을 전부
+  만든 뒤** 정렬해야 합니다. 조기 종료가 불가능합니다.
+
+`settlement(escort_id, settled_date)` 인덱스를 추가해도 안 고쳐집니다(127ms). **필터가
+`post.escortStartAt` 에 걸려 있는 한 옵티마이저는 post 부터 훑을 수밖에 없기 때문**입니다.
+
+> ⚠️ **이 보고서의 이전 권고가 불완전했습니다.** "정렬 키를 정산이 가진 컬럼으로 바꾸면
+> `settlement(escort_id, id)` 인덱스로 끊을 수 있다" 고 적었는데, **필터도 같이 옮겨야 한다는
+> 전제를 빠뜨렸습니다.** 필터는 post 에, 정렬은 settlement 에 갈라 두면 지금처럼 최악이 됩니다.
+
+#### 권고
+
+**(1) `join fetch` 수정은 유지하세요.** 이번 변경의 실질적인 이득은 전부 여기서 나왔습니다.
+
+**(2) 필터·정렬은 한 테이블에 모으되, 단순히 옮기는 것만으로는 안 됩니다.**
+아래 [후속 측정](#2026-10-19-후속-필터를-settleddate-로-옮긴-결과)을 보세요 — 옮기기만 하면 더 느려집니다.
+
+---
+
+### 2026-10-19 후속: 필터를 `settledDate` 로 옮긴 결과
+
+커밋에서 조회 구간 필터를 `p.escortStartAt` → `s.settledDate` 로 옮기고
+`Settlement` 엔티티에 `@Index(columnList = "settledDate")` 를 추가했습니다. 검증 결과를 정리합니다.
+
+#### 🚨 (1) 현재 상태로는 목록 API 가 500 입니다
+
+```
+QueryArgumentException: Argument to parameter named 'startDate' has an incompatible type
+(argument [2026-09-19T11:18:14] is not assignable to java.time.LocalDate)
+```
+
+`Settlement.settledDate` 는 `LocalDate` 인데 리포지토리 파라미터는 `LocalDateTime` 입니다.
+`p.escortStartAt`(LocalDateTime) 일 때는 맞았지만 컬럼을 바꾸면서 타입이 어긋났습니다.
+**HQL 파싱은 부팅 때 통과하므로 기동은 정상이고, 요청이 들어와야 터집니다.**
+
+고치려면 파라미터를 `LocalDate` 로 내리면 됩니다. API 계약(`LocalDateTime`)을 유지하려면
+서비스에서 변환하는 쪽이 간단합니다.
+
+```java
+// SettlementRepository
+Page<Settlement> findAllByUserIdAndDate(@Param("userId") Long userId,
+                                        @Param("startDate") LocalDate startDate,
+                                        @Param("endDate") LocalDate endDate,
+                                        Pageable pageable);
+
+// SettlementService.findAll
+return settlementRepository
+        .findAllByUserIdAndDate(userId, startDate.toLocalDate(), endDate.toLocalDate(), pageable)
+        .map(SettlementResponse::new);
+```
+
+#### (2) 타입을 고쳐도 **더 느려집니다**
+
+`ONLY=list` 로 목록만 60초씩, 레이트별로 두 변형을 연달아 돌렸습니다 (정산 12,000건).
+
+| 레이트 | **mid** (join fetch 수정 + 필터/정렬 `post.escortStartAt`) | **filter** (필터/정렬 `settledDate` + 단일 인덱스) |
+|---|---|---|
+| 50/s | 50.0/s · 실패 0% · p95 **144ms** · 서버 **62ms** · pending 0 | 49.2/s · 실패 0% · p95 **1.42s** · 서버 **904ms** · pending 53 |
+| 100/s | 85.0/s · 실패 4.95% · p95 5.03s · 서버 2,175ms | **64.5/s · 실패 19.44%** · p95 6.34s · 서버 2,914ms |
+| 150/s | 84.5/s · 실패 3.97% | **65.1/s · 실패 21.54%** |
+
+복합 인덱스 `(escort_id, settled_date)` 를 추가해도 50/s 에서 서버 1,463ms 로 여전히 나빴습니다.
+
+#### (3) 왜 — 실제 쿼리는 인덱스를 안 씁니다
+
+단순화한 쿼리(`select s.id`, soft-delete 조건 없음)로 EXPLAIN 하면 **0.97ms** 로 빠르게 보입니다.
+하지만 **애플리케이션이 실제로 보내는 SQL**(전체 컬럼 + 4테이블 조인 + `deleted_at IS NULL`)은 계획이 다릅니다.
+
+```
+-> Limit/Offset: 10/200 (actual time=47.5..47.5 rows=10)
+    -> Sort: s1_0.settled_date DESC, limit input to 210 row(s)
+        -> Stream results (actual rows=12000)            ← 12,000행을 전부 만든 뒤 정렬
+            -> Nested loop inner join (actual rows=12000)
+                -> Filter: (p1_0.deleted_at is null) (actual rows=12016)
+                    -> Table scan on p1_0 (actual rows=12016)   ← 여전히 post 전체 스캔이 구동
+```
+
+**옵티마이저가 `post` 부터 훑습니다.** `idx_settlement_settledDate` 는 쓰이지 않고, 조인을 다 만든 뒤
+정렬하므로 조기 종료도 없습니다. 쿼리 한 건이 **47.5ms** 입니다(옛 계획은 6.85ms).
+
+> ⚠️ **교훈: EXPLAIN 은 애플리케이션이 실제로 보내는 SQL 로 떠야 합니다.**
+> 손으로 줄여 쓴 쿼리는 다른 계획을 타서 "빠르다" 고 오판하게 만듭니다.
+> 실제 SQL 은 `logging.level.org.hibernate.SQL=DEBUG` 로 뽑으면 됩니다.
+
+#### (4) 검증된 해법 — 2단계 조회 ⭐
+
+페이징은 **정산 테이블만 보고** 끊고, 그 id 들만 연관까지 가져옵니다.
+
+```java
+// 1단계: 정산만 보고 페이징 (인덱스로 조기 종료)
+@Query("select s.id from Settlement s " +
+        "where s.escort.id=:userId and s.settledDate between :startDate and :endDate")
+Page<Long> findIdsByUserIdAndDate(@Param("userId") Long userId,
+                                  @Param("startDate") LocalDate startDate,
+                                  @Param("endDate") LocalDate endDate,
+                                  Pageable pageable);
+
+// 2단계: 그 id 들만 연관까지 한 번에
+@Query("select s from Settlement s " +
+        "join fetch s.escort u join fetch s.application a join fetch a.post p " +
+        "where s.id in :ids")
+List<Settlement> findAllWithAssociations(@Param("ids") List<Long> ids);
+```
+
+| 변형 | 50/s | 100/s | 150/s |
+|---|---|---|---|
+| mid (직전 최적) | 서버 62ms · 실패 0% | 85.0/s · **실패 4.95%** · 서버 2,175ms | — |
+| filter (현재 방향) | 서버 904ms · pending 53 | 64.5/s · **실패 19.44%** | 65.1/s · 실패 21.54% |
+| **2단계 + 단일 인덱스** | **서버 20.2ms** · p95 29.7ms · pending 0 | **98.3/s · 실패 0%** · 서버 25.1ms | — |
+| **2단계 + 복합 인덱스** | 서버 18.4ms · p95 29.6ms | **98.4/s · 실패 0%** · 서버 18.7ms | **147.2/s · 실패 0%** · 서버 19.2ms · pending 0 |
+
+**150 req/s 에서도 실패 0%, pending 0 입니다.** 포화 자체가 오지 않습니다.
+직전 최적(mid)이 100 req/s 에서 이미 실패 4.95% 였던 것과 비교하면 **처리 가능 구간이 3배 이상**입니다.
+기능도 확인했습니다 — 총건수 12,000, `post` 필드 정상.
+
+복합 인덱스 `(escort_id, settled_date)` 는 단일 인덱스 대비 100/s 에서 서버 25.1 → 18.7ms 로
+조금 더 낫습니다. 엔티티에 이렇게 두면 됩니다.
+
+```java
+@Table(indexes = {
+        @Index(name = "idx_settlement_escort_settled", columnList = "escort_id, settledDate")
+})
+```
+
+#### (5) 기능 영향 — 방금 끝난 동행의 정산이 목록에서 빠집니다
+
+`settledDate` 는 `post.getEscortEndAt().plusDays(1)` 입니다(동행 종료 **다음 날**).
+컨트롤러 기본 조회 구간은 `now-1개월 ~ now` 이므로, **오늘 끝난 동행의 정산(= 내일 날짜)은
+기본 목록에서 제외됩니다.**
+
+실제로 확인했습니다 — 60건 중 1건의 `settled_date` 를 내일로 바꾸니 기본 구간 조회가 **59건**으로
+줄었고, 구간을 넓히면 60건이 모두 나왔습니다.
+
+필터를 `settledDate` 로 유지하려면 **기본 `endDate` 를 미래로 열어야** 합니다
+(예: `now().plusMonths(1)`). 아니면 필터는 동행일 기준으로 두고 정렬만 바꾸는 쪽을 고려하세요.
+
+#### 정리
+
+| 우선순위 | 할 일 |
+|---|---|
+| 🚨 1 | **타입 불일치 수정** — 지금 목록 API 가 500 입니다 |
+| 2 | **2단계 조회로 전환** — 150 req/s 까지 실패 0% 확인 |
+| 3 | 복합 인덱스 `(escort_id, settledDate)` 로 교체 |
+| 4 | 기본 `endDate` 를 미래로 열어 방금 끝난 동행 정산이 보이게 |
+
+> 📝 이 측정을 위해 `loadtest/settlement/sql/seed.sql` 의 `settled_date` 를 지난 25일에 흩어지도록
+> 고쳤습니다. 전부 같은 날이면 이 컬럼으로 정렬·필터할 때의 비용이 과소평가됩니다.
 
 ### ③ Hikari 풀 크기와 타임아웃을 명시적으로 설정
 

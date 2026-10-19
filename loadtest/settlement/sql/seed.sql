@@ -146,7 +146,11 @@ INSERT INTO settlement (application_id, escort_id, payout_amount, platform_fee, 
                         settlement_status, settled_date, created_at, updated_at, deleted_at)
 SELECT app_id, @lt_escort, @payout, @platform_fee, 0,
        seed_set,          -- 'PENDING' 또는 'COMPLETED'
-       CURDATE(), NOW(), NOW(), NULL
+       -- settled_date 를 지난 25일에 흩어 둡니다.
+       -- 전부 같은 날로 두면 이 컬럼으로 정렬할 때 키가 전부 같아져
+       -- "정렬 기준을 바꿨을 때의 효과" 를 과대평가하게 됩니다.
+       -- (스케줄러의 settledDate <= current_date 조건에는 그대로 걸립니다)
+       DATE_SUB(CURDATE(), INTERVAL MOD(app_id, 25) DAY), NOW(), NOW(), NULL
 FROM lt_apps_no_settlement;
 
 DROP TEMPORARY TABLE IF EXISTS lt_apps_no_settlement;

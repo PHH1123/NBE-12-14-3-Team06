@@ -14,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Tag(name = "정산", description = "동행 정산 요청 및 조회 관련 API")
@@ -44,15 +45,15 @@ public class SettlementController {
     )
     @GetMapping
     public RsData<Page<SettlementResponse>> settlementList(@AuthenticationPrincipal SecurityUser actor,
-                                                           @RequestParam(required = false) LocalDateTime startDate,
-                                                           @RequestParam(required = false) LocalDateTime endDate,
+                                                           @RequestParam(required = false) LocalDate startDate,
+                                                           @RequestParam(required = false) LocalDate endDate,
                                                            @RequestParam(defaultValue = "0") int page,
                                                            @RequestParam(defaultValue = "10") int size,
                                                            @RequestParam(defaultValue = "DESC") Sort.Direction sort) {
         Long userId = actor.getId();
 
-        startDate = startDate == null ? LocalDateTime.now().minusMonths(1) : startDate;
-        endDate = endDate == null ? LocalDateTime.now() : endDate;
+        startDate = startDate == null ? LocalDate.now().minusMonths(1) : startDate;
+        endDate = endDate == null ? LocalDate.now() : endDate;
 
         Page<SettlementResponse> response = settlementService.findAll(userId, startDate, endDate, PageRequest.of(page, size,
                 Sort.by(sort, "settledDate")));
