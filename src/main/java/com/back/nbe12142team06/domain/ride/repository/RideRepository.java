@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface RideRepository extends JpaRepository<Ride, Long> {
 
-    @Query("select r from Ride r join Post p on r.post=p where p.id=:postId")
+    @Query("select r from Ride r join fetch Post p on r.post=p where p.id=:postId")
     List<Ride> findByPostId(@Param("postId") Long postId);
 
     @Query("select r from Ride r join Post p on r.post=p where p.id=:postId")
