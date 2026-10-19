@@ -1084,6 +1084,7 @@ public class PostControllerTest {
                 .filter(p -> p.getPost().getId().equals(postId))
                 .findFirst()
                 .orElseThrow();
+        payment.statusUpdate(PaymentStatus.IN_PROGRESS);
         payment.statusUpdate(PaymentStatus.DONE);
         paymentRepository.saveAndFlush(payment);
 
