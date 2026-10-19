@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { searchPlaces, type PlaceSearchResult } from '@/lib/kakaoMap';
 import { FIELD } from './fields';
@@ -9,43 +10,65 @@ import { FIELD } from './fields';
 type Props = {
   id: string;
   placeholder: string;
-  /** 수정 화면에서 이미 정해진 주소를 보여줄 때 씁니다. */
   defaultValue?: string;
-  /** 목록에서 하나를 고르면 호출됩니다. (이름·주소·위도·경도) */
   onSelect: (result: PlaceSearchResult) => void;
-  /** 선택 후 입력칸에 보여줄 문구. 기본은 주소이고, 병원명 검색처럼 이름을 보여주고 싶으면 지정하세요. */
+  onClear?: () => void;
   formatSelected?: (result: PlaceSearchResult) => string;
+  variant?: 'default' | 'compact';
 };
 
-/**
- * 카카오맵으로 병원·출발지를 검색하는 입력칸 (Figma "돋보기 아이콘 입력칸"을 대신합니다).
- * 자유 입력만으로는 위도·경도를 알 수 없어서, 목록에서 하나를 선택해야만 값이 채워집니다.
- */
-export default function AddressSearchField({ id, placeholder, defaultValue = '', onSelect, formatSelected }: Props) {
+/** 검색 결과에서 장소를 선택해야 서버에 필요한 주소와 좌표가 결정됩니다. */
+export default function AddressSearchField({
+  id,
+  placeholder,
+  defaultValue = '',
+  onSelect,
+  onClear,
+  formatSelected,
+  variant = 'default',
+}: Props) {
   const [query, setQuery] = useState(defaultValue);
   const [results, setResults] = useState<PlaceSearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
+  const requestId = useRef(0);
+  const root = useRef<HTMLDivElement>(null);
+  const compact = variant === 'compact';
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, []);
 
   const runSearch = async () => {
-    if (!query.trim() || searching) return;
+    if (!query.trim()) {
+      setError('검색할 병원명이나 주소를 입력해주세요.');
+      return;
+    }
+    const currentRequest = ++requestId.current;
     setSearching(true);
     setError('');
     try {
       const found = await searchPlaces(query);
+      if (currentRequest !== requestId.current) return;
       setResults(found);
-      setOpen(true);
+      setOpen(found.length > 0);
       if (found.length === 0) setError('검색 결과가 없습니다. 다른 말로 검색해보세요.');
     } catch (err) {
+      if (currentRequest !== requestId.current) return;
       setError(err instanceof Error ? err.message : '검색에 실패했습니다.');
     } finally {
-      setSearching(false);
+      if (currentRequest === requestId.current) setSearching(false);
     }
   };
 
   const handleSelect = (result: PlaceSearchResult) => {
-    setQuery(formatSelected ? formatSelected(result) : result.address);
+    const display = formatSelected ? formatSelected(result) : result.address;
+    setQuery(display);
     setOpen(false);
     setResults([]);
     setError('');
@@ -53,47 +76,60 @@ export default function AddressSearchField({ id, placeholder, defaultValue = '',
   };
 
   return (
-    <div className="relative">
+    <div ref={root} className="relative">
       <div className="relative">
         <input
           id={id}
+          type="text"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            ++requestId.current;
+            setSearching(false);
+            setQuery(event.target.value);
+            setOpen(false);
+            setResults([]);
+            setError('');
+            onClear?.();
+          }}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault();
-              runSearch();
+              void runSearch();
             }
           }}
           placeholder={placeholder}
-          className={cn(FIELD, 'pr-12')}
+          aria-label={placeholder}
+          autoComplete="off"
+          className={compact
+            ? 'w-full h-[48px] pl-11 pr-4 bg-white border border-[#E1E5E8] rounded-xl text-sm text-[#14243A] placeholder:text-[#9AA2AA] focus:border-[#426B93] focus-visible:outline-2 focus-visible:outline-[#426B93] focus-visible:outline-offset-2'
+            : cn(FIELD, 'pr-12')}
         />
         <button
           type="button"
-          onClick={runSearch}
+          onClick={() => void runSearch()}
           disabled={searching}
-          aria-label="검색"
-          className="absolute top-1/2 right-4 -translate-y-1/2 disabled:opacity-50"
+          aria-label={searching ? '검색 중' : '장소 검색'}
+          title="장소 검색"
+          className={compact
+            ? 'absolute top-1/2 left-3.5 -translate-y-1/2 text-[#67717C] hover:text-[#14243A] disabled:opacity-50'
+            : 'absolute top-1/2 right-4 -translate-y-1/2 disabled:opacity-50'}
         >
-          <Image src="/icons/search.svg" alt="" width={14} height={14} />
+          {compact ? <Search className="h-4 w-4" /> : <Image src="/icons/search.svg" alt="" width={14} height={14} />}
         </button>
       </div>
-      {error && (
-        <p role="alert" className="mt-1.5 px-4 text-sm font-medium text-[#b91d1d]">
-          {error}
-        </p>
-      )}
+      {error && <p role="alert" className={compact ? 'mt-1.5 text-xs font-medium text-[#B4413C]' : 'mt-1.5 px-4 text-sm font-medium text-[#b91d1d]'}>{error}</p>}
       {open && results.length > 0 && (
-        <ul className="absolute z-10 mt-1.5 max-h-64 w-full overflow-y-auto rounded-[20px] border border-line bg-white p-2 shadow-card">
+        <ul className={compact
+          ? 'absolute z-30 mt-1.5 max-h-56 w-full overflow-y-auto rounded-xl border border-[#E1E5E8] bg-white shadow-lg divide-y divide-[#E1E5E8]'
+          : 'absolute z-10 mt-1.5 max-h-64 w-full overflow-y-auto rounded-[20px] border border-line bg-white p-2 shadow-card'}>
           {results.map((result) => (
             <li key={`${result.name}-${result.address}`}>
-              <button
-                type="button"
-                onClick={() => handleSelect(result)}
-                className={cn('flex w-full flex-col gap-0.5 rounded-[12px] px-3 py-2 text-left', 'hover:bg-line-soft')}
-              >
-                <span className="text-sm font-semibold text-brand">{result.name || result.address}</span>
-                <span className="text-xs text-brand-muted">{result.address}</span>
+              <button type="button" onClick={() => handleSelect(result)}
+                className={compact
+                  ? 'w-full p-3 text-left text-xs hover:bg-[#F7F8F8]'
+                  : 'flex w-full flex-col gap-0.5 rounded-[12px] px-3 py-2 text-left hover:bg-line-soft'}>
+                <span className={compact ? 'block font-semibold text-[#14243A]' : 'block text-sm font-semibold text-brand'}>{result.name || result.address}</span>
+                <span className={compact ? 'block text-[#67717C] text-[11px] mt-0.5' : 'block text-xs text-brand-muted'}>{result.address}</span>
               </button>
             </li>
           ))}

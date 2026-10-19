@@ -1,21 +1,18 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { ChevronLeft, Info } from 'lucide-react';
 import { AppShell } from '@/components/layout';
-import { Container, SectionHeading } from '@/components/ui';
+import DropdownSelect from '@/components/ui/DropdownSelect';
 import { LOGIN_HOME_BY_ROLE, useRequireAuth } from '@/features/auth';
 import { createPost, fetchPostRaw, updatePost, type PostDto, type PostWriteRequest } from '@/features/post';
 import { fetchRidesByPost, type RideDto } from '@/features/ride';
-import { cn } from '@/lib/cn';
 import type { PlaceSearchResult } from '@/lib/kakaoMap';
 import {
   EMPTY_FORM,
   MIN_HOURLY_PAY,
-  PARTY_OPTIONS,
-  SAMPLE_FORM,
   TIME_OPTIONS,
   TRANSPORT_OPTIONS,
   combineDateTime,
@@ -34,30 +31,53 @@ import {
 } from '../model/postForm';
 import type { PostFormValues } from '../types';
 import AddressSearchField from './form/AddressSearchField';
-import { CheckField, FIELD, FormRow, FormSection, SelectField } from './form/fields';
 
-const GUIDES = [
-  '정확한 병원명과 일정을 입력해주세요.',
-  '자세히 작성할수록 적합한 매니저가 지원합니다.',
-  '시급은 지역과 소요 시간을 고려하여 설정해주세요.',
-  '개인 정보(연락처, 주민번호 등)는 작성하지 말아주세요.',
-];
+const FIELD = 'w-full h-[48px] px-3.5 bg-white border border-[#E1E5E8] rounded-xl text-sm text-[#14243A] placeholder:text-[#9AA2AA] focus:border-[#426B93] focus-visible:outline-2 focus-visible:outline-[#426B93] focus-visible:outline-offset-2';
+const LABEL = 'block text-xs font-semibold text-[#67717C] mb-1.5';
+const ERROR = 'mt-1.5 text-xs font-medium text-[#B4413C]';
+const PERSONAL_INFO = /01[0-9]-?[0-9]{3,4}-?[0-9]{4}|\b[0-9]{6}-?[0-9]{7}\b/;
+const TRANSPORT_SELECT_OPTIONS = TRANSPORT_OPTIONS.map((label) => ({ value: label, label }));
 
-const EXAMPLES = [
-  { title: '공고 제목 예시', body: '수술 전 검사 동행이 필요합니다.' },
-  {
-    title: '공고 설명 예시',
-    body: '“9월 22일 오전 9시에 삼성서울병원에서 수술 전 검사와 X-ray 촬영이 있습니다. 검사 결과에 대한 의사 상담까지 동행이 필요합니다. 약 3시간 정도 소요될 것 같습니다.”',
-  },
-  {
-    title: '특이사항 예시',
-    body: '“대기 시간이 길 수 있습니다. 중간에 간단한 식사를 할 예정이며, 주차는 병원 주차장 이용 가능합니다.”',
-  },
-];
+function Required() {
+  return <span className="text-[#B4413C]">*</span>;
+}
 
-const ERROR_TEXT = 'px-4 text-sm leading-5 font-medium text-[#b91d1d]';
-const LIST_ITEM = 'flex items-center gap-[15px] py-1 text-sm leading-6 font-semibold text-brand';
-const CARD_TITLE = 'mb-4 flex items-center gap-[15px] text-2xl leading-6 font-semibold text-brand';
+function FormCard({ title, first = false, children }: { title: string; first?: boolean; children: ReactNode }) {
+  return (
+    <section className="bg-white rounded-2xl border border-[#E1E5E8] p-6 sm:p-8 shadow-xs space-y-5">
+      <div className="border-b border-[#E1E5E8] pb-3">
+        <h2 className="text-xl font-semibold text-[#14243A]">{title}</h2>
+        {first && <p className="text-xs text-[#67717C] mt-0.5">* 표시는 필수 입력 항목입니다.</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function TimeSelect({ id, name, value, onChange, disabledOptions = [], required = false }: {
+  id: string;
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabledOptions?: string[];
+  required?: boolean;
+}) {
+  return (
+    <DropdownSelect
+      id={id}
+      name={name}
+      value={value}
+      onValueChange={onChange}
+      placeholder="시간 선택"
+      options={TIME_OPTIONS.map((time) => ({
+        value: time,
+        label: time,
+        disabled: disabledOptions.includes(time),
+      }))}
+      required={required}
+    />
+  );
+}
 
 /** 백엔드 공고 응답 + 이동수단(Ride 2건)을 수정 폼의 초기값으로 바꿉니다. */
 function toFormValues(dto: PostDto, rides: RideDto[]): PostFormValues {
@@ -99,22 +119,7 @@ function formatPay(value: string): string {
   return digits ? Number(digits).toLocaleString() : '';
 }
 
-/**
- * 공고 작성 / 수정 — Figma 의뢰인_공고 작성 61:1273 · 입력 예시 506:2944
- *
- * 등록(POST)·수정(PUT) 모두 실제 백엔드에 연결되어 있습니다.
- * ⚠️ 병원명·출발지는 카카오맵 검색 결과에서 골라야만 위도·경도가 채워집니다 (백엔드가 필수로 요구합니다).
- *    그래서 Figma 의 "지역(시/도·구/군) 선택" 칸은 없앴고, 병원 주소에서 자동으로 뽑습니다.
- * 이동수단은 PostWriteRequest 의 rideSelectToHospital·rideSelectToHome 으로 함께 보냅니다.
- * 등록(POST)은 PostService.write 가 같은 트랜잭션에서 Ride 2건을 만들고, 수정(PUT)은 PostService.modify 가
- * RideService.updateRide 로 기존 Ride 2건을 갱신합니다 — 수정 폼을 열 때도 GET /api/v1/rides/posts/{postId}로
- * 기존 선택값을 불러와 채웁니다(toFormValues).
- * TODO: 동행인원은 백엔드에 없는 값이라 서버로 보내지 않습니다.
- *
- * 공고 등록·수정은 의뢰인(CLIENT) 또는 관리자(ADMIN)만 할 수 있습니다(백엔드 PostService.write/modify 와 동일 규칙).
- * ⚠️ 이건 UX 용 가드일 뿐입니다 — 실제 차단은 백엔드가 하고, 여기선 로그인 안 했거나 역할이 안 맞는
- *    사용자에게 폼을 보여줬다가 제출 시점에야 에러를 띄우지 않도록 미리 돌려보내는 역할만 합니다.
- */
+/** 실제 공고 등록·수정 API와 연결된 폼입니다. 병원 및 출발지의 주소와 좌표는 카카오 장소 검색으로 결정됩니다. */
 export default function PostFormPage() {
   const params = useParams<{ postId?: string }>();
   const postId = params.postId ? Number(params.postId) : undefined;
@@ -175,18 +180,16 @@ export default function PostFormPage() {
     );
   }
 
-  return <PostFormFields key={postId ?? 'new'} postId={postId} initial={initial} sample={editing ? undefined : SAMPLE_FORM} />;
+  return <PostFormFields key={postId ?? 'new'} postId={postId} initial={initial} />;
 }
 
 type FormFieldsProps = {
   /** 있으면 수정, 없으면 새로 작성 */
   postId?: number;
   initial: PostFormValues;
-  /** 작성 예시 카드에 나올 값 (수정 화면에서는 안 씀) */
-  sample?: PostFormValues;
 };
 
-function PostFormFields({ postId, initial, sample }: FormFieldsProps) {
+function PostFormFields({ postId, initial }: FormFieldsProps) {
   const router = useRouter();
   const editing = postId !== undefined;
 
@@ -204,11 +207,14 @@ function PostFormFields({ postId, initial, sample }: FormFieldsProps) {
   const [startTime, setStartTime] = useState(initial.startTime);
   const [endTime, setEndTime] = useState(initial.endTime);
   const [hourlyPay, setHourlyPay] = useState(initial.hourlyPay);
+  const [transportOut, setTransportOut] = useState(initial.transportOut);
+  const [transportBack, setTransportBack] = useState(initial.transportBack);
   const [recruitStartDate, setRecruitStartDate] = useState(initial.recruitStartDate);
   const [recruitStartTime, setRecruitStartTime] = useState(initial.recruitStartTime);
   const [recruitEndDate, setRecruitEndDate] = useState(initial.recruitEndDate);
   const [recruitEndTime, setRecruitEndTime] = useState(initial.recruitEndTime);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldsError, setFieldsError] = useState('');
   const [submitError, setSubmitError] = useState('');
 
   const minutes = diffMinutes(startTime, endTime);
@@ -325,6 +331,7 @@ function PostFormFields({ postId, initial, sample }: FormFieldsProps) {
   }
 
   const handleHospitalSelect = (place: PlaceSearchResult) => {
+    setFieldsError('');
     setHospitalName(place.name || hospitalName);
     setHospitalAddress(place.address);
     setHospitalLat(place.lat);
@@ -333,6 +340,7 @@ function PostFormFields({ postId, initial, sample }: FormFieldsProps) {
   };
 
   const handleDepartureSelect = (place: PlaceSearchResult) => {
+    setFieldsError('');
     setDeparture(place.address);
     setPickupLat(place.lat);
     setPickupLng(place.lng);
@@ -348,6 +356,7 @@ function PostFormFields({ postId, initial, sample }: FormFieldsProps) {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError('');
+    setFieldsError('');
 
     if (hospitalLat === null || hospitalLng === null || pickupLat === null || pickupLng === null) {
       setSubmitError(locationError || '병원·출발지의 위치가 확인되지 않았습니다.');
@@ -357,6 +366,26 @@ function PostFormFields({ postId, initial, sample }: FormFieldsProps) {
     // 폼에 이름(name)이 붙은 입력값을 전부 가져옵니다 (state로 관리하지 않는 필드 포함).
     const form = new FormData(event.currentTarget);
     const value = (name: string) => String(form.get(name) ?? '').trim();
+
+    if (PERSONAL_INFO.test(value('description'))) {
+      setFieldsError('공고 설명에는 연락처나 주민등록번호 등 개인 정보를 직접 작성하지 말아주세요.');
+      return;
+    }
+    if (timeError || recruitError || !minutes) {
+      setFieldsError(timeError || recruitError || '동행 일정과 모집 기간을 확인해주세요.');
+      return;
+    }
+    const recruitStartAt = combineDateTime(recruitStartDate, recruitStartTime);
+    const recruitEndAt = combineDateTime(recruitEndDate, recruitEndTime);
+    const escortStartAt = combineDateTime(date, startTime);
+    if (!recruitStartAt || !recruitEndAt || !escortStartAt || recruitStartAt >= recruitEndAt || recruitEndAt >= escortStartAt) {
+      setFieldsError('모집 시작, 모집 마감, 동행 시작 순서로 일정을 설정해주세요.');
+      return;
+    }
+    if (new Date(recruitStartAt).getTime() <= Date.now()) {
+      setFieldsError('모집 시작 시간은 현재 시각보다 이후여야 합니다.');
+      return;
+    }
 
     // 이동수단은 select 가 required 라 여기까지 오면 값이 있지만, ENUM 에 없는 값이면 백엔드가 400 을 냅니다.
     const rideSelectToHospital = toRideSelect(value('transportOut'));
@@ -396,11 +425,9 @@ function PostFormFields({ postId, initial, sample }: FormFieldsProps) {
     setSubmitting(true);
     try {
       if (editing) {
-        // TODO: 수정 API(PUT /api/v1/posts/{postId})는 작성자 본인 로그인 쿠키가 있어야 하고, 모집 시작 전까지만 됩니다.
         await updatePost(postId, payload);
         router.push(`/client/posts/${postId}`);
       } else {
-        // TODO: 등록 API(POST /api/v1/posts)는 의뢰인(CLIENT) 로그인 쿠키가 있어야 합니다.
         const created = await createPost(payload);
         // paymentId 는 공고 등록 시 함께 생성된 결제(Payment) 의 id 입니다. 결제 승인 때 필요합니다.
         // 결제 금액은 넘기지 않습니다 — 결제 화면이 서버의 Payment.amount 를 직접 받아 씁니다.
@@ -408,7 +435,6 @@ function PostFormFields({ postId, initial, sample }: FormFieldsProps) {
         const query = new URLSearchParams({
           postId: String(created.id),
           paymentId: String(created.paymentId),
-          pay: String(estimateAmount(hourlyPay, 60)),
         });
         router.push(`/client/posts/new/payment?${query.toString()}`);
       }
@@ -420,293 +446,206 @@ function PostFormFields({ postId, initial, sample }: FormFieldsProps) {
 
   return (
     <AppShell>
-      <section className="bg-white py-[50px]">
-        <Container width="wide">
-          <SectionHeading
-            title={editing ? '공고 수정' : '공고 작성'}
-            description="필요한 동행 내용을 작성하여 동행 매니저를 모집해보세요."
-            className="mb-6"
-          />
+      <section className="w-full bg-[#F7F8F8] py-12 lg:py-16">
+        <div className="max-w-[1240px] mx-auto px-5 sm:px-8 lg:px-16">
+          <div className="max-w-3xl mx-auto space-y-8">
+            <Link
+              href={editing ? `/client/posts/${postId}` : '/client/posts'}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] hover:text-[#14243A] focus-visible:outline-2 focus-visible:outline-[#426B93]"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>{editing ? '공고 상세로 돌아가기' : '내 공고 목록으로 돌아가기'}</span>
+            </Link>
 
-          <div className="grid items-start gap-[22px] lg:grid-cols-[minmax(0,745px)_minmax(0,511px)] lg:justify-center">
-            <form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-10 rounded-[30px] border border-line bg-white px-6 py-8 shadow-card">
-              <FormSection title="기본 정보">
-                <FormRow label="공고 제목*" htmlFor="post-title">
-                  <input id="post-title" name="title" required defaultValue={initial.title} placeholder="예) 수술 전 검사 동행이 필요합니다." className={FIELD} />
-                </FormRow>
-                <FormRow label="병원명*" htmlFor="post-hospital">
-                  <AddressSearchField
-                    id="post-hospital"
-                    placeholder="병원명을 검색해주세요. (예: 서울아산병원)"
-                    defaultValue={initial.hospitalName}
-                    formatSelected={(place) => place.name}
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-semibold text-[#14243A] tracking-tight">
+                {editing ? '공고 수정' : '공고 작성'}
+              </h1>
+              <p className="text-sm text-[#67717C] mt-1">
+                동행이 필요한 병원과 일정을 입력해 주세요. {editing ? '변경된 내용을 저장합니다.' : '작성이 완료되면 결제 화면으로 이동합니다.'}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <FormCard title="기본 정보" first>
+                <div>
+                  <label htmlFor="post-title" className={LABEL}>공고 제목 <Required /></label>
+                  <input id="post-title" name="title" required defaultValue={initial.title}
+                    placeholder="예: 정기 검진 및 수납 보조 동행 매니저님을 모십니다" className={FIELD} />
+                </div>
+
+                <div>
+                  <label htmlFor="post-hospital" className={LABEL}>병원명 <Required /></label>
+                  <AddressSearchField id="post-hospital" variant="compact" placeholder="병원명을 검색해주세요. (예: 서울아산병원)"
+                    defaultValue={initial.hospitalName} formatSelected={(place) => place.name || place.address}
                     onSelect={handleHospitalSelect}
-                  />
-                </FormRow>
-                {hospitalAddress && <p className="px-4 text-sm font-medium text-brand-muted">주소: {hospitalAddress}</p>}
-                <FormRow label="출발지*" htmlFor="post-departure">
-                  <AddressSearchField
-                    id="post-departure"
-                    placeholder="출발지를 검색해주세요. (예: 자택 주소)"
-                    defaultValue={initial.departure}
-                    onSelect={handleDepartureSelect}
-                  />
-                </FormRow>
-              </FormSection>
-
-              <FormSection title="일정 정보">
-                <FormRow label="동행 날짜*" htmlFor="post-date">
-                  <input
-                    id="post-date"
-                    name="date"
-                    type="date"
-                    required
-                    min={todayDateString()}
-                    value={date}
-                    onChange={(event) => handleDateChange(event.target.value)}
-                    className={cn(FIELD, 'sm:w-[201px]')}
-                  />
-                </FormRow>
-                <div className="grid gap-[5px] sm:grid-cols-2 sm:gap-x-[11px]">
-                  <FormRow label="시작 시간*" htmlFor="post-start">
-                    <SelectField
-                      id="post-start"
-                      name="startTime"
-                      placeholder="시간 선택"
-                      options={TIME_OPTIONS}
-                      value={startTime}
-                      onChange={handleStartTimeChange}
-                      disabledOptions={startDisabled}
-                      required
-                    />
-                  </FormRow>
-                  <FormRow label="예상 종료 시간*" htmlFor="post-end">
-                    <SelectField
-                      id="post-end"
-                      name="endTime"
-                      placeholder="시간 선택"
-                      options={TIME_OPTIONS}
-                      value={endTime}
-                      onChange={setEndTime}
-                      disabledOptions={endDisabled}
-                      required
-                      customMessage={timeError}
-                    />
-                  </FormRow>
+                    onClear={() => { setHospitalName(''); setHospitalAddress(''); setHospitalLat(null); setHospitalLng(null); setRegion(''); }} />
+                  {hospitalName && hospitalLat !== null && hospitalLng !== null && (
+                    <p className="text-xs text-[#2F7D5B] mt-1 font-medium">선택된 병원: {hospitalName} ({hospitalAddress})</p>
+                  )}
                 </div>
-                <FormRow label="예상 소요 시간" htmlFor="post-duration">
-                  <input
-                    id="post-duration"
-                    readOnly
-                    tabIndex={-1}
-                    value={formatMinutes(minutes)}
-                    placeholder="예) 3시간 5분"
-                    className={cn(FIELD, 'sm:w-[201px]')}
-                  />
-                </FormRow>
-                {timeError && (
-                  <p role="alert" className={ERROR_TEXT}>
-                    {timeError}
-                  </p>
-                )}
-              </FormSection>
 
-              <FormSection title="요청 조건">
-                <FormRow label="시급(금액)*" htmlFor="post-pay">
-                  <div className="flex min-w-0 flex-col gap-1.5 sm:w-[273px]">
-                    <div className="relative min-w-0">
-                      <input
-                          id="post-pay"
-                          name="hourlyPay"
-                          required
-                          inputMode="numeric"
-                          value={hourlyPay}
-                          onChange={(event) => setHourlyPay(formatPay(event.target.value))}
-                          placeholder="예) 12,000"
-                          className={cn(FIELD, 'pr-12')}
-                      />
-                      <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-base text-brand-muted">원</span>
-                    </div>
-                    <p className="text-xs leading-4 font-medium text-brand-muted">최저시급 기준 {MIN_HOURLY_PAY.toLocaleString()}원 이상 입력해주세요.</p>
-                  </div>
-                </FormRow>
-                <FormRow label="이동수단*" htmlFor="post-transport-out">
-                  <div className="grid gap-2.5 sm:grid-cols-2">
-                    <SelectField id="post-transport-out" name="transportOut" placeholder="출발 시 이동수단을 선택해주세요" options={TRANSPORT_OPTIONS} defaultValue={initial.transportOut} required />
-                    <SelectField id="post-transport-back" name="transportBack" placeholder="복귀 시 이동수단을 선택해주세요" options={TRANSPORT_OPTIONS} defaultValue={initial.transportBack} required />
-                  </div>
-                </FormRow>
-                <FormRow label="동행인원" htmlFor="post-party">
-                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                    <div className="w-full sm:w-[273px]">
-                      <SelectField id="post-party" name="party" placeholder="1명 (본인만)" options={PARTY_OPTIONS} defaultValue={initial.party} />
-                    </div>
-                    <p className="text-base leading-5 text-brand-muted">본인을 포함한 총 인원입니다.</p>
-                  </div>
-                </FormRow>
-                <FormRow label="보고서 요청" className="sm:min-h-[61px]">
-                  <CheckField name="reportRequested" label="요청" defaultChecked={initial.reportRequested} />
-                </FormRow>
-              </FormSection>
-
-              <FormSection title="상세 내용">
-                <FormRow label="공고 설명*" htmlFor="post-description" className="sm:items-start">
-                  <textarea
-                    id="post-description"
-                    name="description"
-                    required
-                    defaultValue={initial.description}
-                    placeholder={'동행이 필요한 상황을 자세히 작성해주세요.\n(예: 어떤 진료인지, 어떤 도움이 필요한지 등)'}
-                    className={cn(FIELD, 'h-[120px] resize-none py-[18px]')}
-                  />
-                </FormRow>
-                <FormRow label="특이사항" htmlFor="post-note" className="sm:items-start">
-                  <textarea
-                    id="post-note"
-                    name="note"
-                    defaultValue={initial.note}
-                    placeholder={'추가로 전달하고 싶은 내용이 있다면 작성해주세요.\n(예: 대기 시간, 준비물, 주차 가능 여부 등)'}
-                    className={cn(FIELD, 'h-[120px] resize-none py-[18px]')}
-                  />
-                </FormRow>
-              </FormSection>
-
-              <FormSection title="모집 일정">
-                <div className="grid gap-[5px] sm:grid-cols-2 sm:gap-x-[11px]">
-                  <FormRow label="시작 날짜*" htmlFor="recruit-start-date">
-                    <input
-                      id="recruit-start-date"
-                      name="recruitStartDate"
-                      type="date"
-                      required
-                      min={todayDateString()}
-                      max={date || undefined}
-                      value={recruitStartDate}
-                      onChange={(event) => handleRecruitStartDateChange(event.target.value)}
-                      className={FIELD}
-                    />
-                  </FormRow>
-                  <FormRow label="종료 날짜*" htmlFor="recruit-end-date">
-                    <input
-                      id="recruit-end-date"
-                      name="recruitEndDate"
-                      type="date"
-                      required
-                      min={recruitStartDate || todayDateString()}
-                      max={date || undefined}
-                      value={recruitEndDate}
-                      onChange={(event) => handleRecruitEndDateChange(event.target.value)}
-                      ref={(element) => element?.setCustomValidity(recruitError)}
-                      className={FIELD}
-                    />
-                  </FormRow>
-                  <FormRow label="시작 시간*" htmlFor="recruit-start-time">
-                    <SelectField
-                      id="recruit-start-time"
-                      name="recruitStartTime"
-                      placeholder="시간 선택"
-                      options={TIME_OPTIONS}
-                      value={recruitStartTime}
-                      onChange={handleRecruitStartTimeChange}
-                      disabledOptions={recruitStartDisabled}
-                      required
-                    />
-                  </FormRow>
-                  <FormRow label="종료 시간*" htmlFor="recruit-end-time">
-                    <SelectField
-                      id="recruit-end-time"
-                      name="recruitEndTime"
-                      placeholder="시간 선택"
-                      options={TIME_OPTIONS}
-                      value={recruitEndTime}
-                      onChange={setRecruitEndTime}
-                      disabledOptions={recruitEndDisabled}
-                      required
-                    />
-                  </FormRow>
+                <div>
+                  <label htmlFor="post-departure" className={LABEL}>출발지 <Required /></label>
+                  <AddressSearchField id="post-departure" variant="compact" placeholder="출발지를 검색해주세요. (예: 자택 주소)"
+                    defaultValue={initial.departure} onSelect={handleDepartureSelect}
+                    onClear={() => { setDeparture(''); setPickupLat(null); setPickupLng(null); }} />
+                  {departure && pickupLat !== null && pickupLng !== null && (
+                    <p className="text-xs text-[#2F7D5B] mt-1 font-medium">선택된 출발지: {departure}</p>
+                  )}
                 </div>
-                {recruitError && (
-                  <p role="alert" className={ERROR_TEXT}>
-                    {recruitError}
+              </FormCard>
+
+              <FormCard title="모집 일정">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="post-date" className={LABEL}>동행 날짜 <Required /></label>
+                    <input id="post-date" name="date" type="date" required min={todayDateString()}
+                      value={date} onChange={(event) => handleDateChange(event.target.value)} className={FIELD} />
+                  </div>
+                  <div>
+                    <label htmlFor="post-start" className={LABEL}>동행 시작 시간 <Required /></label>
+                    <TimeSelect id="post-start" name="startTime" value={startTime} onChange={handleStartTimeChange} disabledOptions={startDisabled} required />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="post-duration" className={LABEL}>예상 소요 시간</label>
+                    <input id="post-duration" type="text" readOnly tabIndex={-1} value={formatMinutes(minutes)}
+                      placeholder="시간을 선택하면 자동으로 계산됩니다" className={FIELD} />
+                  </div>
+                  <div>
+                    <label htmlFor="post-end" className={LABEL}>예상 종료 시간 <Required /></label>
+                    <TimeSelect id="post-end" name="endTime" value={endTime} onChange={setEndTime} disabledOptions={endDisabled} required />
+                    {timeError && <p role="alert" className={ERROR}>{timeError}</p>}
+                  </div>
+                </div>
+
+                <div className="pb-3">
+                  <label htmlFor="post-pay" className={LABEL}>시급 (금액) <Required /></label>
+                  <div className="relative">
+                    <input id="post-pay" name="hourlyPay" required inputMode="numeric"
+                      value={hourlyPay} onChange={(event) => setHourlyPay(formatPay(event.target.value))}
+                      placeholder="예: 15,000" className={`${FIELD} h-[52px] pl-4 pr-12 text-base font-bold`} />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[#67717C] pointer-events-none">원</span>
+                  </div>
+                  <p className="text-xs text-[#67717C] mt-1.5">
+                    시급은 최저시급(10,320원)에 수수료 10%를 더한 금액({MIN_HOURLY_PAY.toLocaleString()}원) 이상이어야 해요.
                   </p>
-                )}
-              </FormSection>
+                  {amount > 0 && <p className="text-xs font-medium text-[#426B93] mt-1.5">예상 결제 금액: {amount.toLocaleString()}원 (실제 결제 금액은 결제 화면에서 확인)</p>}
+                </div>
+                <div className="border-t border-[#E1E5E8] pt-8">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold text-[#14243A]">매니저 모집 기간 <Required /></h3>
+                    <p className="mt-1 text-xs text-[#67717C]">모집 시작은 현재 이후, 마감은 동행 시작 전으로 설정해 주세요.</p>
+                  </div>
 
-              {submitError && (
-                <p role="alert" className={ERROR_TEXT}>
-                  {submitError}
-                </p>
-              )}
+                  <div className="space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-[88px_minmax(0,1fr)] sm:items-center sm:gap-4">
+                      <p className="text-xs font-semibold text-[#67717C]">모집 시작</p>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <input id="recruit-start-date" name="recruitStartDate" type="date" aria-label="모집 시작 날짜" required
+                          min={todayDateString()} max={date || undefined}
+                          value={recruitStartDate} onChange={(event) => handleRecruitStartDateChange(event.target.value)} className={`${FIELD} min-w-0`} />
+                        <label htmlFor="recruit-start-time" className="sr-only">모집 시작 시간</label>
+                        <TimeSelect id="recruit-start-time" name="recruitStartTime" value={recruitStartTime}
+                          onChange={handleRecruitStartTimeChange} disabledOptions={recruitStartDisabled} required />
+                      </div>
+                    </div>
 
-              <div className="flex gap-2.5">
-                <Link
-                  href={editing ? `/client/posts/${postId}` : '/client/posts'}
-                  className="flex h-[55px] flex-1 items-center justify-center rounded-[25px] border border-line bg-white text-xl leading-[18px] font-semibold text-brand transition-colors hover:bg-line-soft"
-                >
+                    <div className="grid gap-2 sm:grid-cols-[88px_minmax(0,1fr)] sm:items-center sm:gap-4">
+                      <p className="text-xs font-semibold text-[#67717C]">모집 마감</p>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <input id="recruit-end-date" name="recruitEndDate" type="date" aria-label="모집 마감 날짜" required
+                          min={recruitStartDate || todayDateString()} max={date || undefined}
+                          value={recruitEndDate} onChange={(event) => handleRecruitEndDateChange(event.target.value)} className={`${FIELD} min-w-0`} />
+                        <label htmlFor="recruit-end-time" className="sr-only">모집 마감 시간</label>
+                        <TimeSelect id="recruit-end-time" name="recruitEndTime" value={recruitEndTime}
+                          onChange={setRecruitEndTime} disabledOptions={recruitEndDisabled} required />
+                      </div>
+                    </div>
+                  </div>
+                  {recruitError && <p role="alert" className={ERROR}>{recruitError}</p>}
+                </div>
+
+              </FormCard>
+
+              <FormCard title="상세 내용">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="post-transport-out" className={LABEL}>갈 때 이동수단 <Required /></label>
+                    <DropdownSelect
+                      id="post-transport-out"
+                      name="transportOut"
+                      placeholder="선택해주세요"
+                      value={transportOut}
+                      options={TRANSPORT_SELECT_OPTIONS}
+                      onValueChange={setTransportOut}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="post-transport-back" className={LABEL}>올 때 이동수단 <Required /></label>
+                    <DropdownSelect
+                      id="post-transport-back"
+                      name="transportBack"
+                      placeholder="선택해주세요"
+                      value={transportBack}
+                      options={TRANSPORT_SELECT_OPTIONS}
+                      onValueChange={setTransportBack}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-[#F7F8F8] p-4 rounded-xl border border-[#E1E5E8]">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="reportRequested" defaultChecked={initial.reportRequested}
+                      className="w-4 h-4 accent-[#426B93] rounded border-[#E1E5E8]" />
+                    <span>
+                      <span className="block text-sm font-semibold text-[#14243A]">동행 후 진료 보고서 작성 요청</span>
+                      <span className="block text-xs text-[#67717C] mt-1">동행 매니저에게 진료 보고서 작성을 요청합니다.</span>
+                    </span>
+                  </label>
+                </div>
+
+                <div>
+                  <label htmlFor="post-note" className={LABEL}>의뢰인 특이사항 및 주의사항</label>
+                  <textarea id="post-note" name="note" rows={2} defaultValue={initial.note}
+                    placeholder="예: 지팡이를 사용하시며 계단 이용 시 부축이 필요합니다."
+                    className={`${FIELD} h-auto p-3.5 resize-none`} />
+                </div>
+
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1.5">
+                    <label htmlFor="post-description" className="block text-xs font-semibold text-[#67717C]">공고 설명 <Required /></label>
+                    <span className="text-[11px] text-[#426B93] font-medium flex items-center gap-1">
+                      <Info className="w-3.5 h-3.5" />
+                      개인 정보(연락처, 주민번호 등)는 작성하지 말아주세요.
+                    </span>
+                  </div>
+                  <textarea id="post-description" name="description" required rows={4} defaultValue={initial.description}
+                    placeholder="진료 일정과 매니저님께 요청드리고 싶은 내용을 자세히 작성해주세요."
+                    className={`${FIELD} h-auto p-3.5 resize-none`} />
+                </div>
+              </FormCard>
+
+              {(submitError || fieldsError) && <p role="alert" className={ERROR}>{submitError || fieldsError}</p>}
+
+              <div className="flex items-center justify-between gap-4 pt-4">
+                <Link href={editing ? `/client/posts/${postId}` : '/client/posts'}
+                  className="inline-flex h-[52px] items-center justify-center px-6 rounded-[10px] border border-[#E1E5E8] text-sm font-semibold text-[#67717C] hover:bg-white">
                   취소
                 </Link>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex h-[55px] flex-1 items-center justify-center rounded-[25px] bg-brand text-base leading-[18px] font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {submitting ? (editing ? '수정 중...' : '등록 중...') : editing ? '수정하기' : '등록하기'}
+                <button type="submit" disabled={submitting}
+                  className="h-[52px] px-8 rounded-[10px] bg-[#14243A] text-white text-base font-semibold hover:bg-[#1f3757] focus-visible:outline-2 focus-visible:outline-[#426B93] shadow-xs disabled:cursor-not-allowed disabled:opacity-60">
+                  {submitting ? (editing ? '수정 중...' : '등록 중...') : editing ? '수정하기' : '등록하기 (결제로 이동)'}
                 </button>
               </div>
             </form>
-
-            <div className="flex min-w-0 flex-col gap-[22px]">
-              <section className="rounded-[30px] border border-line bg-line-soft px-6 pt-8 pb-6">
-                <h2 className={CARD_TITLE}>
-                  <Image src="/icons/escort/warning.svg" alt="" width={31} height={31} className="size-7" />
-                  작성 시 참고해주세요!
-                </h2>
-                <ul className="flex flex-col px-3">
-                  {GUIDES.map((guide) => (
-                    <li key={guide} className={LIST_ITEM}>
-                      <Image src="/icons/escort/bullet.svg" alt="" width={6} height={6} className="shrink-0" />
-                      {guide}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              {sample && (
-                <section className="rounded-[30px] border border-line bg-white px-6 py-8 shadow-card">
-                  <h2 className="mb-2.5 flex items-center gap-[15px] px-2.5 text-2xl leading-6 font-semibold text-brand">
-                    <Image src="/icons/escort/clipboard.svg" alt="" width={29} height={36} className="h-8 w-auto" />
-                    작성 예시
-                  </h2>
-                  <div className="flex flex-col gap-2.5">
-                    {EXAMPLES.map((example) => (
-                      <div key={example.title} className="flex flex-col gap-[15px] rounded-[30px] border border-line bg-line-soft p-5 text-brand">
-                        <p className="text-xl leading-6 font-semibold">{example.title}</p>
-                        <p className="text-sm leading-5 font-medium">{example.body}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              <section className="rounded-[30px] border border-line bg-white px-6 pt-8 pb-6 shadow-card">
-                <h2 className={CARD_TITLE}>
-                  <Image src="/icons/escort/warning.svg" alt="" width={31} height={31} className="size-7" />
-                  결제 예상 금액
-                </h2>
-                <ul className="flex flex-col px-3">
-                  <li className={LIST_ITEM}>
-                    <Image src="/icons/escort/bullet.svg" alt="" width={6} height={6} className="shrink-0" />
-                    {amount.toLocaleString()}원
-                  </li>
-                  <li className={LIST_ITEM}>
-                    <Image src="/icons/escort/bullet.svg" alt="" width={6} height={6} className="shrink-0" />
-                    실제 동행 종료 시간에 따라 추가 결제 또는 부분 취소가 발생할 수 있습니다.
-                  </li>
-                </ul>
-              </section>
-            </div>
           </div>
-        </Container>
+        </div>
       </section>
     </AppShell>
   );

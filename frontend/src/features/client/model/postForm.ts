@@ -158,31 +158,3 @@ export function splitRegion(address: string): { region: string; district: string
   const [region = '', district = ''] = address.trim().split(/\s+/);
   return { region, district };
 }
-
-/** 수정 화면 확인용 예시 값 (Figma 공고 작성 입력 예시 506:2944) */
-export const SAMPLE_FORM: PostFormValues = {
-  title: '서울 아산 병원 동행 요청드립니다.',
-  hospitalName: '서울아산병원',
-  hospitalAddress: '서울 송파구 올림픽로43길 88',
-  hospitalLat: 37.5266,
-  hospitalLng: 127.1084,
-  region: '서울',
-  district: '송파구',
-  departure: '서울 강동구 양재대로87길 18',
-  pickupLat: 37.5301,
-  pickupLng: 127.1237,
-  date: '2026-09-20',
-  startTime: '10:00',
-  endTime: '13:30',
-  hourlyPay: '14,000',
-  transportOut: '택시',
-  transportBack: '택시',
-  party: '1명 (본인만)',
-  reportRequested: true,
-  description: '다리가 불편하여 진료를 보러 갑니다.\n동행 시 넘어지지 않도록 잘 살펴주시고,\n심심하지 않게 이야기를 잘 해주는 매니저 였으면 좋겠습니다.',
-  note: '병원은 11:00 예약 해두었습니다.',
-  recruitStartDate: '2026-09-11',
-  recruitStartTime: '13:00',
-  recruitEndDate: '2026-09-19',
-  recruitEndTime: '00:00',
-};
