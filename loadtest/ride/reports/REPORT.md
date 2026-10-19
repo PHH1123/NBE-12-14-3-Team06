@@ -190,7 +190,7 @@ spring:
 
 풀 크기도 설정에 없어 **기본값 10에 암묵적으로 기대고 있는 상태**입니다. 값을 적어 두세요.
 
-### ② `RideRepository` 에 fetch join 을 걸어라
+### ② `RideRepository` 에 fetch join 을 걸어라 — 적용 시도됨, **아직 안 먹었습니다**
 
 두 경로 모두 post 를 추가 SELECT 로 끌어옵니다. 커넥션 점유 시간이 그만큼 길어지고,
 그게 ①의 포화를 앞당깁니다.
@@ -199,6 +199,53 @@ spring:
 @Query("select r from Ride r join fetch r.post p where p.id = :postId")
 List<Ride> findAllByPostId(@Param("postId") Long postId);
 ```
+
+#### 2026-10-19 후속: 커밋 `057c14a` 검증 결과
+
+SQL 로그로 요청 1건당 SELECT 수를 세어 확인했습니다 (`ride` 20건 시드, 워밍업 후 1회 호출).
+
+| 버전 | 목록 `GET /rides/posts/{id}` | 상세 `GET /rides/{id}` |
+|---|---|---|
+| 커밋 `057c14a` (현재) | **SELECT 2** (`ride` + `post`) | SELECT 2 |
+| `findAllByPostId` 에 `join fetch Post p on r.post=p` | **SELECT 2** (변화 없음) | SELECT 2 |
+| `findAllByPostId` 에 **`join fetch r.post p`** | **SELECT 1** ✅ | SELECT 2 |
+
+**두 가지가 걸려 있습니다.**
+
+**(a) 고친 메서드가 목록 경로가 아닙니다.** `057c14a` 는 `findByPostId` 에 join fetch 를 넣었는데,
+목록 API(`RideService.getListByPostId`)가 쓰는 건 **`findAllByPostId`** 입니다.
+`findByPostId` 의 호출처는 `updateRide`(컨트롤러에서 주석 처리됨)와 `move`(application 도메인
+내부 호출)뿐이고, **둘 다 `post` 를 읽지 않아** 거기 fetch 를 걸어도 얻을 게 없습니다.
+
+**(b) `join fetch <엔티티> <별칭> on ...` 문법은 페치가 되지 않습니다.** 파싱·실행은 되지만
+연관을 초기화하지 않아 `post` 를 다시 SELECT 합니다. **연관 경로(`join fetch r.post`)로 걸어야**
+합니다. 위 표 2행과 3행이 그 차이입니다.
+
+```java
+// 이렇게 고쳐야 합니다 (findByPostId 가 아니라 findAllByPostId)
+@Query("select r from Ride r join fetch r.post p where p.id=:postId")
+List<Ride> findAllByPostId(@Param("postId") Long postId);
+```
+
+#### 고쳤을 때의 효과 — 포화 전 구간에서 측정
+
+100 iter/s(= 200 req/s), 90초. 이 구간은 Hikari pending 이 0 이라 쿼리 수 차이가 그대로 보입니다.
+
+| 지표 | 커밋 상태 (SELECT 2) | 수정판 (SELECT 1) | 차이 |
+|---|---|---|---|
+| **목록 서버 평균** | 4.26ms | **3.75ms** | **-12%** |
+| 전체 서버 평균 | 4.26ms | 4.07ms | -4.5% |
+| **요청당 총 커넥션 점유** | 3.81ms | **3.58ms** | **-6%** |
+| k6 p95 | 5.91ms | 5.72ms | -3% |
+| 획득/요청 | 1.0 | 1.0 | 동일 |
+
+> ⚠️ **한계점(stress) 구간에서는 차이가 안 보입니다.** 같은 A/B 를 `STAGE=stress` 로 돌리면
+> 양쪽 다 피크 1,39x req/s, pending 189, 획득 대기 3초로 **똑같이 무너집니다.**
+> 그 구간은 쿼리 수가 아니라 **풀(10)과 머신이 한계**라 차이가 묻히기 때문입니다.
+> 쿼리 수 개선은 포화 전 구간에서 재야 보입니다.
+
+**정리하면 — 고치는 게 맞지만 기대치는 조정하세요.** `post` 조회가 PK 단건이라 한 번 아끼는 효과가
+크지 않습니다(목록 12%). ①의 커넥션 타임아웃·풀 설정이 처리량에는 훨씬 큰 영향을 줍니다.
 
 상세(`findById`)는 `JpaRepository` 기본 메서드라 fetch join 을 걸 수 없으니, post 를 함께 가져오는
 전용 쿼리를 추가하는 편이 낫습니다.
