@@ -2353,4 +2353,29 @@ public class UserControllerTest {
         assertThat(history.getCreatedAt()).isNotNull();
 
     }
+
+    @Test
+    @DisplayName("[UserController] 내 정보 조회 - 기간 정지된 회원은 userStatus, suspendEndAt, statusReason 반환")
+    void t64() throws Exception {
+        Cookie accessToken = signUp("user1");
+
+        User user = this.userRepository.findByUsername("user1").orElseThrow();
+        this.userStatusHistoryRepository.save(user.suspend(1L, "노쇼 3회 누적"));
+        em.flush();
+        em.clear();
+
+        ResultActions resultActions = mvc.perform(
+                        get("/api/v1/users/profile")
+                                .cookie(accessToken)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value("200-3"))
+                .andExpect(jsonPath("$.data.username").value("user1"))
+                .andExpect(jsonPath("$.data.userStatus").value("SUSPENDED"))
+                .andExpect(jsonPath("$.data.suspendEndAt").isNotEmpty())
+                .andExpect(jsonPath("$.data.statusReason").value("노쇼 3회 누적"));
+    }
 }
