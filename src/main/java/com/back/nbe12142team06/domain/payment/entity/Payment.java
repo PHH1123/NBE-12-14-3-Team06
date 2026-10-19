@@ -92,7 +92,8 @@ public class Payment extends BaseSoftDeleteTimeEntity {
 
     public void statusUpdate(PaymentStatus status) {
         if (!paymentStatus.canTransitionTo(status)) {
-            throw new InvalidException(47, "상태 변경이 불가능합니다.");
+            throw new InvalidException(72, "'%s' 상태의 결제는 '%s' 상태로 바꿀 수 없습니다."
+                    .formatted(this.paymentStatus.getDescription(), status.getDescription()));
         }
         this.paymentStatus = status;
     }

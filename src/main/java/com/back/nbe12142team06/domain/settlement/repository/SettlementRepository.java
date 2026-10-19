@@ -50,7 +50,7 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     @Query("update Settlement s set s.settlementStatus=:status where s.id=:id")
     int updateStatus(@Param("id") Long id, @Param("status") SettlementStatus status);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("update Settlement s " +
             "set s.settlementStatus=SettlementStatus.PROCESSING " +
             "where s.id=:settlementId " +
@@ -80,11 +80,11 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             "and (s.settlementStatus='PENDING' or s.settlementStatus='FAILED' or s.settlementStatus='PROCESSING')")
     Optional<AccountDto> findByIdAndState(@Param("settlementId") Long settlementId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("update Settlement s " +
             "set s.settlementStatus=SettlementStatus.PROCESSING " +
             "where s.id=:settlementId " +
-            "and s.settlementStatus in (SettlementStatus.PENDING, SettlementStatus.FAILED, SettlementStatus.PROCESSING)")
+            "and s.settlementStatus in (SettlementStatus.PENDING, SettlementStatus.FAILED)")
     int updateProcessingForAdmin(@Param("settlementId") Long settlementId);
 
     boolean existsByEscortIdAndSettlementStatusNot(Long escortId, SettlementStatus status);
