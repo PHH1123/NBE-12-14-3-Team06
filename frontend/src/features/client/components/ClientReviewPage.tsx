@@ -6,7 +6,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { AlertCircle, Check, ChevronLeft, Star } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import { useRequireAuth } from '@/features/auth';
-import { MAX_TAGS, REVIEW_TAG_ROWS, writeReview } from '@/features/review';
+import { MAX_TAGS, REVIEW_TAG_ROWS, fetchUserReviews, reviewTagInfo, writeReview, type ReviewDto } from '@/features/review';
 import { fetchClientEscortCase } from '../api';
 import type { ClientEscortCase } from '../types';
 
@@ -32,6 +32,12 @@ export default function ClientReviewPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [existing, setExisting] = useState<{
+    applicationId: number;
+    status: 'written' | 'unwritten' | 'error';
+    review?: ReviewDto;
+  }>();
+  const [reviewReload, setReviewReload] = useState(0);
 
   useEffect(() => {
     if (postId === undefined || !Number.isFinite(postId) || !Number.isFinite(applicationId)) return;
@@ -48,6 +54,23 @@ export default function ClientReviewPage() {
 
   const escortLoading = postId !== undefined && Number.isFinite(postId) && live.key !== postId;
   const escort = live.key === postId ? live.escort : undefined;
+
+  // 같은 지원 건의 기존 리뷰를 읽어서, 재방문 시 작성 폼 대신 읽기 전용으로 표시합니다.
+  useEffect(() => {
+    if (!escort) return;
+    let canceled = false;
+    setExisting(undefined);
+    fetchUserReviews(escort.manager.userId)
+      .then((reviews) => {
+        if (canceled) return;
+        const review = reviews.find((item) => item.applicationId === escort.applicationId);
+        setExisting({ applicationId: escort.applicationId, status: review ? 'written' : 'unwritten', review });
+      })
+      .catch(() => {
+        if (!canceled) setExisting({ applicationId: escort.applicationId, status: 'error' });
+      });
+    return () => { canceled = true; };
+  }, [escort, reviewReload]);
 
   const toggleTag = (value: string) => {
     setSelectedTags((prev) =>
@@ -103,6 +126,67 @@ export default function ClientReviewPage() {
         <section className="min-h-[400px] bg-white py-24 text-center text-sm text-[#67717C]">
           동행 정보를 찾을 수 없습니다.
           <div className="mt-6"><Link href="/client/posts" className="font-semibold text-[#14243A] hover:underline">내 공고 목록으로 돌아가기</Link></div>
+        </section>
+      </AppShell>
+    );
+  }
+
+  if (!existing || existing.applicationId !== escort.applicationId) {
+    return <AppShell><section className="min-h-[400px] bg-white py-24 text-center text-sm text-[#67717C]">리뷰를 확인하는 중입니다...</section></AppShell>;
+  }
+  if (existing.status === 'error') {
+    return (
+      <AppShell>
+        <section className="min-h-[400px] bg-[#F7F8F8] py-24 text-center">
+          <p role="alert" className="text-sm text-[#67717C]">리뷰 작성 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
+          <button type="button" onClick={() => setReviewReload((value) => value + 1)} className="mt-5 rounded-xl bg-[#14243A] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1F3757]">다시 시도</button>
+        </section>
+      </AppShell>
+    );
+  }
+  if (existing.status === 'written' && existing.review) {
+    const review = existing.review;
+    return (
+      <AppShell>
+        <section className="w-full bg-[#F7F8F8] py-12 lg:py-16">
+          <div className="mx-auto max-w-2xl space-y-8 px-5 sm:px-8">
+            <Link href="/client/posts" className={`inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] hover:text-[#14243A] ${FOCUS}`}>
+              <ChevronLeft className="size-4" aria-hidden="true" />내 공고 목록으로 돌아가기
+            </Link>
+            <div>
+              <h1 className="text-3xl font-semibold tracking-tight text-[#14243A]">작성한 리뷰</h1>
+              <p className="mt-2 text-sm text-[#67717C]">이 동행에 대해 작성한 리뷰를 확인할 수 있습니다.</p>
+            </div>
+            <article className="space-y-6 rounded-2xl border border-[#E1E5E8] bg-white p-6 shadow-xs sm:p-8">
+              <div className="flex items-center justify-between gap-3 border-b border-[#E1E5E8] pb-5">
+                <div>
+                  <h2 className="font-semibold text-[#14243A]">{escort.manager.name} 동행 매니저</h2>
+                  <p className="mt-1 text-xs text-[#67717C]">{escort.hospitalName} · {escort.title}</p>
+                </div>
+                <span className="shrink-0 rounded-md border border-[#C6DDD0] bg-[#E7F0EB] px-2.5 py-1 text-xs font-semibold text-[#2F7D5B]">작성 완료</span>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-[#14243A]">동행 만족도 평가</h3>
+                <div className="flex items-center gap-1.5" aria-label={`평점 5점 만점에 ${review.rating}점`}>
+                  {RATINGS.map((value) => <Star key={value} aria-hidden="true" className={`size-6 ${value <= review.rating ? 'fill-[#9A6B12] text-[#9A6B12]' : 'text-[#E1E5E8]'}`} />)}
+                  <strong className="ml-2 text-sm text-[#14243A]">{review.rating} / 5점</strong>
+                </div>
+              </div>
+              {review.tags.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-[#14243A]">선택한 평가 항목</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {review.tags.map((tag) => <span key={tag} className="rounded-lg border border-[#E1E5E8] bg-[#F7F8F8] px-3 py-2 text-xs font-semibold text-[#344055]">{reviewTagInfo(tag).label}</span>)}
+                  </div>
+                </div>
+              )}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-[#14243A]">작성한 후기</h3>
+                <p className="min-h-20 whitespace-pre-wrap rounded-xl border border-[#E1E5E8] bg-[#F7F8F8] p-4 text-sm leading-7 text-[#344055]">{review.content?.trim() || '작성한 상세 후기가 없습니다.'}</p>
+              </div>
+              <p className="border-t border-[#E1E5E8] pt-4 text-xs text-[#67717C]">작성일 {review.createdAt.replace('T', ' ').slice(0, 16)}</p>
+            </article>
+          </div>
         </section>
       </AppShell>
     );

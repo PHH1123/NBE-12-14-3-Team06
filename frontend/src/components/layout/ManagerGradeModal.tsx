@@ -294,15 +294,6 @@ export const ManagerGradeModal: React.FC<ManagerGradeModalProps> = ({
           )}
         </div>
 
-        {/* Fixed Non-scrolling Modal Footer */}
-        <div className="px-6 py-4 border-t border-[#E1E5E8] shrink-0 flex justify-end bg-[#F7F8F8]">
-          <button
-            onClick={onClose}
-            className="h-[42px] px-6 rounded-[10px] text-sm font-semibold bg-[#14243A] text-white hover:bg-[#1f3757] transition-colors sc-focus"
-          >
-            확인 및 닫기
-          </button>
-        </div>
       </div>
     </div>
   );

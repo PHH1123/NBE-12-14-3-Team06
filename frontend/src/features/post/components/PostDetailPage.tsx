@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AppShell } from '@/components/layout';
-import { Building2, ChevronLeft, FileCheck, Lock, Shield, MapPin, Users } from 'lucide-react';
+import { AlertCircle, ArrowRight, Building2, ChevronLeft, FileCheck, LoaderCircle, Lock, Shield, ShieldAlert, MapPin, Users } from 'lucide-react';
 import { applyToPost, fetchMyApplications } from '@/features/application';
 import { useCurrentUser, useRequireAuth, type CurrentUser } from '@/features/auth';
 import PostGuestNotice from './PostGuestNotice';
@@ -23,8 +23,7 @@ import { cn } from '@/lib/cn';
 import { deletePost, fetchPost } from '../api';
 import { daysFromNow, formatFullDate, formatTime, parseDateTime } from '../lib/date';
 import { canDeletePost, canEditPost, postStatusLabel, toPostStatusKey } from '../model/status';
-import type { LabelTone, PostDetail, PostStatusKey } from '../types';
-import StatusLabel from './StatusLabel';
+import type { PostDetail, PostStatusKey } from '../types';
 import { useActionDialog } from '@/components/ui/useActionDialog';
 
 const CARD = 'rounded-2xl border border-[#E1E5E8] bg-white shadow-xs';
@@ -32,17 +31,72 @@ const CARD_TITLE = 'text-xl font-semibold text-[#14243A]';
 const BUTTON =
   'flex items-center justify-center rounded-[10px] px-5 font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50';
 
+/** 공고 상세에서만 사용하는 로딩·오류·접근 제한 안내. 목록 이동과 권한 판별은 기존 로직을 그대로 유지합니다. */
+function PostDetailFeedback({
+  kind,
+  title,
+  description,
+  listHref,
+  listLabel = '목록으로',
+  detail,
+}: {
+  kind: 'loading' | 'error' | 'forbidden';
+  title: string;
+  description: string;
+  listHref: string;
+  listLabel?: string;
+  detail?: string;
+}) {
+  const isLoading = kind === 'loading';
+  const Icon = isLoading ? LoaderCircle : kind === 'forbidden' ? ShieldAlert : AlertCircle;
+
+  return (
+    <AppShell>
+      <section className="flex min-h-[calc(100svh-72px)] items-center bg-[#F7F8F8] px-5 py-14 sm:px-8 lg:py-20">
+        <div className="mx-auto w-full max-w-[1240px] lg:px-16">
+          <div className="mx-auto w-full max-w-[680px] rounded-2xl border border-[#E1E5E8] bg-white px-6 py-12 text-center shadow-[0_4px_20px_rgba(30,39,57,0.045)] sm:px-12 sm:py-14">
+            <span className="inline-flex items-center rounded-md bg-[#EDF0F2] px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-[#426B93]">
+              {isLoading ? 'LOADING' : kind === 'forbidden' ? 'ACCESS RESTRICTED' : 'NOTICE'}
+            </span>
+            <div className="mx-auto mt-7 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EDF0F2] text-[#426B93]">
+              <Icon className={`h-8 w-8 ${isLoading ? 'animate-spin' : ''}`} strokeWidth={1.8} aria-hidden="true" />
+            </div>
+            <h1 role={isLoading ? 'status' : undefined} className="mt-6 text-2xl font-semibold tracking-tight text-[#14243A] sm:text-[28px]">
+              {title}
+            </h1>
+            <p className="mx-auto mt-3 max-w-[460px] text-sm leading-7 text-[#67717C] sm:text-base">
+              {description}
+            </p>
+            {detail && (
+              <p role="alert" className="mx-auto mt-4 max-w-[480px] break-words rounded-lg bg-[#F7F8F8] px-4 py-3 text-sm leading-6 text-[#67717C]">
+                {detail}
+              </p>
+            )}
+            <Link
+              href={listHref}
+              className="group mx-auto mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-[10px] border border-[#DDE3EA] bg-white px-6 text-sm font-semibold text-[#14243A] transition-colors duration-200 hover:border-[#A5B7CA] hover:bg-[#F7F8F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93]"
+            >
+              {listLabel}
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </section>
+    </AppShell>
+  );
+}
+
 /** 결제 취소 사유 길이 제한. 입력한 사유가 그대로 토스 취소 내역으로 넘어가서 넉넉하게만 잡아 둡니다. */
 const MAX_CANCEL_REASON_LENGTH = 200;
 
-/** 결제 상태 배지. 문구는 백엔드 PaymentStatus 의 description 을 그대로 씁니다. */
-const PAYMENT_LABEL: Record<PaymentStatus, { text: string; tone: LabelTone }> = {
-  READY: { text: '미결제', tone: 'red' },
-  IN_PROGRESS: { text: '결제 중', tone: 'blue' },
-  DONE: { text: '결제 완료', tone: 'green' },
-  CANCELED: { text: '결제 취소', tone: 'gray' },
-  PARTIAL_CANCELED: { text: '부분 취소', tone: 'purple' },
-  DELETED: { text: '공고 삭제', tone: 'gray' },
+/** 결제 상태 배지 — 결제 내역 화면과 같은 차분한 Signature Care 톤을 사용합니다. */
+const PAYMENT_LABEL: Record<PaymentStatus, { text: string; className: string }> = {
+  READY: { text: '미결제', className: 'border-[#9A6B12]/20 bg-[#9A6B12]/10 text-[#84601B]' },
+  IN_PROGRESS: { text: '결제 중', className: 'border-[#426B93]/20 bg-[#426B93]/10 text-[#426B93]' },
+  DONE: { text: '결제 완료', className: 'border-[#2F7D5B]/20 bg-[#2F7D5B]/10 text-[#2F7D5B]' },
+  CANCELED: { text: '결제 취소', className: 'border-[#B4413C]/20 bg-[#B4413C]/10 text-[#B4413C]' },
+  PARTIAL_CANCELED: { text: '부분 취소', className: 'border-[#426B93]/20 bg-[#426B93]/10 text-[#426B93]' },
+  DELETED: { text: '공고 삭제', className: 'border-[#E1E5E8] bg-[#EDF0F2] text-[#67717C]' },
 };
 
 /** 결제가 아니라 취소 시점을 보여 줘야 하는 상태 (부분 취소는 결제 자체가 살아 있어 결제 일시를 그대로 둡니다) */
@@ -130,11 +184,12 @@ function GuardedPostDetailPage({ viewer }: { viewer: 'escort' | 'client' }) {
 
   if (loading) {
     return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p className="text-xl font-semibold text-brand">불러오는 중입니다...</p>
-        </section>
-      </AppShell>
+      <PostDetailFeedback
+        kind="loading"
+        title="공고를 불러오는 중입니다."
+        description="공고 상세 정보를 준비하고 있어요. 잠시만 기다려 주세요."
+        listHref={viewer === 'client' ? '/client/posts' : '/escort/posts'}
+      />
     );
   }
   if (!user) return null;
@@ -362,14 +417,13 @@ function PostDetailPageBody({ viewer }: Props) {
 
   if (!post) {
     return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p className="text-xl font-semibold text-brand">{loadError ? `공고를 불러오지 못했습니다. (${loadError})` : '공고를 불러오는 중입니다.'}</p>
-          <Link href={listHref} className={cn(BUTTON, 'mx-auto mt-8 h-11 w-60 border border-line text-xl text-brand')}>
-            목록으로
-          </Link>
-        </section>
-      </AppShell>
+      <PostDetailFeedback
+        kind={loading ? 'loading' : 'error'}
+        title={loading ? '공고를 불러오는 중입니다.' : '공고를 불러오지 못했습니다.'}
+        description={loading ? '공고 상세 정보를 준비하고 있어요. 잠시만 기다려 주세요.' : '일시적인 오류가 발생했거나 공고가 삭제되었을 수 있어요. 목록에서 다시 확인해 주세요.'}
+        detail={loadError}
+        listHref={listHref}
+      />
     );
   }
 
@@ -377,14 +431,13 @@ function PostDetailPageBody({ viewer }: Props) {
   // 공고 작성자 본인이 아니면 여기서 막습니다. (GET /posts/{id} 자체는 누구나 볼 수 있는 공개 조회라 서버는 막지 않습니다)
   if (viewer === 'client' && post.clientId !== user?.username) {
     return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p className="text-xl font-semibold text-brand">본인이 작성한 공고만 볼 수 있습니다.</p>
-          <Link href={listHref} className={cn(BUTTON, 'mx-auto mt-8 h-11 w-60 border border-line text-xl text-brand')}>
-            내 공고 목록으로
-          </Link>
-        </section>
-      </AppShell>
+      <PostDetailFeedback
+        kind="forbidden"
+        title="본인이 작성한 공고만 볼 수 있습니다."
+        description="다른 의뢰인이 작성한 공고는 내 공고 상세 화면에서 확인할 수 없어요."
+        listHref={listHref}
+        listLabel="내 공고 목록으로"
+      />
     );
   }
 
@@ -629,7 +682,9 @@ function PostDetailPageBody({ viewer }: Props) {
                         className={cn('flex flex-col gap-[11px]', index > 0 && 'mt-5 border-t border-[#E1E5E8] pt-5')}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-3">
-                          <StatusLabel tone={paymentLabel.tone}>{paymentLabel.text}</StatusLabel>
+                          <span className={cn('inline-flex items-center whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-semibold', paymentLabel.className)}>
+                            {paymentLabel.text}
+                          </span>
                           {cancelable && !formOpen && (
                             <button
                               type="button"

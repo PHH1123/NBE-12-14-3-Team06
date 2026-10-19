@@ -74,13 +74,6 @@ export function SupportContent({ onClose }: SupportContentProps) {
         <div className="flex justify-end gap-2">
           <button
             type="button"
-            onClick={onClose}
-            className="h-[40px] rounded-lg border border-[#E1E5E8] px-4 text-xs font-semibold text-[#67717C] transition-colors hover:bg-[#F7F8F8]"
-          >
-            닫기
-          </button>
-          <button
-            type="button"
             disabled
             className="h-[40px] cursor-not-allowed rounded-lg bg-[#14243A] px-5 text-xs font-semibold text-white opacity-50"
           >

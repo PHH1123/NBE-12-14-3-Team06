@@ -103,18 +103,17 @@ function DetailDialog({ payment, post, onClose }: { payment: PaymentDto; post?: 
           <span className="block">공식 영수증 발급 링크는 현재 결제 조회 응답에 제공되지 않습니다.</span>
           <span className="block">결제 취소는 해당 공고의 상세 화면에서 진행할 수 있습니다.</span>
         </p>
-        <div className="flex flex-col gap-2.5 sm:flex-row">
-          {payment.postId != null && (
+        {payment.postId != null && (
+          <div className="flex justify-end">
             <Link
               href={`/client/posts/${payment.postId}`}
               onClick={onClose}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl border border-[#E1E5E8] px-4 text-xs font-semibold text-[#14243A] hover:bg-[#F7F8F8]"
+              className="flex h-11 items-center justify-center rounded-xl border border-[#E1E5E8] px-5 text-xs font-semibold text-[#14243A] transition-colors hover:bg-[#F7F8F8]"
             >
               공고 상세 보기
             </Link>
-          )}
-          <button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl bg-[#14243A] px-4 text-xs font-semibold text-white hover:bg-[#1F3757]">닫기</button>
-        </div>
+          </div>
+        )}
       </section>
     </div>
   );

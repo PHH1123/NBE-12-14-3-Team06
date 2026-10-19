@@ -7,6 +7,8 @@ import { Activity, ChevronLeft, FileText, PlusCircle, Receipt, Search, Star, Use
 import { AppShell } from '@/components/layout';
 import DropdownSelect from '@/components/ui/DropdownSelect';
 import { useRequireAuth } from '@/features/auth';
+import { fetchEscortProfile } from '@/features/application';
+import { fetchUserReviews } from '@/features/review';
 import { fetchMyPayments, type PaymentDto, type PaymentStatus } from '@/features/payment';
 import { cn } from '@/lib/cn';
 import { fetchMyPosts } from '../api';
@@ -136,6 +138,32 @@ const PRIMARY = `${ACTION_SIZE} bg-[#14243A] text-white hover:bg-[#1f3757]`;
 const BLUE = `${ACTION_SIZE} bg-[#426B93] text-white hover:bg-[#345778]`;
 const SECONDARY = `${ACTION_SIZE} border border-[#E1E5E8] bg-white text-[#14243A] hover:bg-[#F7F8F8]`;
 
+/** 현재 노출된 완료 공고만 리뷰 작성 여부를 조회합니다. 확인 전에는 작성 가능으로 추정하지 않습니다. */
+function ReviewAction({ applicationId, postId }: { applicationId: number; postId: number }) {
+  const [state, setState] = useState<'loading' | 'written' | 'unwritten' | 'error'>('loading');
+  useEffect(() => {
+    let canceled = false;
+    setState('loading');
+    fetchEscortProfile(applicationId)
+      .then((profile) => fetchUserReviews(profile.escortId))
+      .then((reviews) => {
+        if (!canceled) setState(reviews.some((review) => review.applicationId === applicationId) ? 'written' : 'unwritten');
+      })
+      .catch(() => { if (!canceled) setState('error'); });
+    return () => { canceled = true; };
+  }, [applicationId]);
+
+  if (state === 'loading') {
+    return <span className={`${SECONDARY} cursor-wait opacity-60`} aria-live="polite" aria-label="리뷰 작성 여부 확인 중"><Star className="size-3.5 text-[#9A6B12]" aria-hidden="true" />확인 중</span>;
+  }
+  return (
+    <Link href={`/client/escort/${applicationId}/review?postId=${postId}`} onClick={(event) => event.stopPropagation()} className={SECONDARY}>
+      <Star className="size-3.5 text-[#9A6B12]" aria-hidden="true" />
+      {state === 'written' ? '리뷰 보기' : state === 'unwritten' ? '리뷰 쓰기' : '리뷰 확인'}
+    </Link>
+  );
+}
+
 /** 목록 항목의 실제 이동 주소. 각 버튼은 클릭 이벤트를 전파시키지 않습니다. */
 function RowActions({ post }: { post: ClientPost }) {
   const stop = (event: MouseEvent<HTMLAnchorElement>) => event.stopPropagation();
@@ -179,14 +207,7 @@ function RowActions({ post }: { post: ClientPost }) {
           <FileText className="size-3.5" aria-hidden="true" />
           보고서 보기
         </Link>
-        <Link
-          href={`/client/escort/${post.applicationId}/review?postId=${post.id}`}
-          onClick={stop}
-          className={SECONDARY}
-        >
-          <Star className="size-3.5 text-[#9A6B12]" aria-hidden="true" />
-          리뷰 쓰기
-        </Link>
+        <ReviewAction applicationId={post.applicationId} postId={post.id} />
       </div>
     ) : (
       <Link href={`/client/posts/${post.id}`} onClick={stop} className={SECONDARY}>공고 상세</Link>
