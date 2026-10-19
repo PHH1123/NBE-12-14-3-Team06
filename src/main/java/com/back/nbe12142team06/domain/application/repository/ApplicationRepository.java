@@ -140,4 +140,11 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("accepted") ApplicationStatus accepted,
             @Param("inProgress") PostStatus inProgress
     );
+
+    @Query("select a from Application a " +
+            "join a.post p " +
+            "join a.escort e " +
+            "where p.id=:postId and e.id=:escortId")
+    List<Application> findByPostIdAndEscortId(@Param("postId") Long postId,
+                                            @Param("escortId") Long escortId);
 }

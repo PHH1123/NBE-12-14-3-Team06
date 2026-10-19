@@ -1,6 +1,8 @@
 package com.back.nbe12142team06.domain.ride.service;
 
+import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.application.enums.EscortProgress;
+import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.ride.dto.RideResponse;
 import com.back.nbe12142team06.domain.ride.dto.RideUpdateRequest;
@@ -24,6 +26,7 @@ import java.util.List;
 public class RideService {
 
     private final RideRepository rideRepository;
+    private final ApplicationRepository applicationRepository;
 
     // 이동 수단 변경
     @Transactional
@@ -57,15 +60,31 @@ public class RideService {
     }
 
     // 공고로 목록 찾기
-    public List<RideResponse> getListByPostId(Long postId) {
-        return rideRepository.findAllByPostId(postId)
-                .stream()
-                .map(RideResponse::new)
+    public List<RideResponse> getListByPostIdAndUserId(Long postId, Long userId) {
+        List<Ride> rides = rideRepository.findAllByPostId(postId);
+        boolean isValid = false;
+
+        // 의뢰인 검증
+        for (Ride ride : rides) {
+            if (validClient(ride, userId)) {
+                isValid = true;
+            }
+        }
+
+        // 동행 매니저 검증
+        if (!isValid) {
+            List<Application> applications = applicationRepository.findByPostIdAndEscortId(postId, userId);
+            if (applications.isEmpty()) {
+                throw new ForbiddenException(81, "이동 정보를 조회할 권한이 없습니다.");
+            }
+        }
+
+        return rides.stream().map(RideResponse::new)
                 .toList();
     }
 
     // 유저 검증
-    private boolean validUser(Ride ride, Long userId) {
+    private boolean validClient(Ride ride, Long userId) {
         return ride.getPost().getClient().getId().equals(userId);
     }
 
@@ -74,7 +93,7 @@ public class RideService {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() ->
                 new NotFoundException(82, "이동 정보를 찾을 수 없습니다."));
 
-        if (!validUser(ride, userId)) {
+        if (!validClient(ride, userId)) {
             throw new ForbiddenException(81, "이동 정보를 조회할 권한이 없습니다.");
         }
 
@@ -91,7 +110,7 @@ public class RideService {
             if (ride.getDirection().equals(RideDirection.TO_HOSPITAL)) {
                 if (progress.equals(EscortProgress.TO_HOSPITAL)) {
                     ride.updateStatus(RideStatus.IN_PROGRESS);
-                } else if(progress.equals(EscortProgress.AT_HOSPITAL)) {
+                } else if (progress.equals(EscortProgress.AT_HOSPITAL)) {
                     ride.updateStatus(RideStatus.COMPLETED);
                 }
             } else if (ride.getDirection().equals(RideDirection.TO_HOME)) {
