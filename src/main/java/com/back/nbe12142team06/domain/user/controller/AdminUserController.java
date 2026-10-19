@@ -1,9 +1,6 @@
 package com.back.nbe12142team06.domain.user.controller;
 
-import com.back.nbe12142team06.domain.user.dto.admin.AdminUserProfileUpdateRequest;
-import com.back.nbe12142team06.domain.user.dto.admin.AdminUserResponse;
-import com.back.nbe12142team06.domain.user.dto.admin.AdminUserSuspendRequest;
-import com.back.nbe12142team06.domain.user.dto.admin.AdminUserSuspendResponse;
+import com.back.nbe12142team06.domain.user.dto.admin.*;
 import com.back.nbe12142team06.domain.user.dto.profile.EscortProfileResponse;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
@@ -123,7 +120,7 @@ public class AdminUserController {
     @PostMapping("/users/{userId}/suspension")
     public RsData<AdminUserSuspendResponse> suspendUserByAdmin(
             @PathVariable Long userId,
-            @Valid @RequestBody AdminUserSuspendRequest request,
+            @Valid @RequestBody AdminUserStatusRequest request,
             @AuthenticationPrincipal SecurityUser admin
     ){
         UserStatusHistory userStatusHistory = this.userService.suspendUser(admin.getId(), userId, request.reason());
@@ -141,9 +138,9 @@ public class AdminUserController {
             description = "관리자가 회원에게 영구 정지 패널티를 부여합니다."
     )
     @PostMapping("/users/{userId}/ban")
-    public RsData<AdminUserSuspendResponse> banUserByAdmin(
+    public RsData<AdminUserBanResponse> banUserByAdmin(
             @PathVariable Long userId,
-            @Valid @RequestBody AdminUserSuspendRequest request,
+            @Valid @RequestBody AdminUserStatusRequest request,
             @AuthenticationPrincipal SecurityUser admin
     ){
         UserStatusHistory userStatusHistory = this.userService.banUser(admin.getId(), userId, request.reason());
@@ -151,7 +148,27 @@ public class AdminUserController {
         return new RsData<>(
                 "200-11",
                 "회원이 영구 정지되었습니다.",
-                new AdminUserSuspendResponse(userStatusHistory)
+                new AdminUserBanResponse(userStatusHistory)
+        );
+    }
+
+    @Operation(
+            summary = "회원 정지 해제",
+            description = "관리자가 회원의 정지를 해제합니다."
+
+    )
+    @PostMapping("/users/{userId}/release")
+    public RsData<AdminUserReleaseResponse> releaseUserByAdmin(
+            @PathVariable Long userId,
+            @Valid @RequestBody AdminUserStatusRequest request,
+            @AuthenticationPrincipal SecurityUser admin
+    ){
+        UserStatusHistory userStatusHistory = this.userService.releaseUser(admin.getId(), userId, request.reason());
+
+        return new RsData<>(
+                "200-12",
+                "회원의 정지가 해제되었습니다.",
+                new AdminUserReleaseResponse(userStatusHistory)
         );
     }
 }
