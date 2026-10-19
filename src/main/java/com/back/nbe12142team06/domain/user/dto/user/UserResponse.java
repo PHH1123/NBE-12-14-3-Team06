@@ -1,8 +1,10 @@
 package com.back.nbe12142team06.domain.user.dto.user;
 
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.enums.UserStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,11 +18,30 @@ public record UserResponse(
         LocalDate birthDate,
         String phoneNum,
         String region,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        UserStatus userStatus,
+        LocalDateTime suspendEndAt,
+        String statusReason
 ) {
+
     public UserResponse(User user) {
-        this(user.getUsername(), user.getEmail(), user.getName(),
-                user.getRole(), user.getGender(), user.getBirthDate(),
-                user.getPhoneNum(), user.getRegion(), user.getCreatedAt());
+        this(user, null);
+    }
+
+    public UserResponse(User user, UserStatusHistory userStatusHistory) {
+        this(
+                user.getUsername(),
+                user.getEmail(),
+                user.getName(),
+                user.getRole(),
+                user.getGender(),
+                user.getBirthDate(),
+                user.getPhoneNum(),
+                user.getRegion(),
+                user.getCreatedAt(),
+                user.getUserStatus(),
+                userStatusHistory == null ? null : userStatusHistory.getEndAt(),
+                userStatusHistory == null ? null : userStatusHistory.getReason()
+        );
     }
 }

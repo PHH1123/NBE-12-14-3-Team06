@@ -226,13 +226,33 @@ class PostmatchedCancelTest {
          * 안 됨) 그게 바로 findByIdWithLock() 을 이 경로에도 추가해야 한다는 증거
          * =>postservice,applicationservice에 findByIdWithLock() 추가완료
          */
-        boolean validState =
-                (resultApplication.getStatus() == ApplicationStatus.NO_SHOW
-                        && resultPost.getPostStatus() == PostStatus.CANCELED)
-                        || (resultApplication.getStatus() == ApplicationStatus.NO_SHOW
-                        && resultPost.getPostStatus() == PostStatus.OPEN);
+//        boolean validState =
+////                (resultApplication.getStatus() == ApplicationStatus.NO_SHOW
+////                        && resultPost.getPostStatus() == PostStatus.CANCELED)
+////                        || (resultApplication.getStatus() == ApplicationStatus.NO_SHOW
+////                        && resultPost.getPostStatus() == PostStatus.OPEN);
+////
+////        assertTrue(validState, "공고 상태와 지원 상태 조합이 예상 범위를 벗어났습니다. post="
+////                + resultPost.getPostStatus() + ", application=" + resultApplication.getStatus());
+        // --- 확인 ---
+        /*
+         * Post 락을 먼저 잡은 쪽이 이기고, 진 쪽은 예외로 롤백된다.
+         *
+         * 1. 매칭취소가 먼저 -> Post = CANCELED, 지원도 패널티 없이 CANCELED
+         *    (노쇼취소는 CANCELED -> OPEN 전이가 막혀 롤백)
+         * 2. 노쇼취소가 먼저 -> Post = OPEN(재오픈), 지원 = NO_SHOW
+         *    (매칭취소는 MATCHED 가 아니라서 거절)
+         *
+         * CANCELED + NO_SHOW 는 한쪽 결과가 다른 쪽을 덮어쓴 것이므로 실패로 본다.
+         */
+        boolean matchedCancelWon =
+                resultPost.getPostStatus() == PostStatus.CANCELED
+                        && resultApplication.getStatus() == ApplicationStatus.CANCELED;
+        boolean noShowWon =
+                resultPost.getPostStatus() == PostStatus.OPEN
+                        && resultApplication.getStatus() == ApplicationStatus.NO_SHOW;
 
-        assertTrue(validState, "공고 상태와 지원 상태 조합이 예상 범위를 벗어났습니다. post="
+        assertTrue(matchedCancelWon || noShowWon, "공고 상태와 지원 상태 조합이 예상 범위를 벗어났습니다. post="
                 + resultPost.getPostStatus() + ", application=" + resultApplication.getStatus());
     }
 }

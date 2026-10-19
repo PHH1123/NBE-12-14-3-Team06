@@ -94,7 +94,7 @@ public class UserController {
         return new RsData<>(
                 "200-3",
                 "내 정보 조회가 완료되었습니다.",
-                new UserResponse(user)
+                new UserResponse(user, this.userService.findCurrentSanction(user))
         );
     }
 
@@ -112,7 +112,7 @@ public class UserController {
         return new RsData<>(
                 "200-4",
                 "회원 정보가 수정되었습니다.",
-                new UserResponse(user)
+                new UserResponse(user, this.userService.findCurrentSanction(user))
         );
     }
 
