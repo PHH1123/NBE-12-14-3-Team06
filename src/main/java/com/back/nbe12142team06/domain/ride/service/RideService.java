@@ -66,7 +66,7 @@ public class RideService {
 
         // 의뢰인 검증
         for (Ride ride : rides) {
-            if (validClient(ride, userId)) {
+            if (ride.validClient(userId)) {
                 isValid = true;
             }
         }
@@ -83,17 +83,12 @@ public class RideService {
                 .toList();
     }
 
-    // 유저 검증
-    private boolean validClient(Ride ride, Long userId) {
-        return ride.getPost().getClient().getId().equals(userId);
-    }
-
     // 상세 정보 찾기
     public Ride findById(Long userId, Long rideId) {
         Ride ride = rideRepository.findById(rideId).orElseThrow(() ->
                 new NotFoundException(82, "이동 정보를 찾을 수 없습니다."));
 
-        if (!validClient(ride, userId)) {
+        if (!ride.validClient(userId)) {
             throw new ForbiddenException(81, "이동 정보를 조회할 권한이 없습니다.");
         }
 
