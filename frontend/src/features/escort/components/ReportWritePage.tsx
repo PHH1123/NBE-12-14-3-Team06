@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { AlertTriangle, ChevronLeft } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import DropdownSelect from '@/components/ui/DropdownSelect';
+import { useActionDialog } from '@/components/ui/useActionDialog';
 import { useRequireAuth } from '@/features/auth';
 import { writeReport } from '@/features/report';
 import { fetchReportTarget } from '../api';
@@ -60,6 +61,7 @@ function sameMinute(a: number | undefined, b: number | undefined): boolean {
 }
 
 export default function ReportWritePage() {
+  const { confirm, dialog } = useActionDialog();
   const { loading: authLoading, user } = useRequireAuth('ESCORT');
   const params = useParams<{ applicationId: string }>();
   const router = useRouter();
@@ -114,8 +116,8 @@ export default function ReportWritePage() {
     if (Object.keys(errors).length) setErrors({});
   };
 
-  const handleDiscardDraft = () => {
-    if (!window.confirm('임시 저장된 내용을 지우고 새로 작성하시겠습니까?')) return;
+  const handleDiscardDraft = async () => {
+    if (!await confirm({ title: '임시 저장된 내용을 지울까요?', description: '저장된 내용은 복구할 수 없습니다. 새로 작성하시겠습니까?', tone: 'danger', confirmLabel: '초기화하기' })) return;
     clearReportDraft(applicationId);
     setDraft({ key: applicationId });
     setDepartment('');
@@ -347,6 +349,7 @@ export default function ReportWritePage() {
           )}
         </div>
       </div>
+      {dialog}
     </AppShell>
   );
 }

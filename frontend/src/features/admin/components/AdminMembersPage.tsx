@@ -57,15 +57,15 @@ function SlidingFilter<T extends string>({
 
   return (
     <div ref={groupRef} role="group" aria-label={label}
-      className="relative inline-flex shrink-0 items-center rounded-lg border border-[#E1E5E8] bg-[#F7F8F8] p-0.5">
+      className="relative inline-flex shrink-0 items-center rounded-lg border border-[#E1E5E8] bg-[#F7F8F8] p-1">
       <span aria-hidden="true"
-        className="pointer-events-none absolute top-0.5 bottom-0.5 rounded bg-[#14243A] shadow-xs transition-[left,width] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
+        className="pointer-events-none absolute top-1 bottom-1 rounded-md bg-[#14243A] shadow-xs transition-[left,width] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
         style={{ left: indicator.left, width: indicator.width, opacity: indicator.width ? 1 : 0 }} />
       {options.map((option, index) => (
         <button ref={(element) => { buttonRefs.current[index] = element; }}
           type="button" key={option.value} aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
-          className={`relative z-10 cursor-pointer rounded px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14243A] ${selected === index ? 'text-white' : 'text-[#67717C] hover:text-[#14243A]'}`}>
+          className={`relative z-10 cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14243A] ${selected === index ? 'text-white' : 'text-[#67717C] hover:text-[#14243A]'}`}>
           {option.label}
         </button>
       ))}

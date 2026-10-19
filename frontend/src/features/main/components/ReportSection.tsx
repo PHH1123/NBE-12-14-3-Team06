@@ -2,27 +2,7 @@
 
 import { motion, useReducedMotion } from 'motion/react';
 
-import { useRef } from 'react';
-
-/**
- * GAJI Signature Care — AI 진료 보고서 소개
- * Source: final (1)(1).zip / src/views/HomeView.tsx (#report)
- * 예시 데이터는 원본 src/data/mockData.ts의 MOCK_REPORT_SAMPLE을 발췌한 정적 샘플입니다.
- * 실데이터 및 인증 API는 사용하지 않습니다.
- */
-const sample = {
-  hospitalName: '경희대학교병원 재활의학과',
-  aiSummary: {
-    headline: '보행 안정성이 전월 대비 향상되었으며, 혈압약 복용 시간 변경이 권고되었습니다.',
-    keyPoints: [
-      '우측 다리 근력 지수 3.8등급으로 지난달(3.4) 대비 안정적 회복세 확인',
-      '아침 혈압약은 기상 직후 30분 이내 식전 복용으로 처방 방식 변경',
-      '낙상 방지를 위해 자택 문턱 제거 및 욕실 미끄럼 방지 매트 설치 권장',
-    ],
-  },
-  doctorDirections: '환자분의 보행 밸런스가 눈에 띄게 좋아졌습니다. 다만 저녁 시간대 발목 부종이 약간 관찰되므로, 취침 전 다리를 베개 위에 15분간 올려놓는 거상 요법을 시행해주십시오. 다음 달 외래 전까지 매일 아침 수축기 혈압을 수첩에 기록해오시기 바랍니다.',
-  nextAppointmentDate: '2026년 11월 11일 (수) 오후 03:30 (재활의학과 4진료실)',
-};
+import { sample } from '../data/sampleReport';
 
 function SparkleIcon({ className = '' }: { className?: string }) {
   return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12 3 1.7 6.3L20 11l-6.3 1.7L12 19l-1.7-6.3L4 11l6.3-1.7L12 3ZM19 17l.7 2.3L22 20l-2.3.7L19 23l-.7-2.3L16 20l2.3-.7L19 17Z"/></svg>;
@@ -33,9 +13,8 @@ function FileIcon({ className = '' }: { className?: string }) {
 
 const easeOutCubic = [0.22, 1, 0.36, 1] as const;
 
-export default function ReportSection() {
+export default function ReportSection({ onOpenSampleReport }: { onOpenSampleReport: () => void }) {
   const shouldReduceMotion = useReducedMotion();
-  const previewRef = useRef<HTMLDivElement>(null);
 
   return (
     <section id="report" className="border-t border-[#E1E5E8] bg-[#EDF0F2] py-24 lg:py-32">
@@ -67,7 +46,7 @@ export default function ReportSection() {
             <div className="pt-2">
               <button
                 type="button"
-                onClick={() => previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                onClick={onOpenSampleReport}
                 className="group inline-flex h-[48px] cursor-pointer items-center gap-2 rounded-[10px] bg-[#14243A] px-6 text-[15px] font-semibold text-white shadow-xs transition-all duration-200 hover:bg-[#1f3757] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93]"
               >
                 <span>예시 보고서 열람하기</span>
@@ -75,7 +54,7 @@ export default function ReportSection() {
               </button>
             </div>
           </motion.div>
-          <motion.div initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.55, ease: easeOutCubic }} ref={previewRef} tabIndex={-1} className="space-y-6 rounded-2xl border border-[#E1E5E8] bg-white p-6 shadow-sm transition-all duration-200 hover:border-[#CBD5E1] hover:shadow-md focus:outline-none sm:p-8 lg:col-span-6">
+          <motion.div initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.55, ease: easeOutCubic }} className="space-y-6 rounded-2xl border border-[#E1E5E8] bg-white p-6 shadow-sm transition-all duration-200 hover:border-[#CBD5E1] hover:shadow-md focus:outline-none sm:p-8 lg:col-span-6">
             <div className="flex items-center justify-between border-b border-[#E1E5E8] pb-4">
               <div>
                 <span className="text-xs font-semibold text-[#426B93]">GAJI 진료 보고서 (예시 보고서)</span>

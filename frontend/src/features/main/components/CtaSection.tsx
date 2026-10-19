@@ -13,7 +13,7 @@ export default function CtaSection() {
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
-        style={{ background: 'radial-gradient(circle 540px at 50% 45%, rgba(255, 255, 255, 0.045) 0%, rgba(210, 225, 245, 0.018) 40%, rgba(20, 36, 58, 0) 75%)' }}
+        style={{ background: 'radial-gradient(circle 540px at 50% 45%, rgba(255, 255, 255, 0.10) 0%, rgba(210, 225, 245, 0.045) 40%, rgba(20, 36, 58, 0) 75%)' }}
       />
       <div className="relative z-10 mx-auto max-w-[800px] px-5 text-center sm:px-8">
         <h2 className="mb-4 text-[28px] font-semibold leading-[1.25] tracking-tight text-white sm:text-[34px] lg:text-[40px]">

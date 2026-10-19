@@ -25,6 +25,7 @@ import { daysFromNow, formatFullDate, formatTime, parseDateTime } from '../lib/d
 import { canDeletePost, canEditPost, postStatusLabel, toPostStatusKey } from '../model/status';
 import type { LabelTone, PostDetail, PostStatusKey } from '../types';
 import StatusLabel from './StatusLabel';
+import { useActionDialog } from '@/components/ui/useActionDialog';
 
 const CARD = 'rounded-2xl border border-[#E1E5E8] bg-white shadow-xs';
 const CARD_TITLE = 'text-xl font-semibold text-[#14243A]';
@@ -152,6 +153,7 @@ function PostDetailPageBody({ viewer }: Props) {
   const pathname = usePathname();
   const { user, unauthenticated } = useCurrentUser();
   const { openChatWith } = useChatWidget();
+  const { confirm, dialog } = useActionDialog();
   const postId = Number(params.postId);
 
   // result.postId 로 "지금 postId 의 결과인지"를 판단합니다. (postId 가 바뀐 직후에는 이전 결과를 버리고 loading 으로 봅니다)
@@ -294,7 +296,7 @@ function PostDetailPageBody({ viewer }: Props) {
   const postAllowsCancel = !!post && ['open', 'expired'].includes(toPostStatusKey(post.postStatus));
 
   const handleDelete = async () => {
-    if (!window.confirm('이 공고를 삭제할까요? 되돌릴 수 없습니다.')) return;
+    if (!await confirm({ title: '이 공고를 삭제할까요?', description: '삭제한 공고는 되돌릴 수 없습니다.', tone: 'danger', confirmLabel: '삭제하기' })) return;
     setDeleting(true);
     setDeleteError(undefined);
     try {
@@ -342,7 +344,7 @@ function PostDetailPageBody({ viewer }: Props) {
       router.push(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
-    if (!window.confirm('이 공고에 지원하시겠습니까?')) return;
+    if (!await confirm({ title: '이 공고에 지원하시겠습니까?', confirmLabel: '지원하기' })) return;
     // TODO: 지원 API(POST /api/v1/applications/{postId})는 동행 매니저(ESCORT) 로그인 쿠키가 있어야 합니다.
     setApplyState('applying');
     setApplyError(undefined);
@@ -817,6 +819,7 @@ function PostDetailPageBody({ viewer }: Props) {
         </div>
       </div>
     </section>
+    {dialog}
   </AppShell>
   );
 }

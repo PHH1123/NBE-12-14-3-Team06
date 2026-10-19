@@ -23,7 +23,7 @@ function ArrowIcon() {
   return <svg aria-hidden="true" className="h-3.5 w-3.5 transition-transform duration-200 group-hover/faq-link:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>;
 }
 
-export default function FaqSection() {
+export default function FaqSection({ onOpenSampleReport }: { onOpenSampleReport: () => void }) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const { user } = useCurrentUser();
 
@@ -77,6 +77,10 @@ export default function FaqSection() {
                         <div className="pt-2">
                           {(index === 4 || index === 6 || index === 8) ? (
                             <button type="button" onClick={() => openGajiGuide(index === 6 ? 'policy' : 'grade')} className="group/faq-link inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-[#426B93] transition-colors duration-200 hover:text-[#345778]">
+                              <span>{item.action.label}</span><ArrowIcon />
+                            </button>
+                          ) : index === 7 ? (
+                            <button type="button" onClick={onOpenSampleReport} className="group/faq-link inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-[#426B93] transition-colors duration-200 hover:text-[#345778]">
                               <span>{item.action.label}</span><ArrowIcon />
                             </button>
                           ) : (

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent } from 'react';
 import { Activity, ChevronLeft, FileText, PlusCircle, Receipt, Search, Star, Users, X } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import DropdownSelect from '@/components/ui/DropdownSelect';
@@ -22,6 +22,60 @@ const STATUS_TABS: { id: Tab; label: string }[] = [
   { id: 'inProgress', label: '진행 중' },
   { id: 'completed', label: '동행 완료' },
 ];
+
+/** Keep the existing tab dimensions and colors; only slide the selected white highlight. */
+function SlidingStatusTabs({ value, onChange }: { value: Tab; onChange: (next: Tab) => void }) {
+  const groupRef = useRef<HTMLDivElement>(null);
+  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+  const selectedIndex = STATUS_TABS.findIndex((tab) => tab.id === value);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const button = buttonRefs.current[selectedIndex];
+      if (!button) return;
+      const next = { left: button.offsetLeft, width: button.offsetWidth };
+      setIndicator((previous) =>
+        previous.left === next.left && previous.width === next.width ? previous : next,
+      );
+    };
+    measure();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    if (groupRef.current) observer?.observe(groupRef.current);
+    return () => observer?.disconnect();
+  }, [selectedIndex]);
+
+  return (
+    <div
+      ref={groupRef}
+      role="tablist"
+      aria-label="공고 상태"
+      className="relative inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-[#E1E5E8] bg-[#EDF0F2] p-1"
+    >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1 bottom-1 rounded-lg bg-white shadow-xs transition-[left,width] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
+        style={{ left: indicator.left, width: indicator.width, opacity: indicator.width ? 1 : 0 }}
+      />
+      {STATUS_TABS.map((tab, index) => (
+        <button
+          ref={(element) => { buttonRefs.current[index] = element; }}
+          key={tab.id}
+          type="button"
+          role="tab"
+          aria-selected={value === tab.id}
+          onClick={() => onChange(tab.id)}
+          className={cn(
+            'relative z-10 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors',
+            value === tab.id ? 'text-[#14243A]' : 'text-[#67717C] hover:text-[#14243A]',
+          )}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const PAGE_SIZE = 10;
 const STATUS_STYLES: Record<ClientPostStatus, string> = {
@@ -77,7 +131,7 @@ function paymentHref(post: ClientPost) {
   return `/client/posts/new/payment?${query.toString()}`;
 }
 
-const ACTION_SIZE = 'inline-flex h-9 w-[116px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition-colors';
+const ACTION_SIZE = 'inline-flex h-9 w-[104px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition-colors';
 const PRIMARY = `${ACTION_SIZE} bg-[#14243A] text-white hover:bg-[#1f3757]`;
 const BLUE = `${ACTION_SIZE} bg-[#426B93] text-white hover:bg-[#345778]`;
 const SECONDARY = `${ACTION_SIZE} border border-[#E1E5E8] bg-white text-[#14243A] hover:bg-[#F7F8F8]`;
@@ -302,25 +356,7 @@ export default function ClientPostsPage() {
 
           {/* Status Tabs */}
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div role="tablist" aria-label="공고 상태" className="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-[#E1E5E8] bg-[#EDF0F2] p-1">
-              {STATUS_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={status === tab.id}
-                  onClick={() => { setStatus(tab.id); setPage(0); }}
-                  className={cn(
-                    'whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors',
-                    status === tab.id
-                      ? 'bg-white text-[#14243A] shadow-xs'
-                      : 'text-[#67717C] hover:text-[#14243A]',
-                  )}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            <SlidingStatusTabs value={status} onChange={(next) => { setStatus(next); setPage(0); }} />
             <div className="text-sm text-[#67717C]">
               총 <span className="font-semibold tabular-nums text-[#14243A]">{filteredPosts.length}</span>건
             </div>

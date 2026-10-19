@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import ManagerGradeCharacter from '@/components/ui/ManagerGradeCharacter';
+import { useActionDialog } from '@/components/ui/useActionDialog';
 import { PROGRESS_ORDER, fetchProgress } from '@/features/application';
 import { useRequireAuth } from '@/features/auth';
 import { useChatWidget } from '@/features/chat';
@@ -196,6 +197,7 @@ function MatchedManagerCard({ escort }: { escort: ClientEscortCase }) {
 }
 
 export default function ClientTrackingPage() {
+  const { confirm, dialog } = useActionDialog();
   const { loading: authLoading, user } = useRequireAuth('CLIENT');
   const params = useParams<{ applicationId: string }>();
   const searchParams = useSearchParams();
@@ -258,7 +260,7 @@ export default function ClientTrackingPage() {
   const reload = () => { setCompleteError(undefined); setResult({}); setReloadKey((key) => key + 1); };
   const handleComplete = async () => {
     if (postId === undefined || !escort || escort.stage !== 'done' || escort.postCompleted) return;
-    if (!window.confirm('동행을 완료 처리하시겠습니까? 실제 동행 시간을 기준으로 정산·결제가 진행됩니다.')) return;
+    if (!await confirm({ title: '동행을 완료 처리하시겠습니까?', description: '실제 동행 시간을 기준으로 정산·결제가 진행됩니다.', confirmLabel: '완료 처리하기' })) return;
     setCompleting(true);
     setCompleteError(undefined);
     try { await completeEscort(postId); reload(); }
@@ -351,6 +353,7 @@ export default function ClientTrackingPage() {
           {content}
         </div>
       </section>
+      {dialog}
     </AppShell>
   );
 }

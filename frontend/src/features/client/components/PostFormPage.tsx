@@ -511,14 +511,14 @@ function PostFormFields({ postId, initial }: FormFieldsProps) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="post-end" className={LABEL}>예상 종료 시간 <Required /></label>
-                    <TimeSelect id="post-end" name="endTime" value={endTime} onChange={setEndTime} disabledOptions={endDisabled} required />
-                    {timeError && <p role="alert" className={ERROR}>{timeError}</p>}
-                  </div>
-                  <div>
                     <label htmlFor="post-duration" className={LABEL}>예상 소요 시간</label>
                     <input id="post-duration" type="text" readOnly tabIndex={-1} value={formatMinutes(minutes)}
                       placeholder="시간을 선택하면 자동으로 계산됩니다" className={FIELD} />
+                  </div>
+                  <div>
+                    <label htmlFor="post-end" className={LABEL}>예상 종료 시간 <Required /></label>
+                    <TimeSelect id="post-end" name="endTime" value={endTime} onChange={setEndTime} disabledOptions={endDisabled} required />
+                    {timeError && <p role="alert" className={ERROR}>{timeError}</p>}
                   </div>
                 </div>
 

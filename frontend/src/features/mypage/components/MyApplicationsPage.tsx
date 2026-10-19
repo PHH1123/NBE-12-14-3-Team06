@@ -45,7 +45,7 @@ const BADGES: Record<ViewStatus, { label: string; style: string; dot: string }> 
   noShow: { label: '노쇼', style: 'border-[#B4413C]/25 bg-[#F7ECEB] text-[#99433E]', dot: 'bg-[#B4413C]' },
 };
 
-const ACTION_SIZE = 'inline-flex h-9 w-[116px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition-colors';
+const ACTION_SIZE = 'inline-flex h-9 w-[104px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition-colors';
 const PRIMARY = `${ACTION_SIZE} bg-[#14243A] text-white hover:bg-[#1F3757]`;
 const BLUE = `${ACTION_SIZE} bg-[#426B93] text-white hover:bg-[#345778]`;
 const SECONDARY = `${ACTION_SIZE} border border-[#E1E5E8] bg-white text-[#14243A] hover:bg-[#F7F8F8]`;

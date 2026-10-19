@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { CheckCircle2, ChevronLeft, ShieldCheck, Star, X, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ShieldCheck, Star, XCircle } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import ManagerGradeCharacter from '@/components/ui/ManagerGradeCharacter';
 import {
@@ -72,7 +72,6 @@ export default function ApplicantsPage() {
   const postId = Number(params.postId);
   const [data, setData] = useState<PageData>();
   const [dialog, setDialog] = useState<DialogState>(null);
-  const [viewingProfile, setViewingProfile] = useState<Applicant | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [decisionError, setDecisionError] = useState<string>();
   const [toastMessage, setToastMessage] = useState('');
@@ -97,16 +96,15 @@ export default function ApplicantsPage() {
   }, [toastMessage]);
 
   useEffect(() => {
-    if (!dialog && !viewingProfile) return;
+    if (!dialog) return;
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && pendingId === null) {
         setDialog(null);
-        setViewingProfile(null);
       }
     };
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
-  }, [dialog, viewingProfile, pendingId]);
+  }, [dialog, pendingId]);
 
   const decide = async () => {
     if (!dialog || pendingId !== null) return;
@@ -259,9 +257,9 @@ export default function ApplicantsPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E1E5E8] pt-4">
-                      <button type="button" onClick={() => setViewingProfile(applicant)} className="text-xs font-semibold text-[#426B93] hover:underline">
+                      <Link href={`/client/posts/${postId}/applicants/${applicant.applicationId}/profile`} className="text-xs font-semibold text-[#426B93] transition-colors hover:text-[#345778] hover:underline sc-focus">
                         상세 프로필 보기
-                      </button>
+                      </Link>
                       {isPending ? (
                         <div className="flex items-center gap-2">
                           <button type="button" disabled={decisionLocked} onClick={() => { setDecisionError(undefined); setDialog({ action: 'reject', applicant }); }} className={`${BUTTON_BASE} border border-[#B4413C]/30 bg-white text-[#B4413C] hover:bg-[#B4413C]/5`}>
@@ -341,45 +339,7 @@ export default function ApplicantsPage() {
             </div>
           )}
 
-          {viewingProfile && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="presentation">
-              <div role="dialog" aria-modal="true" aria-labelledby="applicant-profile-title" className="w-full max-w-md space-y-5 rounded-2xl bg-white p-6 shadow-xl">
-                <div className="flex items-center justify-between border-b border-[#E1E5E8] pb-3">
-                  <h2 id="applicant-profile-title" className="text-base font-semibold text-[#14243A]">매니저 상세 프로필</h2>
-                  <button type="button" aria-label="프로필 닫기" onClick={() => setViewingProfile(null)} className="p-1 text-[#67717C] hover:text-[#14243A]"><X className="h-5 w-5" aria-hidden="true" /></button>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#14243A] text-xl font-bold text-white" aria-hidden="true">{viewingProfile.name.charAt(0)}</div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#14243A]">{viewingProfile.name} 매니저</h3>
-                    {viewingProfile.profile ? (
-                      <p className="text-xs text-[#67717C]">{viewingProfile.profile.gender === 'FEMALE' ? '여성' : '남성'} · {viewingProfile.profile.age}세 · 완료 동행 {viewingProfile.profile.completedCount}건</p>
-                    ) : <p className="text-xs text-[#67717C]">프로필 상세 정보를 불러올 수 없습니다.</p>}
-                  </div>
-                </div>
-                {viewingProfile.profile && (
-                  <div className="space-y-3 rounded-xl border border-[#E1E5E8] bg-[#F7F8F8] p-4 text-xs">
-                    <div className="flex justify-between gap-3"><span className="text-[#67717C]">본인 인증</span><span className="font-semibold text-[#14243A]">{viewingProfile.profile.verified ? '완료' : '미완료'}</span></div>
-                    <div className="flex justify-between gap-3"><span className="text-[#67717C]">평균 평점</span><span className="font-bold text-[#14243A]">{viewingProfile.profile.ratingCount > 0 ? `★ ${viewingProfile.profile.rating.toFixed(1)} (${viewingProfile.profile.ratingCount}건)` : '평가 없음'}</span></div>
-                    <div className="flex justify-between gap-3"><span className="text-[#67717C]">매니저 등급</span><span className="inline-flex items-center gap-1">
-                      <ManagerGradeCharacter grade={viewingProfile.profile.grade} bare className="h-7 w-7 shrink-0" />
-                      <span className={`text-sm font-semibold ${gradeTextColors[viewingProfile.profile.grade]}`}>{gradeNames[viewingProfile.profile.grade]}</span>
-                    </span></div>
-                    <div className="flex justify-between gap-3"><span className="text-[#67717C]">노쇼 횟수</span><span className="font-medium text-[#14243A]">{viewingProfile.profile.noShowCount}회</span></div>
-                    <div className="flex justify-between gap-3"><span className="text-[#67717C]">활동 지역</span><span className="font-medium text-[#14243A]">{viewingProfile.profile.region || '등록되지 않음'}</span></div>
-                  </div>
-                )}
-                <div className="space-y-1 text-xs">
-                  <h3 className="font-semibold text-[#14243A]">자기소개 및 각오</h3>
-                  <p className="rounded-lg bg-[#EDF0F2] p-3 leading-relaxed text-[#67717C]">{viewingProfile.profile?.intro?.trim() || '작성된 자기소개가 없습니다.'}</p>
-                </div>
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <Link href={`/client/posts/${postId}/applicants/${viewingProfile.applicationId}/profile`} className="text-xs font-semibold text-[#426B93] hover:underline">받은 리뷰 보기</Link>
-                  <button type="button" onClick={() => setViewingProfile(null)} className="h-[40px] rounded-lg bg-[#14243A] px-5 text-xs font-semibold text-white hover:bg-[#1f3757]">닫기</button>
-                </div>
-              </div>
-            </div>
-          )}
+
         </div>
       </section>
     </AppShell>

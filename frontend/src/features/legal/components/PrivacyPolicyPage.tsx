@@ -1,144 +1,127 @@
 'use client';
 
 import { AppShell } from '@/components/layout';
-import { SectionHeading } from '@/components/ui';
+import { FileText, Info, ShieldCheck } from 'lucide-react';
 import { EFFECTIVE_DATE, INTRO, POLICY_ARTICLES, POLICY_VERSIONS } from '../model/privacy';
 import type { PolicyBlock } from '../types';
 
-const CARD = 'rounded-[30px] border border-line bg-white px-6 py-8 shadow-card sm:px-8';
-const TITLE = 'text-2xl leading-8 font-semibold text-brand';
-const TEXT = 'text-base leading-7 text-brand';
+const CARD = 'rounded-2xl border border-[#E1E5E8] bg-white px-5 py-6 shadow-[0_3px_12px_rgba(30,39,57,0.035)] sm:px-8 sm:py-8';
 
-/** 본문 조각 하나를 그립니다. */
-function Block({ block }: { block: PolicyBlock }) {
-  switch (block.type) {
-    case 'p':
-      return <p className={TEXT}>{block.text}</p>;
-    case 'ul':
-      return (
-        <ul className={`${TEXT} flex list-disc flex-col gap-1.5 pl-5 marker:text-brand-muted`}>
-          {block.items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      );
-    case 'note':
-      return <p className="rounded-[20px] border border-line bg-line-soft px-5 py-4 text-sm leading-6 font-medium text-brand">{block.text}</p>;
-    case 'table':
-      return (
-        // 표가 화면보다 넓으면 표 안에서만 가로로 밀립니다.
-        <div className="overflow-x-auto rounded-[20px] border border-line">
-          <table className="w-full min-w-[520px] border-collapse text-left text-sm leading-6 text-brand">
-            <thead className="bg-line-soft">
-              <tr>
-                {block.head.map((cell) => (
-                  <th key={cell} scope="col" className="px-4 py-3 font-semibold whitespace-nowrap">
-                    {cell}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {block.rows.map((row) => (
-                <tr key={row.join('|')} className="border-t border-line">
-                  {row.map((cell, index) =>
-                    index === 0 ? (
-                      <th key={index} scope="row" className="px-4 py-3 align-top font-semibold">
-                        {cell}
-                      </th>
-                    ) : (
-                      <td key={index} className="px-4 py-3 align-top">
-                        {cell}
-                      </td>
-                    ),
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
+function PolicyContent({ block }: { block: PolicyBlock }) {
+  if (block.type === 'p') {
+    return <p className="text-sm leading-7 text-[#596777] sm:text-[15px]">{block.text}</p>;
   }
+  if (block.type === 'ul') {
+    return (
+      <ul className="space-y-2 pl-5 text-sm leading-7 text-[#596777] [list-style:disc] marker:text-[#55749B] sm:text-[15px]">
+        {block.items.map((item) => <li key={item}>{item}</li>)}
+      </ul>
+    );
+  }
+  if (block.type === 'note') {
+    return (
+      <div className="flex gap-3 rounded-xl border border-[#DCE5EE] bg-[#F1F5F8] px-4 py-3 text-sm leading-6 text-[#465D77]">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#55749B]" aria-hidden="true" />
+        <p>{block.text}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-x-auto rounded-xl border border-[#E1E5E8]">
+      <table className="w-full min-w-[560px] border-collapse text-left text-[13px] leading-6 text-[#596777] sm:text-sm">
+        <thead className="bg-[#F5F6F8] text-[#14243A]">
+          <tr>
+            {block.head.map((cell) => <th key={cell} scope="col" className="px-4 py-3 font-semibold">{cell}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {block.rows.map((row, rowIndex) => (
+            <tr key={`${row[0]}-${rowIndex}`} className="border-t border-[#E9ECEF]">
+              {row.map((cell, cellIndex) => cellIndex === 0 ? (
+                <th key={cellIndex} scope="row" className="px-4 py-3 align-top font-semibold text-[#344055]">{cell}</th>
+              ) : <td key={cellIndex} className="px-4 py-3 align-top">{cell}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
-/**
- * 개인정보 처리방침 — /privacy
- *
- * ⚠️ 글 내용은 model/privacy.ts 에 있습니다. 초안이므로 공개 전에 법무 검토와 확정 값(운영 주체·책임자·시행일) 입력이 필요합니다.
- */
 export default function PrivacyPolicyPage() {
   return (
     <AppShell>
-      <section className="bg-white px-4 py-[50px]">
-        <div className="mx-auto flex w-full max-w-[900px] flex-col gap-[22px]">
-          <SectionHeading
-            title="개인정보 처리방침"
-            description="‘가지’가 이용자의 개인정보를 어떻게 처리하고 보호하는지 안내합니다."
-            className="mb-2"
-          />
-
-          <section className={CARD}>
-            <div className="flex flex-col gap-4">
-              {INTRO.map((paragraph) => (
-                <p key={paragraph} className={TEXT}>
-                  {paragraph}
-                </p>
-              ))}
+      <main className="min-h-[calc(100svh-80px)] bg-[#F7F8F8] px-5 pb-24 pt-12 sm:px-8 sm:pt-16">
+        <div className="mx-auto max-w-[1240px]">
+          <header className="mb-9 space-y-3 sm:mb-11">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[#426B93]">
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" /> PRIVACY & TRUST
             </div>
-            <p className="mt-6 text-base leading-6 font-semibold text-brand">이 방침은 {EFFECTIVE_DATE}부터 적용됩니다.</p>
-          </section>
+            <h1 className="text-3xl font-semibold tracking-tight text-[#14243A] sm:text-4xl">개인정보 처리방침</h1>
+            <p className="max-w-2xl text-sm leading-7 text-[#67717C] sm:text-base">GAJI 서비스에서 개인정보를 어떤 목적으로 처리하는지 확인할 수 있어요.</p>
+          </header>
 
-          <nav aria-label="개인정보 처리방침 목차" className={CARD}>
-            <h2 className={`${TITLE} mb-5`}>목차</h2>
-            <ol className="grid gap-x-8 gap-y-2 text-base leading-6 font-medium text-brand sm:grid-cols-2">
+          <div className="mb-7 flex items-start gap-3 rounded-xl border border-[#DCE5EE] bg-[#EDF3F8] px-5 py-4 text-sm leading-7 text-[#3C5673]" role="note">
+            <Info className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+            <p>
+              <strong className="font-semibold">운영 정책 검토용 초안</strong>입니다. 실제 시행 방침으로 확정된 문서가 아니며, 운영 주체·보관 기간·수탁사·개인정보 보호책임자 등은 검증 후 확정해야 합니다.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-7">
+            <aside className="lg:sticky lg:top-24">
+              <nav aria-label="개인정보 처리방침 목차" className={`${CARD} max-h-[calc(100svh-120px)] overflow-y-auto !p-5`}>
+                <div className="mb-4 flex items-center gap-2 border-b border-[#E9ECEF] pb-4 text-sm font-semibold text-[#14243A]">
+                  <FileText className="h-[18px] w-[18px] text-[#55749B]" aria-hidden="true" /> 목차
+                </div>
+                <ol className="space-y-0.5">
+                  {POLICY_ARTICLES.map((article, index) => (
+                    <li key={article.id}>
+                      <a href={`#${article.id}`} className="block rounded-lg px-2 py-2 text-[13px] leading-5 text-[#67717C] transition-colors hover:bg-[#EDF3F8] hover:text-[#426B93] focus-visible:outline-2 focus-visible:outline-[#426B93]">
+                        <span className="mr-1 font-semibold">{index + 1}.</span> {article.title}
+                      </a>
+                    </li>
+                  ))}
+                  <li><a href="#history" className="block rounded-lg px-2 py-2 text-[13px] text-[#67717C] transition-colors hover:bg-[#EDF3F8] hover:text-[#426B93]">작성 이력</a></li>
+                </ol>
+              </nav>
+            </aside>
+
+            <div className="min-w-0 space-y-5">
+              <section className={CARD} aria-label="개인정보 처리방침 안내">
+                <div className="mb-4 inline-flex items-center rounded-md bg-[#EDF0F2] px-2.5 py-1 text-xs font-semibold text-[#426B93]">검토용 초안</div>
+                <div className="space-y-3">
+                  {INTRO.map((paragraph) => <p key={paragraph} className="text-sm leading-7 text-[#596777] sm:text-[15px]">{paragraph}</p>)}
+                </div>
+                <p className="mt-5 border-t border-[#E9ECEF] pt-4 text-sm font-semibold text-[#344055]">시행일: {EFFECTIVE_DATE}</p>
+              </section>
+
               {POLICY_ARTICLES.map((article, index) => (
-                <li key={article.id}>
-                  <a href={`#${article.id}`} className="transition-colors hover:text-brand-hover hover:underline">
-                    {index + 1}. {article.title}
-                  </a>
-                </li>
+                <section key={article.id} id={article.id} aria-labelledby={`${article.id}-title`} className={`${CARD} scroll-mt-28`}>
+                  <h2 id={`${article.id}-title`} className="mb-5 border-b border-[#E9ECEF] pb-4 text-lg font-semibold text-[#14243A] sm:text-xl">
+                    <span className="mr-2 text-[#55749B]">{String(index + 1).padStart(2, '0')}</span>{article.title}
+                  </h2>
+                  <div className="space-y-4">
+                    {article.blocks.map((block, blockIndex) => <PolicyContent key={blockIndex} block={block} />)}
+                  </div>
+                </section>
               ))}
-              <li>
-                <a href="#history" className="transition-colors hover:text-brand-hover hover:underline">
-                  {POLICY_ARTICLES.length + 1}. 개정 이력
-                </a>
-              </li>
-            </ol>
-          </nav>
 
-          {POLICY_ARTICLES.map((article, index) => (
-            <section key={article.id} id={article.id} aria-labelledby={`${article.id}-title`} className={`${CARD} scroll-mt-6`}>
-              <h2 id={`${article.id}-title`} className={`${TITLE} mb-5`}>
-                {index + 1}. {article.title}
-              </h2>
-              <div className="flex flex-col gap-4">
-                {article.blocks.map((block, blockIndex) => (
-                  <Block key={blockIndex} block={block} />
-                ))}
-              </div>
-            </section>
-          ))}
-
-          <section id="history" aria-labelledby="history-title" className={`${CARD} scroll-mt-6`}>
-            <h2 id="history-title" className={`${TITLE} mb-5`}>
-              {POLICY_ARTICLES.length + 1}. 개정 이력
-            </h2>
-            <ul className="flex flex-col gap-2">
-              {POLICY_VERSIONS.map((version, index) => (
-                <li key={version.label} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-base leading-7 text-brand">
-                  <span className="font-semibold">
-                    {version.label}({version.date})
-                  </span>
-                  <span>{version.summary}</span>
-                  {index === 0 && (
-                    <span className="rounded-full bg-[#e8eefa] px-3 py-0.5 text-xs font-semibold text-[#203b9d]">현재 적용</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
+              <section id="history" aria-labelledby="history-title" className={`${CARD} scroll-mt-28`}>
+                <h2 id="history-title" className="mb-5 border-b border-[#E9ECEF] pb-4 text-lg font-semibold text-[#14243A] sm:text-xl">작성 이력</h2>
+                <ul className="space-y-3 text-sm leading-7 text-[#596777]">
+                  {POLICY_VERSIONS.map((version) => (
+                    <li key={`${version.label}-${version.date}`} className="flex flex-wrap gap-x-3">
+                      <strong className="text-[#14243A]">{version.label} · {version.date}</strong>
+                      <span>{version.summary}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+          </div>
         </div>
-      </section>
+      </main>
     </AppShell>
   );
 }

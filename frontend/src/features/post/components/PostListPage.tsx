@@ -13,6 +13,7 @@ import { DEFAULT_FILTERS, PAY_OPTIONS, PERIOD_OPTIONS, optionLabel } from '../mo
 import { postStatusLabel, toPostStatusKey } from '../model/status';
 import type { PostFilters, PostSummary } from '../types';
 import PostGuestNotice from './PostGuestNotice';
+import { useActionDialog } from '@/components/ui/useActionDialog';
 import PostSearchPanel from './PostSearchPanel';
 
 const PAGE_SIZE = 8;
@@ -138,6 +139,7 @@ function ListingRow({
 
 function AuthenticatedPostList({ detailBasePath, role }: { detailBasePath: string; role: Role }) {
   const router = useRouter();
+  const { confirm, notice, dialog } = useActionDialog();
   const [filters, setFilters] = useState<PostFilters>(DEFAULT_FILTERS);
   const [keywordInput, setKeywordInput] = useState('');
   const [page, setPage] = useState(0);
@@ -186,7 +188,7 @@ function AuthenticatedPostList({ detailBasePath, role }: { detailBasePath: strin
 
   const handleApply = async (postId: number) => {
     if (role !== 'ESCORT' || appliedPostIds.has(postId) || applyStatus[postId]) return;
-    if (!window.confirm('이 공고에 지원하시겠습니까?')) return;
+    if (!await confirm({ title: '이 공고에 지원하시겠습니까?', confirmLabel: '지원하기' })) return;
     setApplyStatus((previous) => ({ ...previous, [postId]: 'applying' }));
     try {
       await applyToPost(postId);
@@ -199,12 +201,12 @@ function AuthenticatedPostList({ detailBasePath, role }: { detailBasePath: strin
         return next;
       });
       if (isEducationRequiredError(error)) {
-        if (window.confirm(`${error instanceof Error ? error.message : '교육 영상 시청을 완료한 후 지원할 수 있습니다.'}\n교육 영상 화면으로 이동할까요?`)) {
+        if (await confirm({ title: '교육 영상 화면으로 이동할까요?', description: error instanceof Error ? error.message : '교육 영상 시청을 완료한 후 지원할 수 있습니다.', confirmLabel: '교육 영상 보기' })) {
           router.push('/mypage/education');
         }
         return;
       }
-      window.alert(error instanceof Error ? error.message : '지원에 실패했습니다.');
+      await notice({ title: '지원에 실패했습니다.', description: error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.' });
     }
   };
 
@@ -237,7 +239,7 @@ function AuthenticatedPostList({ detailBasePath, role }: { detailBasePath: strin
         />
 
         <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div role="tablist" aria-label="공고 모집 상태" className="relative grid w-[238px] grid-cols-2 self-start rounded-xl border border-[#E1E5E8] bg-[#EDF0F2] p-1">
+          <div role="tablist" aria-label="공고 모집 상태" className="relative grid w-[208px] grid-cols-2 self-start rounded-xl border border-[#E1E5E8] bg-[#EDF0F2] p-1">
             <span
               aria-hidden="true"
               className={`pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%_-_4px)] rounded-lg bg-white shadow-xs transition-transform duration-300 ease-out motion-reduce:transition-none ${filters.openOnly ? '' : 'translate-x-full'}`}
@@ -249,7 +251,7 @@ function AuthenticatedPostList({ detailBasePath, role }: { detailBasePath: strin
                 key={String(tab.openOnly)}
                 aria-selected={filters.openOnly === tab.openOnly}
                 onClick={() => updateFilters({ openOnly: tab.openOnly })}
-                className={`relative z-10 rounded-lg px-2 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93] ${filters.openOnly === tab.openOnly ? 'text-[#14243A]' : 'text-[#67717C] hover:text-[#14243A]'}`}
+                className={`relative z-10 rounded-lg px-2 py-1.5 text-sm font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93] ${filters.openOnly === tab.openOnly ? 'text-[#14243A]' : 'text-[#67717C] hover:text-[#14243A]'}`}
               >{tab.label}</button>
             ))}
           </div>
@@ -319,6 +321,7 @@ function AuthenticatedPostList({ detailBasePath, role }: { detailBasePath: strin
             <button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))} className="inline-flex h-12 items-center gap-1 rounded-[10px] border border-[#E1E5E8] px-4 text-sm font-semibold text-[#14243A] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40">다음<ChevronRight aria-hidden="true" className="size-4" /></button>
           </nav>
         )}
+        {dialog}
       </div>
     </section>
   );

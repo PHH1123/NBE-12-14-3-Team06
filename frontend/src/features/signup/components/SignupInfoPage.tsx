@@ -1,4 +1,5 @@
 'use client';
+import { useActionDialog } from '@/components/ui/useActionDialog';
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -123,6 +124,7 @@ function CheckMessage({ message }: { message: DuplicateCheckMessage | null }) {
  * 입력값을 그대로 둔 채 문제 칸 아래에 사유를 보여 주고 그 칸으로 포커스를 옮깁니다.
  */
 export default function SignupInfoPage() {
+  const { notice, dialog } = useActionDialog();
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
@@ -208,8 +210,8 @@ export default function SignupInfoPage() {
   /** 중복 확인이 남았으면 팝업으로 알려 주고 true. */
   const alertUnverified = () => {
     if (unverified.length === 0) return false;
-    window.alert(`${unverified.join(', ')} 중복 확인을 해주세요.`);
-    (usernameCheck.verified ? emailRef : usernameRef).current?.focus();
+    void notice({ title: '중복 확인이 필요합니다.', description: `${unverified.join(', ')} 중복 확인을 해주세요.` })
+      .then(() => (usernameCheck.verified ? emailRef : usernameRef).current?.focus());
     return true;
   };
 
@@ -638,6 +640,7 @@ export default function SignupInfoPage() {
           </form>
         </div>
       </main>
+      {dialog}
     </AppShell>
   );
 }
