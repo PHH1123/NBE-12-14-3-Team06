@@ -3,6 +3,7 @@ package com.back.nbe12142team06.domain.ride.entity;
 import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.global.entity.BaseTimeEntity;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -52,6 +53,10 @@ public class Ride extends BaseTimeEntity {
 
     // 이동 상태 변경
     public void updateStatus(RideStatus rideStatus) {
+        if (!this.rideStatus.canTransitionTo(rideStatus)) {
+            throw new InvalidException(82, "'%s' 상태의 이동은 '%s' 상태로 바꿀 수 없습니다."
+                    .formatted(this.rideStatus.getDescription(), rideStatus.getDescription()));
+        }
         this.rideStatus = rideStatus;
     }
 
