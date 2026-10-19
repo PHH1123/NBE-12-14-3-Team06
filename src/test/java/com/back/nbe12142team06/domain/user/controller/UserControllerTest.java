@@ -1764,6 +1764,7 @@ public class UserControllerTest {
         // 매칭 → 동행 완료
         application.accept();
         post.match();
+        post.startProgress(LocalDateTime.now().minusHours(1));   // 매칭 완료 → 동행 진행 중 → 동행 완료 순서를 지킨다
         post.complete(LocalDateTime.now());
 
         em.flush();

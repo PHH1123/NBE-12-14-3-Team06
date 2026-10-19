@@ -54,4 +54,9 @@ public class Ride extends BaseTimeEntity {
     public void updateStatus(RideStatus rideStatus) {
         this.rideStatus = rideStatus;
     }
+
+    // 의뢰인 검증
+    public boolean validClient(Long userId) {
+        return post.getClient().getId().equals(userId);
+    }
 }
