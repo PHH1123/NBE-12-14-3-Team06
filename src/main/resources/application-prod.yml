@@ -36,3 +36,6 @@ custom:
     region: ${ADMIN_REGION:서울}
   toss:
     secret-key: ${TOSS_SECRET}
+  ai:
+    report-summary:
+      prompt-version: v2

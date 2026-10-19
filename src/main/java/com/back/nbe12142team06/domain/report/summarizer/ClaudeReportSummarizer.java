@@ -5,8 +5,15 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * Spring AI(ChatClient)로 Anthropic Claude 에게 진료 보고서를 요약시킨다.
@@ -19,60 +26,29 @@ import org.springframework.stereotype.Component;
 @Profile("!test")
 public class ClaudeReportSummarizer implements ReportSummarizer {
 
-    private static final String SYSTEM_PROMPT = """
-            너는 고령자 병원 동행 서비스의 진료 보고서를 보호자에게 전달할 수 있게 요약하는 도우미다.
-            동행인이 작성한 진료 보고서를 읽고 아래 JSON 형식으로만 답한다.
-
-            {
-              "visitPurpose": "방문 목적",
-              "diagnosis": "의사 소견",
-              "prescription": "처방 내역",
-              "nextVisit": "다음 방문 일정",
-              "caregiverNote": "보호자가 챙겨야 할 사항"
-            }
-
-            규칙
-            - 원문에 없는 내용은 절대 지어내지 않는다. 해당 항목이 원문에 없으면 그 필드는 null 로 둔다.
-            - 각 필드는 한국어 한두 문장으로 간결하게 쓴다.
-            - 진단을 새로 내리거나 의학적 조언을 덧붙이지 않는다. 원문에 적힌 내용만 옮긴다.
-            - 원문의 "환자분", "동행인" 같은 표현은 그대로 둔다. 이름을 추측해서 채우지 않는다.
-            - 설명이나 인사말 없이 JSON 만 출력한다.
-
-            예시
-            입력:
-            진료 과목: 정형외과
-            진료 목적: 무릎 통증 검사
-            진료 내용: 오늘 환자분 모시고 다녀왔습니다. 엑스레이 찍었고 퇴행성 관절염 초기라고
-            하셨습니다. 소염진통제 2주분 받았고, 2주 뒤에 다시 오라고 하셨어요.
-            특이사항: 계단은 되도록 피하시는 게 좋다고 합니다.
-            출력:
-            {
-              "visitPurpose": "무릎 통증으로 정형외과 진료를 받았습니다.",
-              "diagnosis": "엑스레이 결과 퇴행성 관절염 초기 소견입니다.",
-              "prescription": "소염진통제 2주분을 처방받았습니다.",
-              "nextVisit": "2주 뒤 재방문 예정입니다.",
-              "caregiverNote": "계단 이용은 되도록 피하시는 것이 좋습니다."
-            }
-            """;
-
     private final ChatClient chatClient;
 
     // 응답에 우리가 모르는 필드가 섞여도 깨지지 않도록 설정한다.
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    public ClaudeReportSummarizer(ChatClient.Builder builder) {
-        this.chatClient = builder.defaultSystem(SYSTEM_PROMPT).build();
+    public ClaudeReportSummarizer(
+            ChatClient.Builder builder,
+            @Value("classpath:prompts/report-summary/${custom.ai.report-summary.prompt-version:v2}.txt")
+            Resource systemPrompt) {
+        this.chatClient = builder.defaultSystem(systemPrompt, StandardCharsets.UTF_8).build();
     }
+
+
 
     @Override
     public ReportSummary summarize(String maskedContent) {
-        String text = chatClient.prompt()
+        ChatResponse response = chatClient.prompt()
                 .user("다음 진료 보고서를 요약해줘.\n\n" + maskedContent)
                 .call()
-                .content();
+                .chatResponse();
 
-        return parseSummary(text);
+        return parseSummary(extractText(response));
     }
 
     /**
@@ -100,5 +76,19 @@ public class ClaudeReportSummarizer implements ReportSummarizer {
         } catch (Exception e) {
             throw new IllegalStateException("Claude 응답을 요약 형식으로 변환하지 못했습니다.", e);
         }
+    }
+    private String extractText(ChatResponse response) {
+        if (response == null) {
+            return null;
+        }
+
+        return response.getResults().stream()
+                .map(Generation::getOutput)
+                .filter(output -> !output.getMetadata().containsKey("signature")
+                        && !output.getMetadata().containsKey("data"))
+                .map(AssistantMessage::getText)
+                .filter(text -> text != null && !text.isBlank())
+                .findFirst()
+                .orElse(null);
     }
 }

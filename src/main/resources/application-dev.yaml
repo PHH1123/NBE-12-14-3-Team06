@@ -32,3 +32,6 @@ custom:
 ##    max-tokens: 1024
   toss:
     secret-key: ${TOSS_SECRET}
+  ai:
+    report-summary:
+      prompt-version: v2
