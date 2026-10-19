@@ -217,7 +217,6 @@ function PostDetailPageBody({ viewer }: Props) {
   const [deleteError, setDeleteError] = useState<string>();
   const [applyState, setApplyState] = useState<'idle' | 'applying' | 'applied'>('idle');
   const [alreadyApplied, setAlreadyApplied] = useState(false);
-  const [isAssignedEscort, setIsAssignedEscort] = useState(false);
   const [applyError, setApplyError] = useState<string>();
   /** 교육 미이수로 지원이 막혔는지 (에러 문구 옆에 교육 영상 링크를 보여줍니다) */
   const [educationRequired, setEducationRequired] = useState(false);
@@ -265,7 +264,6 @@ function PostDetailPageBody({ viewer }: Props) {
   useEffect(() => {
     if (user?.role !== 'ESCORT') {
       setAlreadyApplied(false);
-      setIsAssignedEscort(false);
       return;
     }
 
@@ -282,12 +280,10 @@ function PostDetailPageBody({ viewer }: Props) {
                       application.applicationStatus !== 'CANCELED'
               )
           );
-          setIsAssignedEscort(applications.some((application) => application.postId === postId && application.applicationStatus === 'ACCEPTED'));
         })
         .catch(() => {
           if (!ignore) {
             setAlreadyApplied(false);
-            setIsAssignedEscort(false);
           }
         });
 
@@ -428,7 +424,7 @@ function PostDetailPageBody({ viewer }: Props) {
   }
 
   // /client/posts/[postId] 는 CLIENT 로그인이면 누구든 들어올 수 있어서(useRequireAuth 는 역할만 봅니다),
-  // 공고 작성자 본인이 아니면 여기서 막습니다. (GET /posts/{id} 자체는 누구나 볼 수 있는 공개 조회라 서버는 막지 않습니다)
+  // 공고 작성자 본인이 아니면 여기서 막습니다. (GET /posts/{id} 는 로그인한 회원이면 볼 수 있고, 환자 특이사항만 서버가 가립니다)
   if (viewer === 'client' && post.clientId !== user?.username) {
     return (
       <PostDetailFeedback
@@ -446,7 +442,8 @@ function PostDetailPageBody({ viewer }: Props) {
   const label = postStatusLabel(post.postStatus);
   const statusKey = toPostStatusKey(post.postStatus);
   const statusStyle = STATUS_STYLE[statusKey];
-  const canViewSensitive = (user?.role === 'CLIENT' && post.clientId === user.username) || (user?.role === 'ESCORT' && isAssignedEscort);
+  // 작성자·승인된 동행인·관리자 여부는 서버가 판단해 내려 줍니다 (가려진 공고는 patientNote 가 비어 옵니다)
+  const canViewSensitive = post.canViewSensitive;
   const date = formatFullDate(daysFromNow(post.startsInDays));
   const duration = `약 ${post.hours}시간`;
   const pay = `시급 ${post.hourlyPay.toLocaleString()}원`;

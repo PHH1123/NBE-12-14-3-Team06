@@ -140,4 +140,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("accepted") ApplicationStatus accepted,
             @Param("inProgress") PostStatus inProgress
     );
+
+    // 이 공고에 승인(ACCEPTED)된 동행인인지
+    boolean existsByPostIdAndEscortIdAndStatus(Long postId, Long escortId, ApplicationStatus status);
 }

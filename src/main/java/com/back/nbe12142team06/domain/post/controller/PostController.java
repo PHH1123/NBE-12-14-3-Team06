@@ -59,8 +59,9 @@ public class PostController {
         PostSearchConditionDto condition = new PostSearchConditionDto(
                 keyword, region, dateFrom, dateTo, minPay, maxPay, openOnly);
 
+        // 목록은 환자 특이사항이 필요 없으므로 모두에게 가린다 (상세 조회에서만 권한에 따라 노출)
         Page<PostDto> postDtoPage = postService.search(condition, PageRequest.of(page, size, sortOption))
-                .map(PostDto::new);
+                .map(post -> new PostDto(post, false));
 
         if (postDtoPage.isEmpty()) {
             return new RsData<>("200-12", "조회 내역이 없습니다.", postDtoPage);
@@ -93,10 +94,12 @@ public class PostController {
             description = "특정 공고의 상세 정보를 조회합니다."
     )
     @GetMapping("/{postId}")
-    public RsData<PostDto> detail(@PathVariable Long postId) {
-        PostDto postDto = new PostDto(postService.findById(postId));
+    public RsData<PostDto> detail(@PathVariable Long postId,
+                                  @AuthenticationPrincipal SecurityUser actor) {
 
-        return new RsData<>("200-15", "상세 조회 성공", postDto);
+        Post post = postService.findById(postId);
+        boolean canView = postService.canViewSensitive(post, actor.getId());
+        return new RsData<>("200-15", "상세 조회 성공", new PostDto(post, canView));
     }
 
     @Operation(
