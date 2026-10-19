@@ -52,7 +52,7 @@ public class PaymentService {
         String tossPaymentKey = request.paymentKey();
         String tossOrderId = request.orderId();
         String amount = request.amount();
-        
+
         // 2. 외부 API 호출
         ResponseEntity<TossConfirmResponse> response;
         try {

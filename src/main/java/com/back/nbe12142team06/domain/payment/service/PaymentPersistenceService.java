@@ -50,6 +50,7 @@ public class PaymentPersistenceService {
         if (confirmUpdateStatus(payment.getId()) <= 0) {
             throw new InvalidException(44, "결제 대기 중인 데이터가 없습니다.");
         }
+        payment.statusUpdate(PaymentStatus.IN_PROGRESS);
 
         return payment;
     }
