@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.lang.reflect.Field;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.doReturn;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Transactional
 class NoticeServiceTest {
 
     @Autowired
