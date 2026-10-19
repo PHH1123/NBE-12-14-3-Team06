@@ -65,6 +65,8 @@ export type PostDetail = PostSummary & {
    * 백엔드가 "모집 시작 전"까지만 공고 수정을 허용해서 수정 버튼 노출에 씁니다.
    */
   recruitStarted: boolean;
+  /** 환자 특이사항·상세 출발지를 볼 권한이 있는지 (서버가 판단) */
+  canViewSensitive: boolean;
 };
 
 export type PostSort = 'deadline' | 'latest' | 'payHigh' | 'payLow';
@@ -106,6 +108,8 @@ export type PostDto = {
   reportRequired: boolean;
   createdAt: string;
   updatedAt: string;
+  /** 환자 특이사항을 볼 권한 (작성자·승인된 동행인·관리자). false 면 patientNote 는 null 로 옵니다. */
+  canViewSensitive: boolean;
 };
 
 /** 백엔드 공고 등록·수정 요청 (PostWriteRequest) — POST/PUT /api/v1/posts 에 그대로 보냅니다. */
