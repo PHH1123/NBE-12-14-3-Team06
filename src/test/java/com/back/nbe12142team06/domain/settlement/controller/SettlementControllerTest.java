@@ -208,6 +208,8 @@ class SettlementControllerTest {
     @DisplayName("[SettlementController] 정산 요청 - 성공")
     void settlementReq() throws Exception {
 
+        savedPost1.match();                                         // 모집 중 → 매칭 완료 → 동행 진행 중 → 동행 완료 순서를 지킨다
+        savedPost1.startProgress(LocalDateTime.now().minusHours(1));
         savedPost1.complete(LocalDateTime.now()); //post.complete() 변경으로 now() 추가
 
         ResultActions resultActions = mvc.perform(

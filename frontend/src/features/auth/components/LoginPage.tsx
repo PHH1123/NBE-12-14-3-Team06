@@ -1,33 +1,25 @@
 'use client';
 
-import Image from 'next/image';
+import Link from 'next/link';
 import { AppShell } from '@/components/layout';
 import LoginForm from './LoginForm';
 
-/** 로그인 화면 — Figma 공통_로그인 564:17962 */
 export default function LoginPage() {
   return (
     <AppShell>
-      <section className="bg-white px-5 py-8 lg:px-[52px] lg:py-[26px]">
-        <div className="mx-auto flex w-full max-w-[1066px] flex-col items-center justify-center lg:h-[692px] lg:flex-row">
-          {/* 일러스트 — 좁은 화면에서는 폼에 집중할 수 있도록 숨깁니다 */}
-          <div className="relative hidden h-[638px] w-[688px] shrink-0 overflow-clip rounded-card lg:block">
-            <Image
-              src="/images/login/illustration.png"
-              alt="휠체어에 탄 어르신과 함께 병원으로 향하는 동행 매니저 일러스트"
-              width={450}
-              height={425}
-              priority
-              className="absolute top-[8.2%] left-[-14.47%] h-[91.79%] w-full max-w-none"
-            />
+      <div className="w-full py-16 lg:py-24 bg-[#F7F8F8]">
+        <div className="max-w-[1240px] mx-auto px-5 sm:px-8 lg:px-16">
+          <div className="max-w-md mx-auto mb-8 flex items-center justify-center">
+            <nav aria-label="계정 화면" className="p-1 bg-[#EDF0F2] rounded-xl border border-[#E1E5E8] flex gap-1 w-full">
+              <span aria-current="page" className="flex-1 py-2.5 rounded-[9px] text-[15px] font-semibold bg-white text-[#14243A] shadow-xs text-center">로그인</span>
+              <Link href="/signup" className="flex-1 py-2.5 rounded-[9px] text-[15px] font-semibold text-[#67717C] hover:text-[#14243A] transition-colors text-center">회원가입</Link>
+            </nav>
           </div>
-
-          {/* 카드가 일러스트 위로 128px 겹칩니다 (Figma 564:17966 의 -128 여백) */}
-          <div className="relative z-10 flex w-full max-w-[502px] shrink-0 flex-col items-center justify-center rounded-card border border-line bg-white px-6 py-10 shadow-card lg:-ml-[128px] lg:h-[692px] lg:px-[50px] lg:py-[45px]">
+          <div className="max-w-md mx-auto bg-white rounded-2xl border border-[#E1E5E8] p-8 shadow-xs space-y-6">
             <LoginForm />
           </div>
         </div>
-      </section>
+      </div>
     </AppShell>
   );
 }

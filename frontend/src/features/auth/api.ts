@@ -16,7 +16,6 @@ export async function fetchMyProfile() {
  * 아이디가 없거나 비밀번호가 틀리면 401 "아이디 또는 비밀번호가 올바르지 않습니다." 로 응답합니다.
  * (두 경우를 구분하지 않는 건 계정 존재 여부를 흘리지 않기 위해서입니다.)
  *
- * rememberMe 는 백엔드에 받는 항목이 없어서 보내지 않습니다. 쿠키 유효기간은 서버 설정을 따릅니다.
  */
 export function login(values: LoginFormValues): Promise<UserLoginResponse> {
   return apiPost<UserLoginResponse>('/api/v1/auth/login', {

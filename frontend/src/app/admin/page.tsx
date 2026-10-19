@@ -1,6 +1,13 @@
-import { redirect } from 'next/navigation';
+'use client';
 
-/** /admin 으로 들어오면 첫 화면인 회원 관리로 보냅니다. */
+import dynamic from 'next/dynamic';
+
+/** 관리자 진입점 — 관리자 대시보드 */
+const AdminDashboardPage = dynamic(
+  () => import('@/features/admin').then((module) => module.AdminDashboardPage),
+  { ssr: false, loading: () => <div className="min-h-screen bg-[#F7F8F8]" /> },
+);
+
 export default function Page() {
-  redirect('/admin/members');
+  return <AdminDashboardPage />;
 }

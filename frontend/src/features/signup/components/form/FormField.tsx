@@ -11,18 +11,19 @@ type Props = {
   children: ReactNode;
 };
 
-/** 라벨 + 입력 영역 (Figma: 라벨 20px semibold, 입력창과 12px 간격) */
+/** 입력 항목의 라벨과 필드 영역 */
 export default function FormField({ label, htmlFor, labelId, className, children }: Props) {
-  const labelClass = 'text-xl leading-5 font-semibold text-brand';
+  const labelClass = 'text-xs font-semibold text-[#67717C]';
+  const labelContent = label.endsWith('*') ? <>{label.slice(0, -1)} <span className="text-[#B54747]">*</span></> : label;
   return (
-    <div className={cn('flex min-w-0 flex-col gap-[9px]', className)}>
+    <div className={cn('flex min-w-0 flex-col gap-2', className)}>
       {htmlFor ? (
         <label htmlFor={htmlFor} className={labelClass}>
-          {label}
+          {labelContent}
         </label>
       ) : (
         <span id={labelId} className={labelClass}>
-          {label}
+          {labelContent}
         </span>
       )}
       {children}

@@ -2,6 +2,7 @@ package com.back.nbe12142team06.domain.post.entity;
 
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;
@@ -141,35 +142,46 @@ public class Post extends BaseSoftDeleteTimeEntity {  // createdAt, updatedAt, d
         return getEscortHours().multiply(BigDecimal.valueOf(hourlyPay));
     }
 
+    // 전이규칙 메서드
+    private void changeStatus(PostStatus next) {
+        if (!this.postStatus.canTransitionTo(next)) {
+            throw new InvalidException(37, "'%s' 상태의 공고는 '%s' 상태로 바꿀 수 없습니다."
+                    .formatted(this.postStatus.getDescription(), next.getDescription()));
+        }
+        this.postStatus = next;
+    }
+
     // 매칭 완료 처리 (OPEN -> MATCHED)
     public void match() {
-        this.postStatus = PostStatus.MATCHED;
+        changeStatus(PostStatus.MATCHED);
     }
     // 매칭된 공고 동행진행중 + 실제동행시작시간 update 처리
     public void startProgress(LocalDateTime departedAt) {
+        // 출발 기록 때 이미 동행 진행 중이 된 공고에 완료 처리 쪽에서 한 번 더 부르므로, 이미 진행 중이면 상태는 두고 시각만 반영한다
+        if (this.postStatus != PostStatus.IN_PROGRESS) {
+            changeStatus(PostStatus.IN_PROGRESS);
+        }
         this.escortStartAt = departedAt;
-        this.postStatus = PostStatus.IN_PROGRESS;}
+    }
     // 매칭된 공고 동행완료 + 실제동행마감시간 update 처리
     public void complete(LocalDateTime arrivedAt) {
+        changeStatus(PostStatus.COMPLETED);
         this.escortEndAt = arrivedAt;
-        this.postStatus = PostStatus.COMPLETED;
     }
     // 매칭된 공고 취소 처리 (MATCHED -> CANCELED)
     public void matchedCancel() {
-        this.postStatus = PostStatus.CANCELED;
+        changeStatus(PostStatus.CANCELED);
     }
     // 공고 취소 처리 (OPEN, MATCHED -> CANCELED). 회원 탈퇴·정지 등으로 공고를 취소할 때 쓴다.
-    // 취소할 수 있는 상태인지는 서비스(PostService.cancel)에서 검증한다.
     public void cancel() {
-        this.postStatus = PostStatus.CANCELED;
+        changeStatus(PostStatus.CANCELED);
     }
     // 모집마감시간 초과 처리 (OPEN -> EXPIRED)
     public void expire() {
-        this.postStatus = PostStatus.EXPIRED;
+        changeStatus(PostStatus.EXPIRED);
     }
-
     // 매칭 후 동행인 취소 시 공고 재오픈
     public void reopen() {
-        this.postStatus = PostStatus.OPEN;
+        changeStatus(PostStatus.OPEN);
     }
 }

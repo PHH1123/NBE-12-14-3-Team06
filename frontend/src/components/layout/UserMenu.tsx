@@ -1,103 +1,146 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  Activity, ChevronDown, CreditCard, FileText, LayoutDashboard, Receipt,
+  LogOut, PlusCircle, Settings, ShieldCheck, Star, UserCheck, UserX, Video,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 export type UserMenuItem = { label: string; href: string };
 
 type Props = {
   name: string;
-  /** 이름을 눌렀을 때 가는 마이페이지 */
   href: string;
-  /** 화살표를 눌렀을 때 펼쳐지는 메뉴. 없으면 화살표도 보여주지 않습니다. */
   items?: UserMenuItem[];
+  role?: 'CLIENT' | 'ESCORT' | 'ADMIN';
+  transparent?: boolean;
+  onLogout?: () => void;
 };
 
-/**
- * 헤더의 "이름 ⌄".
- * 이름은 마이페이지로 가는 링크이고, 화살표를 누르면 역할별 메뉴가 펼쳐집니다.
- */
-export default function UserMenu({ name, href, items }: Props) {
+const iconFor = (label: string): LucideIcon => {
+  if (label.includes('결제 내역')) return Receipt;
+  if (label.includes('정산')) return CreditCard;
+  if (label.includes('리뷰')) return Star;
+  if (label.includes('교육')) return Video;
+  if (label.includes('지원') || label.includes('신청')) return FileText;
+  if (label.includes('공고 등록') || label.includes('공고 작성')) return PlusCircle;
+  if (label.includes('공고') || label.includes('회원 관리')) return UserCheck;
+  if (label.includes('블랙리스트')) return UserX;
+  if (label.includes('검증')) return ShieldCheck;
+  if (label.includes('설정')) return Settings;
+  if (label.includes('대시보드')) return LayoutDashboard;
+  if (label.includes('현황') || label.includes('동행 진행')) return Activity;
+  return UserCheck;
+};
+
+export default function UserMenu({ name, href, items, role, transparent = false, onLogout }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  useEffect(() => setOpen(false), [pathname]);
+
   useEffect(() => {
     if (!open) return;
-
-    // 메뉴 바깥을 누르면 닫습니다.
     const handlePointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     };
-
-    // Esc 로 닫고, 포커스는 화살표로 되돌립니다.
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       setOpen(false);
       buttonRef.current?.focus();
     };
-
     document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
-
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [open]);
 
+  const navigation = (items ?? []).filter((item) => item.href !== '#');
+  const available = navigation.some((item) => item.href === href) ? navigation : [{ label: '내 정보', href }, ...navigation];
+  const roleItems = role === 'CLIENT'
+    ? available.filter((item) => item.href !== '/client/posts/new' && item.label !== '새 동행 공고 등록')
+    : role === 'ADMIN'
+      ? [
+          { label: '관리자 대시보드', href: '/admin' },
+          { label: '회원 관리', href: '/admin/members' },
+          { label: '블랙리스트', href: '/admin/blacklist' },
+          { label: '자격 검증', href: '/admin/verification' },
+          { label: '설정', href: '/admin/settings' },
+        ]
+      : available;
+  const roleLabel = role === 'CLIENT' ? '의뢰인' : role === 'ESCORT' ? '동행 매니저' : role === 'ADMIN' ? '관리자' : '';
+
   return (
-    <div ref={rootRef} className="relative flex items-center gap-2.5">
-      <Link
-        href={href}
-        className="text-lg leading-[18px] font-semibold text-brand transition-colors hover:text-brand-hover"
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label={`${name} 계정 메뉴 ${open ? '닫기' : '열기'}`}
+        className={cn(
+          'flex h-[44px] items-center gap-1.5 whitespace-nowrap rounded-[10px] border px-3.5 text-[15px] font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93]',
+          transparent
+            ? 'border-white/30 text-white hover:bg-white/10'
+            : 'border-[#E1E5E8] bg-white text-[#14243A] hover:bg-[#F7F8F8]',
+        )}
       >
-        {name}
-      </Link>
+        <span>{name}</span>
+        <ChevronDown className={cn('h-4 w-4 opacity-70 transition-transform duration-200', open && 'rotate-180')} />
+      </button>
 
-      {items && items.length > 0 && (
-        <>
-          <button
-            ref={buttonRef}
-            type="button"
-            onClick={() => setOpen((prev) => !prev)}
-            aria-expanded={open}
-            aria-haspopup="true"
-            aria-label={open ? '내 메뉴 닫기' : '내 메뉴 열기'}
-            className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-full transition-colors hover:bg-line-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
-            <Image
-              src="/icons/nav-chevron.svg"
-              alt=""
-              width={13.0667}
-              height={7.23333}
-              className={cn('transition-transform', open && 'rotate-180')}
-            />
-          </button>
-
-          {open && (
-            <ul className="absolute top-full right-0 z-20 mt-3 flex w-[200px] flex-col overflow-hidden rounded-[20px] border border-line bg-white py-2 shadow-card">
-              {items.map((item) => (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      'block px-5 py-3 text-base leading-5 font-medium whitespace-nowrap transition-colors hover:bg-line-soft',
-                      item.href === pathname ? 'font-semibold text-brand' : 'text-brand-muted',
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+      {open && (
+        <div role="menu" aria-label="계정 메뉴" className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-[#E1E5E8] bg-white py-2 text-[#202832] shadow-lg">
+          {roleLabel && (
+            <div className="border-b border-[#E1E5E8] px-4 py-2 text-xs text-[#67717C]">
+              역할: <span className="font-semibold text-[#14243A]">{roleLabel}</span>
+            </div>
           )}
-        </>
+          {roleItems.map((item) => {
+            const Icon = iconFor(item.label);
+            return (
+              <Link
+                key={`${item.href}-${item.label}`}
+                role="menuitem"
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  'flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs font-medium transition-colors hover:bg-[#F7F8F8]',
+                  pathname === item.href ? 'font-semibold text-[#14243A]' : 'text-[#202832]',
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0 text-[#426B93]" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+          {onLogout && (
+            <>
+              <div className="my-1 border-t border-[#E1E5E8]" />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  onLogout();
+                }}
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs font-medium text-[#B4413C] transition-colors hover:bg-[#F7F8F8]"
+              >
+                <LogOut className="h-4 w-4" />
+                로그아웃
+              </button>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

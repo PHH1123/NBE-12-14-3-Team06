@@ -5,5 +5,3 @@
  *   ❌ import SupportPage from '@/features/support/components/SupportPage';
  */
 export { default as SupportPage } from './components/SupportPage';
-export { COMPANY, OPERATING_HOURS, telHref } from './model';
-export type { ContactChannel, InquiryCategory, SupportGuide } from './types';

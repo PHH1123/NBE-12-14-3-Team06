@@ -2,67 +2,37 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { cn } from '@/lib/cn';
+import { ArrowRight, Check } from 'lucide-react';
 import type { RoleOption } from '../types';
 
 type Props = { option: RoleOption };
 
-/** Figma 564:17913 (의뢰인) · 564:17937 (동행인) — 가입 유형 카드 */
 export default function RoleCard({ option }: Props) {
-  const solid = option.variant === 'solid';
-
   return (
-    // 테두리(1px) 포함 바깥쪽에서 25px 이므로 p-6 + border
-    <article className="flex w-full max-w-[412px] flex-col gap-2.5 overflow-clip rounded-[25px] border border-line bg-white p-6 shadow-card">
-      {/* 이미지·버튼(300px)은 글 영역(282px)보다 넓게 가운데 정렬 — max-w 로 좁은 화면에서만 줄어듭니다 */}
-      <div className="flex flex-col items-center rounded-[25px] border border-line bg-line-soft px-6 py-[29px] shadow-card lg:px-[39px]">
-        <Image
-          src={option.image}
-          alt={option.imageAlt}
-          width={300}
-          height={107}
-          className="h-[107px] w-[300px] max-w-[calc(100%+18px)] object-contain"
-        />
-
-        <h2 className="mt-3 w-full text-2xl leading-6 font-semibold text-brand lg:whitespace-nowrap">
-          {option.title}
-        </h2>
-        <p className="mt-3.5 w-full text-base leading-6 text-brand">
-          {option.description[0]}
-          <br />
-          {option.description[1]}
-        </p>
-
-        <Link
-          href={option.href}
-          className={cn(
-            'mt-[26px] flex h-[49px] w-[300px] max-w-[calc(100%+18px)] items-center justify-center gap-[3px] rounded-[30px] px-[18px] py-3.5',
-            'text-base leading-5 font-semibold drop-shadow-soft transition-colors',
-            solid ? 'bg-brand text-white hover:bg-brand-hover' : 'bg-white text-brand hover:bg-line-soft',
-          )}
-        >
-          {option.cta}
-          <span aria-hidden="true" className="grid size-3 shrink-0 place-items-center">
-            <Image
-              src={solid ? '/icons/arrow-right-white.svg' : '/icons/arrow-right-brand.svg'}
-              alt=""
-              width={9.68566}
-              height={9.52414}
-            />
+    <article className="group flex min-w-0 flex-col justify-between space-y-6 rounded-2xl border border-[#E1E5E8] bg-white p-6 shadow-xs transition-[border-color,box-shadow] duration-300 hover:border-[#A6B2C2] hover:shadow-[0_3px_9px_rgba(30,39,57,0.10)] sm:p-8">
+      <div className="space-y-4">
+        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-[#E1E5E8] bg-[#14243A]">
+          <Image src={option.image} alt={option.imageAlt} fill sizes="(max-width:768px) 100vw, 400px" className="object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
+        </div>
+        <div>
+          <span className={`rounded bg-[#EDF0F2] px-2.5 py-0.5 text-xs font-semibold text-[#426B93]`}>
+            {option.role === 'CLIENT' ? '의뢰인 회원' : '동행 매니저 회원'}
           </span>
-        </Link>
+          <h2 className="mt-2 text-xl font-semibold text-[#14243A]">{option.title}</h2>
+        </div>
+        <ul className="space-y-2 text-sm text-[#67717C]">
+          {option.benefits.map((benefit) => (
+            <li key={benefit} className="flex items-start gap-2">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#426B93]" aria-hidden="true" />
+              <span>{benefit}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-
-      <ul className="flex flex-col gap-[18px] py-[17px]">
-        {option.benefits.map((text) => (
-          <li key={text} className="flex items-center gap-[5px]">
-            <span aria-hidden="true" className="grid size-4 shrink-0 place-items-center">
-              <Image src="/icons/check-circle.svg" alt="" width={14.416} height={14.416} />
-            </span>
-            <span className="min-w-0 flex-1 text-base leading-[22px] text-brand">{text}</span>
-          </li>
-        ))}
-      </ul>
+      <Link href={option.href} className="flex h-[48px] w-full items-center justify-center gap-2 rounded-[10px] bg-[#14243A] text-sm font-semibold text-white transition-colors duration-200 group-hover:bg-[#426B93] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93]">
+        <span>{option.cta}</span>
+        <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true" />
+      </Link>
     </article>
   );
 }

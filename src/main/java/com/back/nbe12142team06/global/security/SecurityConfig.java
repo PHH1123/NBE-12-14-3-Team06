@@ -25,6 +25,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/api/dev/**").permitAll()   // dev 전용 실험 API (prod 에선 컨트롤러가 없어 404)
                     .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")   // 관리자
                     .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()  // 회원가입
                     .requestMatchers(HttpMethod.GET, "/api/v1/users/username").permitAll()  // username 중복 검사
@@ -41,7 +42,7 @@ public class SecurityConfig {
                     // 교육영상
                     .requestMatchers("/api/v1/education-videos/**").hasRole("ESCORT")  // 교육 영상 목록, 단건, 시청 기록
                     // 공고
-                    .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/**").permitAll() //공고
+                    .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/**").authenticated() //공고
                     .requestMatchers(HttpMethod.POST,"/api/v1/posts").hasAnyRole("CLIENT","ADMIN") //공고 생성
                     .requestMatchers(HttpMethod.PUT, "/api/v1/posts/*").hasAnyRole("CLIENT", "ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/api/v1/posts/*").hasAnyRole("CLIENT", "ADMIN")
@@ -77,6 +78,7 @@ public class SecurityConfig {
                     // 위에서 안 걸린 나머지 API 는 로그인만 하면 통과 (역할 무관)
                     .requestMatchers("/api/**").authenticated()
                     .requestMatchers("/ws/**").authenticated()
+
                     .anyRequest().permitAll()
 
 

@@ -1,8 +1,12 @@
 package com.back.nbe12142team06.domain.ride.controller;
 
+import com.back.nbe12142team06.domain.application.entity.Application;
+import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
+import com.back.nbe12142team06.domain.application.service.ApplicationService;
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
 import com.back.nbe12142team06.domain.post.dto.PostWriteRequest;
 import com.back.nbe12142team06.domain.post.dto.PostWriteResponse;
+import com.back.nbe12142team06.domain.post.repository.PostRepository;
 import com.back.nbe12142team06.domain.post.service.PostService;
 import com.back.nbe12142team06.domain.ride.entity.RideSelect;
 import com.back.nbe12142team06.domain.ride.service.RideService;
@@ -50,6 +54,10 @@ class RideControllerTest {
     private RideService rideService;
     @Autowired
     private PaymentRepository paymentRepository;
+    @Autowired
+    private PostRepository postRepository;
+    @Autowired
+    private ApplicationRepository applicationRepository;
 
     private Long savedUser1Id;
     private Long savedUser2Id;
@@ -116,6 +124,13 @@ class RideControllerTest {
 
         PostWriteResponse post2 = postService.write(user1.getId(), postWriteRequest2);
         paymentRepository.testStatusDone(post2.id());
+
+        Application application = Application.builder()
+                .post(postRepository.findById(post1.id()).get())
+                .escort(user2)
+                .build();
+        application.accept();
+        applicationRepository.save(application);
 
         savedUser1Id = user1.getId();
         savedUser2Id = user2.getId();

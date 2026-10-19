@@ -26,6 +26,7 @@ import com.back.nbe12142team06.domain.user.service.EscortService;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
+import com.back.nbe12142team06.global.security.SecurityUser;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static com.back.nbe12142team06.domain.application.enums.ApplicationStatus.ACCEPTED;
+import static com.back.nbe12142team06.domain.application.enums.ApplicationStatus.PENDING;
 
 @Slf4j
 @Service
@@ -194,11 +198,12 @@ public class PostService {
                 throw new InvalidException(17, "모집 중이거나 만료 상태에서만 삭제가 가능합니다.");
             }
         }
-
         // 결제 상태 변경 -> 스케줄러로 삭제된 공고에 대해 결제 취소할 예정
         paymentService.cancelPostAndPayment(postId);
 
         postRepository.deleteById(postId);
+        // 공고의 지원(대기중, 승인)을 패널티 없이 취소
+        cancelApplicationsWithoutPenalty(post);
         log.info("[공고 삭제] postId={}, userId={}", postId, userId);
     }
     @Transactional
@@ -223,6 +228,9 @@ public class PostService {
         }
 
         post.matchedCancel();
+
+        // 공고의 지원(대기중, 승인)을 패널티 없이 취소
+        cancelApplicationsWithoutPenalty(post);
         log.info("[공고 매칭 취소] postId={}, userId={}", postId, userId);
     }
     @Transactional
@@ -352,10 +360,44 @@ public class PostService {
         }
 
         post.cancel();
+        // 공고의 지원(대기중, 승인)을 패널티 없이 취소
+        cancelApplicationsWithoutPenalty(post);
         log.info("[공고 취소] postId={}, userId={}", postId, userId);
     }
 
     public boolean hasInProgressPost(Long userId){
         return this.postRepository.existsByClientIdAndPostStatus(userId, PostStatus.IN_PROGRESS);
     }
+
+    // 공고가 취소·삭제될 때, 그 공고의 지원(대기중, 승인)을 패널티 없이 취소한다.
+    // 같은 트랜잭션 안에서 가져온 지원이라 변경 감지로 저장된다.
+    private void cancelApplicationsWithoutPenalty(Post post) {
+        List<Application> acceptedApplications = applicationRepository.findAllByPostAndStatus(post, ACCEPTED);
+        List<Application> pendingApplications = applicationRepository.findAllByPostAndStatus(post, PENDING);
+
+        for (Application acceptedApplication : acceptedApplications) {
+            acceptedApplication.cancelWithoutPenalty();
+        }
+        for (Application pendingApplication : pendingApplications) {
+            pendingApplication.cancelWithoutPenalty();
+        }
+    }
+    @Transactional
+    public boolean canViewSensitive(Post post, Long userId) {
+        // 작성자
+        if (post.getClient().getId().equals(userId)) {
+            return true;
+        }
+
+        // 관리자
+        User user = getUser(userId);
+        if (user.getRole() == Role.ADMIN) {
+            return true;
+        }
+
+        // 이 공고에 승인된 동행인
+        return applicationRepository.existsByPostIdAndEscortIdAndStatus(
+                post.getId(), userId, ApplicationStatus.ACCEPTED);
+    }
+
 }

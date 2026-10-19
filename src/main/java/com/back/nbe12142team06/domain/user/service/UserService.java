@@ -143,6 +143,15 @@ public class UserService {
                 .orElseThrow(() -> new UnauthorizedException(3, "회원 정보를 찾을 수 없습니다. 다시 로그인해주세요."));
     }
 
+    // 정지 계정의 마지막 상태 이력 (ACTIVE는 null 반환)
+    @Transactional(readOnly = true)
+    public UserStatusHistory findCurrentSanction(User user) {
+        if (user.isActive()) return null;
+        return this.userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)
+                .filter(history -> history.getStatus() == user.getUserStatus())
+                .orElse(null);
+    }
+
     // username 중복 검사
     @Transactional(readOnly = true)
     public boolean isUsernameAvailable(String username) {
@@ -477,6 +486,22 @@ public class UserService {
         cancelAllByUser(user);
 
         log.info("[회원 영구 정지] adminId={}, userId={}", adminId, userId);
+        return history;
+    }
+
+    // [관리자] 정지된 계정을 활성 상태로 변경
+    @Transactional
+    public UserStatusHistory releaseUser(Long adminId, Long userId, String reason) {
+        // 회원 존재 여부 확인
+        User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        1,
+                        "회원 정보를 찾을 수 없습니다."
+                ));
+
+        UserStatusHistory history = this.userStatusHistoryRepository.save(user.release(adminId, reason));
+
+        log.info("[회원 정지 해제] adminId={}, userId={}", adminId, userId);
         return history;
     }
 

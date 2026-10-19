@@ -11,6 +11,8 @@
   "dependencies": {
     "@stomp/stompjs": "^7.4.0",
     "@tosspayments/tosspayments-sdk": "^2.8.1",
+    "lucide-react": "^1.59.0",
+    "motion": "^12.43.0",
     "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8"

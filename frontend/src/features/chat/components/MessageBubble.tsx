@@ -1,49 +1,39 @@
-import { cn } from '@/lib/cn';
 import { formatMessageTime } from '../lib/date';
 import type { ChatMessage } from '../types';
 
 type Props = {
   message: ChatMessage;
-  /** 바로 위 메시지도 같은 사람이 보냈는지 — 보낸이 이름을 한 번만 보여 주기 위해 받습니다. */
   sameSenderAsPrevious: boolean;
 };
 
-const BUBBLE = 'max-w-[220px] px-3.5 py-2.5 text-[13.5px] leading-[1.45] whitespace-pre-wrap break-words';
-
-/**
- * 말풍선 한 줄.
- * ENTER/LEAVE(입장·나가기)는 말풍선이 아니라 가운데 안내 문구로 보여 줍니다.
- */
+/** 상대 메시지는 흰색, 내 메시지는 네이비. 서버가 반환하는 실제 내용만 표시합니다. */
 export default function MessageBubble({ message, sameSenderAsPrevious }: Props) {
   if (message.type !== 'TALK') {
     return (
-      <p className="my-1 text-center text-[11.5px] text-brand-muted">{message.content}</p>
+      <div className="flex justify-center py-1.5">
+        <p className="max-w-[92%] rounded-full bg-[#EDF0F2] px-3.5 py-1.5 text-center text-[11px] leading-5 text-[#67717C]">
+          {message.content}
+        </p>
+      </div>
     );
   }
 
-  const { mine } = message;
-
   return (
-    <div className={cn('flex flex-col', mine ? 'items-end' : 'items-start')}>
-      {/* 같은 사람이 연달아 보내면 이름을 반복하지 않습니다. 내 메시지는 이름을 아예 안 붙입니다. */}
-      {!mine && !sameSenderAsPrevious && (
-        <span className="mb-1 pl-1 text-[11.5px] font-medium text-brand-muted">{message.senderName}</span>
+    <div className={`flex flex-col ${message.mine ? 'items-end' : 'items-start'}`}>
+      {!message.mine && !sameSenderAsPrevious && (
+        <span className="mb-1.5 pl-1 text-[11px] font-semibold text-[#67717C]">{message.senderName}</span>
       )}
-      <div className={cn('flex items-end gap-1.5', mine && 'flex-row-reverse')}>
+      <div className={`flex max-w-full items-end gap-2 ${message.mine ? 'flex-row-reverse' : ''}`}>
         <div
-          className={cn(
-            BUBBLE,
-            mine
-              ? 'rounded-[18px] rounded-br-[6px] bg-brand text-white'
-              : 'rounded-[18px] rounded-bl-[6px] bg-line-soft text-brand',
-          )}
+          className={`max-w-[min(260px,70vw)] whitespace-pre-wrap break-words px-3.5 py-2.5 text-[12.5px] leading-[1.7] shadow-[0_1px_2px_rgba(20,36,58,0.04)] ${
+            message.mine
+              ? 'rounded-2xl rounded-br-[10px] bg-[#14243A] text-white'
+              : 'rounded-2xl rounded-bl-[10px] border border-[#E1E5E8] bg-white text-[#202832]'
+          }`}
         >
           {message.content}
         </div>
-        <time
-          dateTime={message.sentAt}
-          className={cn('shrink-0 pb-0.5 text-[10.5px]', message.pending ? 'text-brand-muted italic' : 'text-brand-muted')}
-        >
+        <time dateTime={message.sentAt} className="shrink-0 pb-0.5 text-[10px] leading-4 tabular-nums text-[#939DA6]">
           {message.pending ? '전송 중' : formatMessageTime(message.sentAt)}
         </time>
       </div>

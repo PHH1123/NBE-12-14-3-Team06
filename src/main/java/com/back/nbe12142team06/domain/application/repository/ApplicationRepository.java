@@ -148,4 +148,14 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             "where a.post=:post and a.status=ApplicationStatus.PENDING")
     int rejectAllByPost(@Param("post") Post post,
                         @Param("now") LocalDateTime now);
+
+    @Query("select a from Application a " +
+            "join a.post p " +
+            "join a.escort e " +
+            "where p.id=:postId and e.id=:escortId")
+    List<Application> findByPostIdAndEscortId(@Param("postId") Long postId,
+                                            @Param("escortId") Long escortId);
+           
+    // 이 공고에 승인(ACCEPTED)된 동행인인지
+    boolean existsByPostIdAndEscortIdAndStatus(Long postId, Long escortId, ApplicationStatus status);
 }
