@@ -181,7 +181,6 @@ class PaymentControllerTest {
         when(mockTossPaymentClient.callApiConfirm(any(), any(), any())).thenReturn(ResponseEntity.ok(new TossConfirmResponse("계좌이체", amount)));
         NoticeService mockNoticeService = mock(NoticeService.class);
 
-
         PaymentService paymentService = new PaymentService(paymentRepository, paymentPersistenceService, mockTossPaymentClient, null, mockNoticeService);
 
         Payment payment = paymentService.confirm(new PaymentConfirmRequest(paymentKey, orderId, amount), savedPayment2Id, savedUser1Id);
