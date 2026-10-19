@@ -119,7 +119,7 @@ public class User extends BaseSoftDeleteTimeEntity {
     // 상태 변경
     private void changeStatus(UserStatus newStatus) {
         // 현재 상태
-        UserStatus prevStatus = this.getUserStatus();
+        UserStatus prevStatus = this.userStatus;
 
         // 같은 상태로의 변경은 불가
         if (prevStatus == newStatus) {
@@ -129,7 +129,7 @@ public class User extends BaseSoftDeleteTimeEntity {
             );
         }
         // BANNED -> SUSPENDED 변경 불가
-        else if (prevStatus == UserStatus.BANNED && newStatus == UserStatus.SUSPENDED) {
+        else if (!prevStatus.canTransitionTo(newStatus)) {
             throw new InvalidException(
                     9,
                     "영구 정지된 계정은 해제만 가능합니다."
