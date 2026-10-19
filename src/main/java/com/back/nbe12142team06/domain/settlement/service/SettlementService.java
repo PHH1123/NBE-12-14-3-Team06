@@ -66,12 +66,14 @@ public class SettlementService {
             throw new InvalidException(71, "이미 정산 중이거나 정산이 완료되었습니다.");
         }
 
+        Settlement settlement;
+
         try {
             SettlementClientResponse response = settlementApi(accountDto.payoutAmount(), name, account);
             // 정산 완료 상태 변경
             if (response.res_cnt() >= 1) {
                 try {
-                    settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.COMPLETED);
+                    settlement = settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.COMPLETED);
                     log.info("정산 성공 - settlementId: {}", accountDto.id());
                 } catch (Exception e) {
                     log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
@@ -90,7 +92,6 @@ public class SettlementService {
         }
 
         // 알림
-        Settlement settlement = settlementPersistenceService.findById(settlementId);
         noticeService.send(settlement.getEscort(),
                 C_SETTLEMENT_DONE.of(String.valueOf(settlement.getPayoutAmount())),
                 U_SETTLEMENT_DONE.of(settlement.getApplication().getId()));
