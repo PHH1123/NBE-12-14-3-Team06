@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { PROGRESS_ORDER, advanceProgress, fetchProgress } from '@/features/application';
 import { useRequireAuth } from '@/features/auth';
 import { useChatWidget } from '@/features/chat';
@@ -91,7 +92,7 @@ export default function TrackingPage() {
   if (authLoading || (!state && user)) {
     return (
       <AppShell>
-        <div className="min-h-[350px] bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">동행 정보를 불러오는 중입니다.</div>
+        <PageFeedback kind="loading" title="동행 정보를 불러오는 중입니다." />
       </AppShell>
     );
   }
@@ -100,14 +101,13 @@ export default function TrackingPage() {
   if (state?.status !== 'ready' || doneCount === undefined) {
     return (
       <AppShell>
-        <div className="min-h-[350px] bg-[#F7F8F8] py-24 text-center">
-          <p role={state?.status === 'error' ? 'alert' : undefined} className="text-sm font-semibold text-[#14243A]">
-            {state?.status === 'error' ? state.message : '동행 정보를 찾을 수 없습니다.'}
-          </p>
-          <Link href="/mypage/applications" className="mt-6 inline-flex h-11 items-center justify-center rounded-lg border border-[#E1E5E8] bg-white px-5 text-sm font-semibold text-[#14243A]">
-            신청 목록으로 돌아가기
-          </Link>
-        </div>
+        <PageFeedback
+          kind={state?.status === 'error' ? 'error' : 'empty'}
+          title={state?.status === 'error' ? '동행 현황을 불러오지 못했습니다.' : '동행 정보를 찾을 수 없습니다.'}
+          description={state?.status === 'error' ? state.message : undefined}
+          href="/mypage/applications"
+          action="신청 목록으로 돌아가기"
+        />
       </AppShell>
     );
   }

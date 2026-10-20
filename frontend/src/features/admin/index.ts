@@ -5,3 +5,6 @@ export { default as AdminMemberDetailPage } from './components/AdminMemberDetail
 export type { Member, MemberDetail, MemberRole } from './types';
 export { default as AdminBlacklistPage } from './components/AdminBlacklistPage';
 export { default as AdminVerificationPage } from './components/AdminVerificationPage';
+
+export { default as AdminPaymentsPage } from './components/AdminPaymentsPage';
+export { default as AdminSettlementsPage } from './components/AdminSettlementsPage';

@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout';
+import PageFeedback from '@/components/ui/PageFeedback';
 import ManagerGradeCharacter from '@/components/ui/ManagerGradeCharacter';
 import { useActionDialog } from '@/components/ui/useActionDialog';
 import { PROGRESS_ORDER, fetchProgress } from '@/features/application';
@@ -270,15 +271,15 @@ export default function ClientTrackingPage() {
 
   let content;
   if (authLoading) {
-    content = <p className="py-24 text-center text-sm font-medium text-[#67717C]">로그인 상태를 확인하는 중입니다.</p>;
+    content = <PageFeedback kind="loading" title="로그인 상태를 확인하는 중입니다." />;
   } else if (!user) {
     return null;
   } else if (result.key !== resultKey && postId !== undefined && Number.isInteger(applicationId) && applicationId > 0) {
-    content = <p className="py-24 text-center text-sm font-medium text-[#67717C]">동행 현황을 불러오는 중입니다.</p>;
+    content = <PageFeedback kind="loading" title="동행 현황을 불러오는 중입니다." />;
   } else if (result.key === resultKey && result.error) {
-    content = <div role="alert" className="py-20 text-center"><p className="mb-4 text-sm text-[#99433E]">{result.error}</p><button onClick={reload} className={OUTLINE_BUTTON}>다시 시도</button></div>;
+    content = <PageFeedback kind="error" title="동행 현황을 불러오지 못했습니다." description={result.error} onRetry={reload} />;
   } else if (!escort || !postId) {
-    content = <p className="py-24 text-center text-sm font-medium text-[#67717C]">동행 정보를 찾을 수 없습니다. 내 공고 목록에서 다시 선택해 주세요.</p>;
+    content = <PageFeedback kind="empty" title="동행 정보를 찾을 수 없습니다." description="내 공고 목록에서 해당 공고를 다시 선택해 주세요." href="/client/posts" action="내 공고 목록으로" />;
   } else {
     const extraPaymentHref = pendingPayment ? `/client/posts/new/payment?${new URLSearchParams({ postId: String(escort.postId), paymentId: String(pendingPayment.id), pay: String(pendingPayment.hourlyPaySnapshot), flow: 'extra' })}` : '';
     const goingHome = escort.stage === 'arrived' || escort.stage === 'finishing';
@@ -343,16 +344,22 @@ export default function ClientTrackingPage() {
     );
   }
 
+  // 실제 동행 내용이 있는 경우에만 상단 뒤로가기를 보여 줍니다.
+  // 오류·정보 없음 상태는 공통 안내 카드 안에 이동 버튼이 있으므로 두 버튼을 중복 노출하지 않습니다.
+  const hasDetail = !authLoading && !!user && !!escort && !!postId && result.key === resultKey && !result.error;
+
   return (
     <AppShell>
-      <section className="w-full bg-[#F7F8F8] py-12 lg:py-16">
-        <div className="mx-auto max-w-[1240px] space-y-8 px-5 sm:px-8 lg:px-16">
-          <Link href="/client/posts" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] transition-colors hover:text-[#14243A]">
-            <ChevronLeft className="h-4 w-4" aria-hidden="true" />내 공고 목록으로 돌아가기
-          </Link>
-          {content}
-        </div>
-      </section>
+      {hasDetail ? (
+        <section className="w-full bg-[#F7F8F8] py-12 lg:py-16">
+          <div className="mx-auto max-w-[1240px] space-y-8 px-5 sm:px-8 lg:px-16">
+            <Link href="/client/posts" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] transition-colors hover:text-[#14243A]">
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />내 공고 목록으로 돌아가기
+            </Link>
+            {content}
+          </div>
+        </section>
+      ) : content}
       {dialog}
     </AppShell>
   );

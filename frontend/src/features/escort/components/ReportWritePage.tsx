@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AlertTriangle, ChevronLeft } from 'lucide-react';
 import { AppShell } from '@/components/layout';
+import PageFeedback from '@/components/ui/PageFeedback';
 import DropdownSelect from '@/components/ui/DropdownSelect';
 import { useActionDialog } from '@/components/ui/useActionDialog';
 import { useRequireAuth } from '@/features/auth';
@@ -165,7 +166,7 @@ export default function ReportWritePage() {
   if (authLoading || !state) {
     return (
       <AppShell>
-        <div className="w-full bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">동행 정보를 불러오는 중입니다.</div>
+        <PageFeedback kind="loading" title="동행 정보를 불러오는 중입니다." />
       </AppShell>
     );
   }
@@ -174,12 +175,10 @@ export default function ReportWritePage() {
   if (state.status !== 'ready') {
     return (
       <AppShell>
-        <div className="w-full bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">
-          <p role={state.status === 'error' ? 'alert' : undefined}>
-            {state.status === 'notFound' ? '동행 정보를 찾을 수 없습니다.' : state.message}
-          </p>
-          <Link href="/mypage/applications" className="mt-6 inline-block font-semibold text-[#426B93]">신청 목록으로 돌아가기</Link>
-        </div>
+        <PageFeedback kind={state.status === 'error' ? 'error' : 'empty'}
+          title={state.status === 'notFound' ? '동행 정보를 찾을 수 없습니다.' : '동행 현황을 불러오지 못했습니다.'}
+          description={state.status === 'error' ? state.message : undefined}
+          href="/mypage/applications" action="신청 목록으로 돌아가기" />
       </AppShell>
     );
   }

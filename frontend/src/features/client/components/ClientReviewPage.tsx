@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { AlertCircle, Check, ChevronLeft, Star } from 'lucide-react';
 import { AppShell } from '@/components/layout';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { useRequireAuth } from '@/features/auth';
 import { MAX_TAGS, REVIEW_TAG_ROWS, fetchUserReviews, reviewTagInfo, writeReview, type ReviewDto } from '@/features/review';
 import { fetchClientEscortCase } from '../api';
@@ -115,7 +116,7 @@ export default function ClientReviewPage() {
   if (authLoading || escortLoading) {
     return (
       <AppShell>
-        <section className="min-h-[400px] bg-white py-24 text-center text-sm text-[#67717C]">불러오는 중입니다...</section>
+        <PageFeedback kind="loading" title="동행 정보를 불러오는 중입니다." />
       </AppShell>
     );
   }
@@ -123,24 +124,18 @@ export default function ClientReviewPage() {
   if (!escort) {
     return (
       <AppShell>
-        <section className="min-h-[400px] bg-white py-24 text-center text-sm text-[#67717C]">
-          동행 정보를 찾을 수 없습니다.
-          <div className="mt-6"><Link href="/client/posts" className="font-semibold text-[#14243A] hover:underline">내 공고 목록으로 돌아가기</Link></div>
-        </section>
+        <PageFeedback kind="empty" title="동행 정보를 찾을 수 없습니다." href="/client/posts" action="내 공고 목록으로" />
       </AppShell>
     );
   }
 
   if (!existing || existing.applicationId !== escort.applicationId) {
-    return <AppShell><section className="min-h-[400px] bg-white py-24 text-center text-sm text-[#67717C]">리뷰를 확인하는 중입니다...</section></AppShell>;
+    return <AppShell><PageFeedback kind="loading" title="리뷰를 확인하는 중입니다." /></AppShell>;
   }
   if (existing.status === 'error') {
     return (
       <AppShell>
-        <section className="min-h-[400px] bg-[#F7F8F8] py-24 text-center">
-          <p role="alert" className="text-sm text-[#67717C]">리뷰 작성 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
-          <button type="button" onClick={() => setReviewReload((value) => value + 1)} className="mt-5 rounded-xl bg-[#14243A] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1F3757]">다시 시도</button>
-        </section>
+        <PageFeedback kind="error" title="리뷰 작성 여부를 확인하지 못했습니다." description="잠시 후 다시 시도해 주세요." onRetry={() => setReviewReload((value) => value + 1)} />
       </AppShell>
     );
   }

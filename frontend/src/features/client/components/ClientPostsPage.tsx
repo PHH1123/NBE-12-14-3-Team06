@@ -9,7 +9,7 @@ import DropdownSelect from '@/components/ui/DropdownSelect';
 import { useRequireAuth } from '@/features/auth';
 import { fetchEscortProfile } from '@/features/application';
 import { fetchUserReviews } from '@/features/review';
-import { fetchMyPayments, type PaymentDto, type PaymentStatus } from '@/features/payment';
+import { fetchMyPayments, usePostCreationEligibility, postCreationUnavailableReason, type PaymentDto, type PaymentStatus } from '@/features/payment';
 import { cn } from '@/lib/cn';
 import { fetchMyPosts } from '../api';
 import { SORT_OPTIONS, filterClientPosts, type ClientPostSort } from '../model/posts';
@@ -308,6 +308,7 @@ function PaymentHistoryDialog({ onClose }: { onClose: () => void }) {
 export default function ClientPostsPage() {
   const router = useRouter();
   const { loading: authLoading, user } = useRequireAuth('CLIENT');
+  const creationAvailability = usePostCreationEligibility(user?.role === 'CLIENT');
   const [status, setStatus] = useState<Tab>('all');
   const [showPayments, setShowPayments] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -365,15 +366,19 @@ export default function ClientPostsPage() {
               >
                 결제 내역 보기
               </button>
-              <Link
-                href="/client/posts/new"
-                className="flex h-[44px] items-center justify-center gap-1.5 rounded-[10px] bg-[#14243A] px-5 text-xs font-semibold text-white transition-colors hover:bg-[#1f3757]"
-              >
-                <PlusCircle className="size-4" aria-hidden="true" />
-                새 공고 작성
-              </Link>
+              {creationAvailability === 'allowed' ? (
+                <Link href="/client/posts/new" className="flex h-[44px] items-center justify-center gap-1.5 rounded-[10px] bg-[#14243A] px-5 text-xs font-semibold text-white transition-colors hover:bg-[#1f3757]">
+                  <PlusCircle className="size-4" aria-hidden="true" />새 공고 작성
+                </Link>
+              ) : (
+                <span aria-disabled="true" title={postCreationUnavailableReason(creationAvailability)} className="flex h-[44px] cursor-not-allowed items-center justify-center gap-1.5 rounded-[10px] bg-[#14243A] px-5 text-xs font-semibold text-white opacity-50">
+                  <PlusCircle className="size-4" aria-hidden="true" />새 공고 작성
+                </span>
+              )}
             </div>
           </div>
+
+          {creationAvailability !== 'allowed' && <p role="status" className="text-xs font-medium text-[#B4413C]">{postCreationUnavailableReason(creationAvailability)}</p>}
 
           {/* Status Tabs */}
           <div className="flex flex-wrap items-center justify-between gap-4">

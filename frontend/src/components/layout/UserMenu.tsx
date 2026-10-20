@@ -70,6 +70,8 @@ export default function UserMenu({ name, href, items, role, transparent = false,
       ? [
           { label: '관리자 대시보드', href: '/admin' },
           { label: '회원 관리', href: '/admin/members' },
+          { label: '결제 관리', href: '/admin/payments' },
+          { label: '정산 관리', href: '/admin/settlements' },
           { label: '블랙리스트', href: '/admin/blacklist' },
           { label: '자격 검증', href: '/admin/verification' },
         ]
