@@ -5,9 +5,11 @@ spring:
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: 3000
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
   ai:
     anthropic:
       api-key: ${CLAUDE_API_KEY}

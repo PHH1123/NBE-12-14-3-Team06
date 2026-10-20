@@ -18,6 +18,11 @@ import java.time.LocalDate;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(
+        indexes = {
+                @Index(name = "idx_settlement_settledDate", columnList = "settledDate")
+        }
+)
 public class Settlement extends BaseSoftDeleteTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

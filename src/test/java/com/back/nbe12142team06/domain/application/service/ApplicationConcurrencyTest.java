@@ -158,15 +158,7 @@ class ApplicationConcurrencyTest {
 
         postId = postRepository.save(post).getId();
 
-        Payment payment = Payment.builder()
-                .amount(post.getTotalPay().intValue())
-                .hourlyPaySnapshot(post.getHourlyPay())
-                .hours(post.getEscortHours())
-                .post(post)
-                .paymentStatus(PaymentStatus.DONE)
-                .build();
-
-        paymentRepository.save(payment);
+        saveDonePayment(post);
     }
 
     private void saveVerifiedProfile(User escort, String accountNumber) {
@@ -175,6 +167,26 @@ class ApplicationConcurrencyTest {
 
         transactionTemplate.executeWithoutResult(status ->
                 escortProfileRepository.verify(escort.getId(), LocalDateTime.now()));
+    }
+
+    /**
+     * 결제 완료 상태의 공고를 만든다.
+     *
+     * 승인된 지원이 정지·탈퇴·공고 취소로 되돌려질 때 결제 환불까지 함께 실행되므로,
+     * 결제 키는 TossPaymentClientDev 가 실제 토스 API 를 호출하지 않는 시드 접두어를 쓴다.
+     * 접두어가 없으면 환불이 404(NOT_FOUND_PAYMENT)로 실패해 정지·탈퇴 트랜잭션이 롤백된다.
+     * 환불 금액은 balanceAmount 에서 가져가므로 결제 금액과 같은 값으로 채워둔다.
+     */
+    private void saveDonePayment(Post post) {
+        paymentRepository.saveAndFlush(Payment.builder()
+                .amount(post.getTotalPay().intValue())
+                .hourlyPaySnapshot(post.getHourlyPay())
+                .hours(post.getEscortHours())
+                .post(post)
+                .paymentKey("INIT-PAYKEY-concurrency-" + post.getId())
+                .balanceAmount(post.getTotalPay().intValue())
+                .paymentStatus(PaymentStatus.DONE)
+                .build());
     }
 
 
@@ -635,13 +647,7 @@ class ApplicationConcurrencyTest {
         post2 = postRepository.save(post2);
 
         // 두 번째 공고도 결제 완료 상태로 설정
-        paymentRepository.save(Payment.builder()
-                .amount(post2.getTotalPay().intValue())
-                .hourlyPaySnapshot(post2.getHourlyPay())
-                .hours(post2.getEscortHours())
-                .post(post2)
-                .paymentStatus(PaymentStatus.DONE)
-                .build());
+        saveDonePayment(post2);
 
         Application application1 = applicationRepository.save(
                 Application.builder()
@@ -1211,13 +1217,7 @@ class ApplicationConcurrencyTest {
         Long postBId = postB.getId();
 
         // 공고 B 결제 완료
-        paymentRepository.saveAndFlush(Payment.builder()
-                .amount(postB.getTotalPay().intValue())
-                .hourlyPaySnapshot(postB.getHourlyPay())
-                .hours(postB.getEscortHours())
-                .post(postB)
-                .paymentStatus(PaymentStatus.DONE)
-                .build());
+        saveDonePayment(postB);
 
         Application appA = Application.builder()
                 .post(postA)

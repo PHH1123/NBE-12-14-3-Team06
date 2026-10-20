@@ -28,15 +28,28 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
 
     @Query("select s " +
             "from Settlement s " +
-            "join fetch User u on s.escort=u " +
-            "join fetch Application a on s.application=a " +
-            "join fetch Post p on a.post=p " +
-            "where u.id=:userId and p.escortStartAt between :startDate and :endDate")
+            "join fetch s.escort u " +
+            "join fetch s.application a " +
+            "join fetch a.post p " +
+            "where u.id=:userId and s.settledDate between :startDate and :endDate")
     Page<Settlement> findAllByUserIdAndDate(@Param("userId") Long userId,
-                                            @Param("startDate") LocalDateTime startDate,
-                                            @Param("endDate") LocalDateTime endDate,
+                                            @Param("startDate") LocalDate startDate,
+                                            @Param("endDate") LocalDate endDate,
                                             Pageable pageable);
 
+    @Query("select s.id from Settlement s where s.escort.id=:userId and s.settledDate between :startDate and :endDate")
+    Page<Long> findIdsByUserAndDate(@Param("userId") Long userId,
+                                          @Param("startDate") LocalDate startDate,
+                                          @Param("endDate") LocalDate endDate,
+                                          Pageable pageable);
+
+    @Query("select s " +
+            "from Settlement s " +
+            "join fetch s.escort u " +
+            "join fetch s.application a " +
+            "join fetch a.post p " +
+            "where s.id in :ids")
+    List<Settlement> findAllByIds(@Param("ids") List<Long> ids);
 
     @Query("select s.id, ep.accountNumber, e.name, s.payoutAmount " +
             "from Settlement s " +

@@ -1,8 +1,7 @@
 package com.back.nbe12142team06.domain.payment.service;
 
-import com.back.nbe12142team06.domain.application.entity.Application;
-import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
+import com.back.nbe12142team06.domain.payment.dto.SaveAmountRequest;
 import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
@@ -10,6 +9,7 @@ import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
 import com.back.nbe12142team06.domain.payment.repository.dto.PaymentDailyAnalyticsDto;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,6 +31,29 @@ public class PaymentPersistenceService {
 
     private final PaymentRepository paymentRepository;
     private final ApplicationRepository applicationRepository;
+
+    @Transactional
+    public Payment confirmUpdate(Long userId, Long paymentId, String amount) {
+        Payment payment = findById(userId, paymentId);
+
+        if (payment.getPaymentStatus().equals(PaymentStatus.DONE)) {
+            throw new InvalidException(41, "이미 결제를 완료하셨습니다.");
+        }
+
+        if (payment.getPaymentStatus().equals(PaymentStatus.CANCELED)) {
+            throw new InvalidException(43, "취소된 결제입니다.");
+        }
+
+        // 1. 검증 로직
+        payment.verifyAmount(new SaveAmountRequest(payment.getId(), null, amount));
+
+        if (confirmUpdateStatus(payment.getId()) <= 0) {
+            throw new InvalidException(44, "결제 대기 중인 데이터가 없습니다.");
+        }
+        payment.statusUpdate(PaymentStatus.IN_PROGRESS);
+
+        return payment;
+    }
 
     @Transactional
     public void paymentSaveDb(ResponseEntity<TossConfirmResponse> response, Long paymentId, String tossPaymentKey, String tossOrderId) {
@@ -148,7 +170,6 @@ public class PaymentPersistenceService {
 
     @Transactional
     public void rejectApplication(Post post) {
-        applicationRepository.findAllByPostAndStatus(post, ApplicationStatus.PENDING)
-                .forEach(Application::reject);
+        applicationRepository.rejectAllByPost(post, LocalDateTime.now());
     }
 }
