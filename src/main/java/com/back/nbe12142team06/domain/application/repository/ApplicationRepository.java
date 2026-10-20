@@ -16,6 +16,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,23 +26,23 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     // 공고별 지원 목록 조회
     @Query("""
-    SELECT a
-    FROM Application a
-    JOIN FETCH a.escort
-    WHERE a.post.id = :postId
-      AND a.status <> com.back.nbe12142team06.domain.application.enums.ApplicationStatus.CANCELED
-    """)
+            SELECT a
+            FROM Application a
+            JOIN FETCH a.escort
+            WHERE a.post.id = :postId
+              AND a.status <> com.back.nbe12142team06.domain.application.enums.ApplicationStatus.CANCELED
+            """)
     List<Application> findAllByPostIdWithEscort(@Param("postId") Long postId);
 
     // 페이징 조회용
     @Query("""
-    SELECT a
-    FROM Application a
-    JOIN FETCH a.escort
-    WHERE a.post.id = :postId
-      AND a.status <> com.back.nbe12142team06.domain.application.enums.ApplicationStatus.CANCELED
-    ORDER BY a.id DESC
-    """)
+            SELECT a
+            FROM Application a
+            JOIN FETCH a.escort
+            WHERE a.post.id = :postId
+              AND a.status <> com.back.nbe12142team06.domain.application.enums.ApplicationStatus.CANCELED
+            ORDER BY a.id DESC
+            """)
     Page<Application> findAllByPostIdWithEscort(
             @Param("postId") Long postId,
             Pageable pageable
@@ -55,25 +56,25 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     // 동행 매니저와 의뢰인 사이에 진행 중인 매칭이 있는지 확인
     // 해당 지원의 상태는 ACCEPTED이면서 공고의 상태는 MATCHED or IN_PROGRESS 인 지원이 1개 이상일때 true
     @Query("""
-        select case when count(a) > 0 then true else false end
-        from Application a
-        where a.escort.id = :escortId
-          and a.post.client.id = :clientId
-          and a.status = com.back.nbe12142team06.domain.application.enums.ApplicationStatus.ACCEPTED
-          and a.post.postStatus in (
-              com.back.nbe12142team06.domain.post.entity.PostStatus.MATCHED,
-              com.back.nbe12142team06.domain.post.entity.PostStatus.IN_PROGRESS
-          )
-        """)
+            select case when count(a) > 0 then true else false end
+            from Application a
+            where a.escort.id = :escortId
+              and a.post.client.id = :clientId
+              and a.status = com.back.nbe12142team06.domain.application.enums.ApplicationStatus.ACCEPTED
+              and a.post.postStatus in (
+                  com.back.nbe12142team06.domain.post.entity.PostStatus.MATCHED,
+                  com.back.nbe12142team06.domain.post.entity.PostStatus.IN_PROGRESS
+              )
+            """)
     boolean hasActiveMatching(@Param("escortId") Long escortId, @Param("clientId") Long clientId);
 
     @Query("""
-    SELECT a
-    FROM Application a
-    JOIN FETCH a.post
-    WHERE a.escort.id = :escortId
-    ORDER BY a.id DESC
-    """)
+            SELECT a
+            FROM Application a
+            JOIN FETCH a.post
+            WHERE a.escort.id = :escortId
+            ORDER BY a.id DESC
+            """)
     List<Application> findAllByEscortIdWithPost(
             @Param("escortId") Long escortId
     );
@@ -96,19 +97,19 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     // 지원이 ACCEPTED 이고 공고가 IN_PROGRESS 일 때만 바뀌며, 바뀐 행 수를 돌려준다 (0 이면 조건이 안 맞은 것).
     @Modifying
     @Query("""
-        update Application a
-           set a.lat = :lat,
-               a.lng = :lng,
-               a.accuracy = :accuracy,
-               a.locationUpdatedAt = :updatedAt
-         where a.id = :id
-           and a.status = com.back.nbe12142team06.domain.application.enums.ApplicationStatus.ACCEPTED
-           and exists (
-                select 1 from Post p
-                 where p = a.post
-                   and p.postStatus = com.back.nbe12142team06.domain.post.entity.PostStatus.IN_PROGRESS
-           )
-        """)
+            update Application a
+               set a.lat = :lat,
+                   a.lng = :lng,
+                   a.accuracy = :accuracy,
+                   a.locationUpdatedAt = :updatedAt
+             where a.id = :id
+               and a.status = com.back.nbe12142team06.domain.application.enums.ApplicationStatus.ACCEPTED
+               and exists (
+                    select 1 from Post p
+                     where p = a.post
+                       and p.postStatus = com.back.nbe12142team06.domain.post.entity.PostStatus.IN_PROGRESS
+               )
+            """)
     int updateLocation(@Param("id") Long id,
                        @Param("lat") BigDecimal lat,
                        @Param("lng") BigDecimal lng,
@@ -117,16 +118,16 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     // 회원 탈퇴·정지 시 취소할 지원 목록 조회
     @Query("""
-    SELECT a
-    FROM Application a
-    JOIN FETCH a.post p
-    WHERE a.escort.id = :escortId
-      AND (
-          (a.status = :pending AND p.postStatus = :open)
-          OR
-          (a.status = :accepted AND p.postStatus = :matched)
-      )
-    """)
+            SELECT a
+            FROM Application a
+            JOIN FETCH a.post p
+            WHERE a.escort.id = :escortId
+              AND (
+                  (a.status = :pending AND p.postStatus = :open)
+                  OR
+                  (a.status = :accepted AND p.postStatus = :matched)
+              )
+            """)
     List<Application> findAllCancelableByEscortId(
             @Param("escortId") Long escortId,
             @Param("pending") ApplicationStatus pending,
@@ -137,17 +138,24 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     // 회원 탈퇴 제한: 진행 중인 동행이 있는지 확인
     @Query("""
-        SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END
-        FROM Application a
-        WHERE a.escort.id = :escortId
-          AND a.status = :accepted
-          AND a.post.postStatus = :inProgress
-        """)
+            SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END
+            FROM Application a
+            WHERE a.escort.id = :escortId
+              AND a.status = :accepted
+              AND a.post.postStatus = :inProgress
+            """)
     boolean existsInProgressByEscortId(
             @Param("escortId") Long escortId,
             @Param("accepted") ApplicationStatus accepted,
             @Param("inProgress") PostStatus inProgress
     );
+
+    @Modifying
+    @Query("update Application a set " +
+            "a.status=ApplicationStatus.REJECTED, a.activePostId=null, a.updatedAt=:now " +
+            "where a.post=:post and a.status=ApplicationStatus.PENDING")
+    int rejectAllByPost(@Param("post") Post post,
+                        @Param("now") LocalDateTime now);
 
     @Query("select a from Application a " +
             "join a.post p " +

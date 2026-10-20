@@ -11,6 +11,9 @@ services:
         target: /etc/prometheus/prometheus.yml
     volumes:
       - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver   # ← 추가
 
   grafana:
     image: grafana/grafana:12.2.0
