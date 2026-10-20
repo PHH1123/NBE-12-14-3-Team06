@@ -89,7 +89,7 @@ function PostDetailFeedback({
 /** 결제 취소 사유 길이 제한. 입력한 사유가 그대로 토스 취소 내역으로 넘어가서 넉넉하게만 잡아 둡니다. */
 const MAX_CANCEL_REASON_LENGTH = 200;
 
-/** 결제 상태 배지 — 결제 내역 화면과 같은 차분한 Signature Care 톤을 사용합니다. */
+/** 결제 상태 배지 */
 const PAYMENT_LABEL: Record<PaymentStatus, { text: string; className: string }> = {
   READY: { text: '미결제', className: 'border-[#9A6B12]/20 bg-[#9A6B12]/10 text-[#84601B]' },
   IN_PROGRESS: { text: '결제 중', className: 'border-[#426B93]/20 bg-[#426B93]/10 text-[#426B93]' },

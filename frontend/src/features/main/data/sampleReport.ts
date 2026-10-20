@@ -1,5 +1,5 @@
 /**
- * 공개용 예시 보고서 데이터. 팀원 Signature Care 시연 원본의
+ * 공개용 예시 보고서 데이터.
  * MOCK_REPORT_SAMPLE을 바탕으로 하며, 실제 회원·환자의 자료가 아닙니다.
  */
 export const sample = {

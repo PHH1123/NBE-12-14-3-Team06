@@ -36,6 +36,7 @@ export default function Footer() {
               <li><button type="button" onClick={() => openGajiGuide('grade')} className={linkClass}>매니저 등급 안내</button></li>
               <li><Link href="/#faq" className={linkClass}>자주 묻는 질문</Link></li>
               <li><button type="button" onClick={() => openGajiGuide('policy')} className={linkClass}>서비스 이용 정책</button></li>
+              <li><Link href="/privacy" target="_blank" rel="noopener noreferrer" className={linkClass}>개인정보 처리방침</Link></li>
             </ul>
           </div>
           <div className="space-y-3 md:col-span-3">

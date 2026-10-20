@@ -1,7 +1,7 @@
 export type AdminMemberRole = 'client' | 'escort' | 'admin';
 export type AdminMemberStatus = 'active' | 'suspended' | 'banned' | 'withdrawn';
 
-// Signature Care AdminUsersView의 배지 색상 / 글자 크기 / 패딩
+// AdminUsersView의 배지 색상 / 글자 크기 / 패딩
 const roleMap = {
   client: { text: '의뢰인', bg: 'rgba(66, 107, 147, 0.10)', fg: '#426B93' },
   escort: { text: '동행 매니저', bg: 'rgba(47, 125, 91, 0.10)', fg: '#2F7D5B' },

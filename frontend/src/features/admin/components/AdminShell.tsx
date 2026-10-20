@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
-import { LayoutDashboard, Users, UserX, ShieldCheck, Settings } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, type ReactNode } from 'react';
+import { LayoutDashboard, LogOut, Users, UserX, ShieldCheck } from 'lucide-react';
 import { AppShell } from '@/components/layout';
+import { useAuth } from '@/features/auth/lib/AuthProvider';
 
 type AdminMenuItem = {
   label: string;
@@ -17,12 +18,26 @@ const NAV_TABS: AdminMenuItem[] = [
   { label: '회원 관리', icon: Users, href: '/admin/members' },
   { label: '블랙리스트', icon: UserX, href: '/admin/blacklist' },
   { label: '자격 검증', icon: ShieldCheck, href: '/admin/verification' },
-  { label: '설정', icon: Settings, href: '/admin/settings' },
 ];
 
 export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const activeHref = pathname.startsWith('/admin/members') ? '/admin/members' : pathname.startsWith('/admin/blacklist') ? '/admin/blacklist' : pathname.startsWith('/admin/verification') ? '/admin/verification' : pathname.startsWith('/admin/settings') ? '/admin/settings' : '/admin';
+  const router = useRouter();
+  const { signOut } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await signOut();
+      router.replace('/');
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  const activeHref = pathname.startsWith('/admin/members') ? '/admin/members' : pathname.startsWith('/admin/blacklist') ? '/admin/blacklist' : pathname.startsWith('/admin/verification') ? '/admin/verification' : '/admin';
 
   const renderMenu = (mobile: boolean) => NAV_TABS.map(({ label, icon: Icon, href }) => {
     const isActive = href === activeHref;
@@ -64,6 +79,17 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               </div>
               <nav aria-label="관리자 사이드 메뉴" className="space-y-1">
                 {renderMenu(false)}
+                <div className="mt-3 border-t border-[#E1E5E8] pt-3">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[#B4413C] transition-colors hover:bg-[#F7F8F8] disabled:cursor-wait disabled:opacity-60"
+                  >
+                    <LogOut aria-hidden="true" className="size-4 shrink-0" />
+                    <span>{loggingOut ? '로그아웃 중...' : '로그아웃'}</span>
+                  </button>
+                </div>
               </nav>
             </aside>
             <div className="min-w-0">{children}</div>

@@ -21,6 +21,7 @@ import type { EscortGrade } from '@/features/application';
 import ManagerGradeCharacter from '@/components/ui/ManagerGradeCharacter';
 import DropdownSelect from '@/components/ui/DropdownSelect';
 import { BANKS } from '@/features/signup/model/banks';
+import WithdrawAccountButton from './WithdrawAccountButton';
 
 const GRADE_ORDER: EscortGrade[] = ['SEED', 'SPROUT', 'FLOWER', 'EGGPLANT'];
 const GRADE_DETAILS: Record<EscortGrade, { label: string; min: number; next: number | null }> = {
@@ -292,6 +293,8 @@ export default function EscortInfoView() {
             <button type="button" onClick={async () => { await signOut(); router.replace('/'); }} className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold transition-colors text-[#B4413C] hover:bg-[#F7F8F8]">
               <span className="flex items-center gap-2.5"><LogOut className="w-4 h-4" />로그아웃</span><ChevronRight className="w-3.5 h-3.5" />
             </button>
+            <div className="my-1 border-t border-[#E1E5E8]" />
+            <WithdrawAccountButton name={user.name} />
           </nav>
           <div className="lg:col-span-9 space-y-6">
             {profile ? <GradeJourney name={user.name} profile={profile} /> : (

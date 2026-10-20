@@ -11,7 +11,7 @@ import ReportSection from './ReportSection';
 import FaqSection from './FaqSection';
 import CtaSection from './CtaSection';
 
-/** GAJI Signature Care — 메인 섹션을 원본 순서대로 단계적 통합 */
+/** GAJI — 메인 섹션을 원본 순서대로 단계적 통합 */
 export default function MainPage() {
   const [showSampleReport, setShowSampleReport] = useState(false);
   const openSampleReport = useCallback(() => setShowSampleReport(true), []);

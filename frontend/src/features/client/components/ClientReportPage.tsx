@@ -67,7 +67,7 @@ function Notice({ title, message, href, action }: { title: string; message?: str
   );
 }
 
-/** 기존 실제 보고서·동행 API와 권한 검증은 유지하고, 표시 화면만 Signature Care 원본에 맞춥니다. */
+/** 기존 실제 보고서·동행 API와 권한 검증은 유지*/
 export default function ClientReportPage() {
   const { loading: authLoading, user } = useRequireAuth('CLIENT');
   const { openChatWith } = useChatWidget();
