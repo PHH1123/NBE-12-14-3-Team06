@@ -136,26 +136,39 @@ public class ApplicationService {
     @Transactional
     @CacheEvict(cacheNames = "postList", allEntries = true)
     public ApplicationAcceptResponse accept(Long applicationId, Long userId) {
+        // 1. 동행매니저 ID 조회
+        Long escortId = applicationRepository.findEscortIdById(applicationId)
+                .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
-        Application application = applicationRepository.findById(applicationId).orElseThrow(
-                () -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
+        // 2. 동일 동행매니저의 승인 요청 직렬화
+        User escort = userRepository.findByIdWithLock(escortId)
+                .orElseThrow(() -> new NotFoundException(1, "회원 정보를 찾을 수 없습니다."));
 
-        Long postId = application.getPost().getId();
+        // 3. 공고 ID 조회
+        Long postId = applicationRepository.findPostIdById(applicationId)
+                .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
-        Post post = postRepository.findByIdWithLock(postId).orElseThrow(
-                () -> new NotFoundException(11, "%s번 공고가 없습니다.".formatted(postId)));
+        // 4. 공고 잠금
+        Post post = postRepository.findByIdWithLock(postId)
+                .orElseThrow(() -> new NotFoundException(11, "%s번 공고가 없습니다.".formatted(postId)));
 
-        User escort = application.getEscort();
+        // 5. 지원 잠금 후 현재 상태 조회
+        Application application = applicationRepository.findByIdWithLock(applicationId)
+                .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
         // 본인 공고에 들어온 지원만 승인 가능
         if (!post.getClient().getId().equals(userId)) {
             throw new ForbiddenException(23, "본인 공고의 지원만 승인할 수 있습니다.");
         }
 
-        // 대기 중인 지원만 승인 가능
+        if (application.getStatus() == ApplicationStatus.REJECTED) {
+            throw new DuplicatedException(34, "이미 다른 동행매니저가 승인되었거나 동행 일정이 중복되어 승인할 수 없습니다.");
+        }
+
         if (application.getStatus() != ApplicationStatus.PENDING) {
             throw new InvalidException(24, "대기 중인 지원만 승인할 수 있습니다.");
         }
+
 
         // 정지·차단된 동행매니저는 승인 불가 (새로 추가)
         if (escort.getUserStatus() != UserStatus.ACTIVE) {
@@ -186,7 +199,7 @@ public class ApplicationService {
                 );
 
         if (hasTimeConflict) {
-            throw new InvalidException(26, "이미 매칭된 다른 공고와 동행 시간이 겹칩니다.");
+            throw new DuplicatedException(35, "이미 매칭된 다른 공고와 동행 시간이 겹칩니다.");
         }
 
         // 현재 공고의 다른 PENDING 지원자 조회
@@ -235,10 +248,17 @@ public class ApplicationService {
     @Transactional
     public void reject(Long applicationId, Long userId) {
 
-        Application application = applicationRepository.findById(applicationId)
+        // 1. 공고 ID만 조회
+        Long postId = applicationRepository.findPostIdById(applicationId)
                 .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
-        Post post = application.getPost();
+        // 2. 공고 잠금
+        Post post = postRepository.findByIdWithLock(postId)
+                .orElseThrow(() -> new NotFoundException(11, "%s번 공고가 없습니다.".formatted(postId)));
+
+        // 3. 지원 잠금 후 상태 확인
+        Application application = applicationRepository.findByIdWithLock(applicationId)
+                .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
         // 본인 공고에 들어온 지원만 거절 가능
         if (!post.getClient().getId().equals(userId)) {
@@ -268,7 +288,16 @@ public class ApplicationService {
     @CacheEvict(cacheNames = "postList", allEntries = true)
     public void cancel(Long applicationId, Long userId) {
 
-        Application application = applicationRepository.findById(applicationId)
+        // 1. 공고 ID만 조회
+        Long postId = applicationRepository.findPostIdById(applicationId)
+                .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
+
+        // 2. 공고 잠금
+        Post post = postRepository.findByIdWithLock(postId)
+                .orElseThrow(() -> new NotFoundException(11, "%s번 공고가 없습니다.".formatted(postId)));
+
+        // 3. 지원 잠금 후 상태 확인
+        Application application = applicationRepository.findByIdWithLock(applicationId)
                 .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
         // 본인이 지원한 내역만 취소 가능
@@ -285,10 +314,6 @@ public class ApplicationService {
 
         // 승인 후 동행인 취소
         if (application.getStatus() == ApplicationStatus.ACCEPTED) {
-
-           // Post post = application.getPost();
-            Post post = postRepository.findByIdWithLock(application.getPost().getId())
-                    .orElseThrow(() -> new NotFoundException(11, "%d번 공고가 없습니다.".formatted(application.getPost().getId())));
 
             // 동행 진행 중이거나 완료된 공고는 지원 취소 불가
             if (post.getPostStatus() == PostStatus.IN_PROGRESS
@@ -405,6 +430,15 @@ public class ApplicationService {
     @Transactional
     public void updateProgress(Long applicationId, Long userId, EscortProgress progress) {
 
+        // 1. 공고 ID만 조회
+        Long postId = applicationRepository.findPostIdById(applicationId)
+                .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
+
+        // 2. 공고 잠금
+        Post post = postRepository.findByIdWithLock(postId)
+                .orElseThrow(() -> new NotFoundException(11, "%s번 공고가 없습니다.".formatted(postId)));
+
+        // 3. 지원 잠금 후 상태 확인
         Application application = applicationRepository.findByIdWithLock(applicationId)
                 .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
@@ -454,7 +488,7 @@ public class ApplicationService {
         rideService.move(application.getActivePostId(), progress);
 
         if (progress == EscortProgress.DEPARTED) {
-            application.getPost().startProgress(occurredAt);
+            post.startProgress(occurredAt);
         }
 
         log.info("[동행 진행상태 변경] applicationId={}, progress={}, escortId={}", applicationId, progress, userId);
@@ -548,9 +582,14 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
-        // 본인이 승인받은 지원 건의 의뢰인 정보만 조회 가능
+        // 본인이 지원한 건인지 확인
         if (!application.getEscort().getId().equals(userId)) {
             throw new ForbiddenException(28, "매칭된 의뢰인의 프로필만 조회할 수 있습니다.");
+        }
+
+        // 승인된 동행인만 의뢰인 개인정보 조회 가능
+        if (application.getStatus() != ApplicationStatus.ACCEPTED) {
+            throw new ForbiddenException(33, "승인된 동행에서만 의뢰인 정보를 조회할 수 있습니다.");
         }
 
         User client = application.getPost().getClient();

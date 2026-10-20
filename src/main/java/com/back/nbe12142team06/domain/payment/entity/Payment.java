@@ -1,12 +1,15 @@
 package com.back.nbe12142team06.domain.payment.entity;
 
+import com.back.nbe12142team06.domain.payment.dto.SaveAmountRequest;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.settlement.entity.Settlement;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,6 +23,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @Getter
+@Slf4j
 public class Payment extends BaseSoftDeleteTimeEntity {
 
     @Id
@@ -90,6 +94,10 @@ public class Payment extends BaseSoftDeleteTimeEntity {
     private Settlement settlement;
 
     public void statusUpdate(PaymentStatus status) {
+        if (!paymentStatus.canTransitionTo(status)) {
+            throw new InvalidException(72, "'%s' 상태의 결제는 '%s' 상태로 바꿀 수 없습니다."
+                    .formatted(this.paymentStatus.getDescription(), status.getDescription()));
+        }
         this.paymentStatus = status;
     }
 
@@ -142,5 +150,13 @@ public class Payment extends BaseSoftDeleteTimeEntity {
     public void update(int amount, BigDecimal hours) {
         updateAmount(amount);
         this.hours = hours;
+    }
+
+    public boolean verifyAmount(SaveAmountRequest request) {
+        if (this.amount != Integer.parseInt(request.amount())) {
+            log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 저장된 amount: {}", request.amount(), this.amount);
+            throw new InvalidException(42, "결제 금액 정보가 유효하지 않습니다.");
+        }
+        return true;
     }
 }

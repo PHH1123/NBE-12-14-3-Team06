@@ -26,8 +26,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_SETTLEMENT_DONE;
 import static com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_SETTLEMENT_DONE;
@@ -66,12 +69,14 @@ public class SettlementService {
             throw new InvalidException(71, "이미 정산 중이거나 정산이 완료되었습니다.");
         }
 
+        Settlement settlement;
+
         try {
             SettlementClientResponse response = settlementApi(accountDto.payoutAmount(), name, account);
             // 정산 완료 상태 변경
             if (response.res_cnt() >= 1) {
                 try {
-                    settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.COMPLETED);
+                    settlement = settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.COMPLETED);
                     log.info("정산 성공 - settlementId: {}", accountDto.id());
                 } catch (Exception e) {
                     log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
@@ -90,7 +95,6 @@ public class SettlementService {
         }
 
         // 알림
-        Settlement settlement = settlementPersistenceService.findById(settlementId);
         noticeService.send(settlement.getEscort(),
                 C_SETTLEMENT_DONE.of(String.valueOf(settlement.getPayoutAmount())),
                 U_SETTLEMENT_DONE.of(settlement.getApplication().getId()));
@@ -98,8 +102,17 @@ public class SettlementService {
 
     // 정산 외부 API 로직(목으로 대체)
     @Transactional(readOnly = true)
-    public Page<SettlementResponse> findAll(Long userId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        return settlementRepository.findAllByUserIdAndDate(userId, startDate, endDate, pageable).map(SettlementResponse::new);
+    public Page<SettlementResponse> findAll(Long userId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        Page<Long> idPage = settlementRepository.findIdsByUserAndDate(userId, startDate, endDate, pageable);
+
+        if (idPage.isEmpty()) {
+            return idPage.map(id -> null);
+        }
+
+        Map<Long, Settlement> byId = settlementRepository.findAllByIds(idPage.getContent())
+                .stream().collect(Collectors.toMap(Settlement::getId, x -> x));
+
+        return idPage.map(id -> new SettlementResponse(byId.get(id)));
     }
 
     @Transactional(readOnly = true)

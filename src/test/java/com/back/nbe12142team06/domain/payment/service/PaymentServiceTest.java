@@ -263,11 +263,12 @@ class PaymentServiceTest {
         User client = createClient();
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.DONE);
+        PaymentConfirmRequest request = new PaymentConfirmRequest(null, null, String.valueOf(payment.getAmount()));
 
         doReturn(payment)
                 .when(paymentPersistenceService).findById(any(Long.class), any(Long.class));
 
-        assertThatThrownBy(() -> paymentService.confirm(null, payment.getId(), client.getId()))
+        assertThatThrownBy(() -> paymentService.confirm(request, payment.getId(), client.getId()))
                 .isInstanceOf(InvalidException.class)
                 .hasMessage("이미 결제를 완료하셨습니다.");
     }
@@ -278,11 +279,12 @@ class PaymentServiceTest {
         User client = createClient();
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.CANCELED);
+        PaymentConfirmRequest request = new PaymentConfirmRequest(null, null, String.valueOf(payment.getAmount()));
 
         doReturn(payment)
                 .when(paymentPersistenceService).findById(any(Long.class), any(Long.class));
 
-        assertThatThrownBy(() -> paymentService.confirm(null, payment.getId(), client.getId()))
+        assertThatThrownBy(() -> paymentService.confirm(request, payment.getId(), client.getId()))
                 .isInstanceOf(InvalidException.class)
                 .hasMessage("취소된 결제입니다.");
     }

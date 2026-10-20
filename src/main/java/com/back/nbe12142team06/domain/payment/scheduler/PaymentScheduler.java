@@ -13,7 +13,7 @@ public class PaymentScheduler {
 
     private final PaymentService paymentService;
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 30 * * * *")
     public void cancelPaymentScheduler() {
         int[] counts = paymentService.cancelPostAndPaymentCallApi();
 

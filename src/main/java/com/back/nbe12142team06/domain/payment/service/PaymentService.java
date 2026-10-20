@@ -49,25 +49,11 @@ public class PaymentService {
     @CacheEvict(cacheNames = "postList", allEntries = true)
     public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId) {
 
-        Payment payment = paymentPersistenceService.findById(userId, paymentId);
-
-        if (payment.getPaymentStatus().equals(PaymentStatus.DONE)) {
-            throw new InvalidException(41, "이미 결제를 완료하셨습니다.");
-        }
-
-        if (payment.getPaymentStatus().equals(PaymentStatus.CANCELED)) {
-            throw new InvalidException(43, "취소된 결제입니다.");
-        }
+        Payment payment = paymentPersistenceService.confirmUpdate(userId, paymentId, request.amount());
 
         String tossPaymentKey = request.paymentKey();
         String tossOrderId = request.orderId();
         String amount = request.amount();
-
-        // 1. 검증 로직
-        verifyAmount(String.valueOf(payment.getAmount()), new SaveAmountRequest(payment.getId(), null, amount));
-        if (paymentPersistenceService.confirmUpdateStatus(payment.getId()) <= 0) {
-            throw new InvalidException(44, "결제 대기 중인 데이터가 없습니다.");
-        }
 
         // 2. 외부 API 호출
         ResponseEntity<TossConfirmResponse> response;
@@ -185,13 +171,6 @@ public class PaymentService {
         }
     }
 
-    public void verifyAmount(String amount, SaveAmountRequest request) {
-        if (amount == null || !amount.equals(request.amount())) {
-            log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 저장된 amount: {}", request.amount(), amount);
-            throw new InvalidException(42, "결제 금액 정보가 유효하지 않습니다.");
-        }
-    }
-
     public void validPayment(Post post, Application application, LocalDate settledDate) {
         int payoutAmount = validPayment(post);
         // 정산 데이터 생성
@@ -281,6 +260,12 @@ public class PaymentService {
         int failedCount = 0;
 
         for (Payment payment : payments) {
+
+            if (payment.getPaymentKey() == null) {
+                paymentPersistenceService.paymentCancelDb(payment.getId(), "미결제 공고 삭제", false);
+                continue;
+            }
+
             String tossPaymentKey = payment.getPaymentKey();
             String cancelReason = "공고 삭제로 인한 결제 취소";
 

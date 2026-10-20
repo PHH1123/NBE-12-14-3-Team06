@@ -155,6 +155,7 @@ public class PostControllerTest {
                 .filter(p -> p.getPost().getId().equals(postId))
                 .findFirst()
                 .orElseThrow();
+        payment.statusUpdate(PaymentStatus.IN_PROGRESS);
         payment.statusUpdate(PaymentStatus.DONE);
         paymentRepository.saveAndFlush(payment);
     }
@@ -659,6 +660,7 @@ public class PostControllerTest {
                 .filter(p -> p.getPost().getId().equals(postId))
                 .findFirst()
                 .orElseThrow();
+        payment.statusUpdate(PaymentStatus.DELETED);
         payment.cancelPayment("테스트 취소");
         paymentRepository.saveAndFlush(payment);
 
@@ -681,8 +683,10 @@ public class PostControllerTest {
                 .filter(p -> p.getPost().getId().equals(postId))
                 .findFirst()
                 .orElseThrow();
+        payment.statusUpdate(PaymentStatus.DELETED);
         Payment repayment = payment.cancelPayment("테스트 취소"); // 기존 건 취소 + 재결제용 새 객체 반환
 
+        repayment.statusUpdate(PaymentStatus.IN_PROGRESS);
         repayment.statusUpdate(PaymentStatus.DONE);   // 재결제 완료 처리 추가
 
         paymentRepository.saveAndFlush(payment);   // 취소 처리 저장
@@ -1092,6 +1096,7 @@ public class PostControllerTest {
                 .filter(p -> p.getPost().getId().equals(postId))
                 .findFirst()
                 .orElseThrow();
+        payment.statusUpdate(PaymentStatus.IN_PROGRESS);
         payment.statusUpdate(PaymentStatus.DONE);
         paymentRepository.saveAndFlush(payment);
 
