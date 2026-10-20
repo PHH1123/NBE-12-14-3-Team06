@@ -61,13 +61,6 @@ export default function PrivacyPolicyPage() {
             <p className="max-w-2xl text-sm leading-7 text-[#67717C] sm:text-base">GAJI 서비스에서 개인정보를 어떤 목적으로 처리하는지 확인할 수 있어요.</p>
           </header>
 
-          <div className="mb-7 flex items-start gap-3 rounded-xl border border-[#DCE5EE] bg-[#EDF3F8] px-5 py-4 text-sm leading-7 text-[#3C5673]" role="note">
-            <Info className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
-            <p>
-              <strong className="font-semibold">운영 정책 검토용 초안</strong>입니다. 실제 시행 방침으로 확정된 문서가 아니며, 운영 주체·보관 기간·수탁사·개인정보 보호책임자 등은 검증 후 확정해야 합니다.
-            </p>
-          </div>
-
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-7">
             <aside className="lg:sticky lg:top-24">
               <nav aria-label="개인정보 처리방침 목차" className={`${CARD} max-h-[calc(100svh-120px)] overflow-y-auto !p-5`}>
@@ -89,7 +82,6 @@ export default function PrivacyPolicyPage() {
 
             <div className="min-w-0 space-y-5">
               <section className={CARD} aria-label="개인정보 처리방침 안내">
-                <div className="mb-4 inline-flex items-center rounded-md bg-[#EDF0F2] px-2.5 py-1 text-xs font-semibold text-[#426B93]">검토용 초안</div>
                 <div className="space-y-3">
                   {INTRO.map((paragraph) => <p key={paragraph} className="text-sm leading-7 text-[#596777] sm:text-[15px]">{paragraph}</p>)}
                 </div>

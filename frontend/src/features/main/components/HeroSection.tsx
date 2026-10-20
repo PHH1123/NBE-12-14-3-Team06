@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useCurrentUser } from '@/features/auth';
 
-/** GAJI Signature Care 히어로. API/인증 구조를 유지하며 UI만 교체합니다. */
+/** GAJI 히어로. API/인증 구조를 유지하며 UI만 교체합니다. */
 const easeOutCubic = [0.22, 1, 0.36, 1] as const;
 
 export default function HeroSection() {

@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
-import { PhoneCall, HelpCircle, X } from 'lucide-react';
+import { useEffect, useId, useRef } from 'react';
+import { PhoneCall, X } from 'lucide-react';
+
+// 이전 고객센터 화면에서 사용하던 임시 대표 번호입니다. 실제 운영 번호 확정 후 교체하세요.
+const SUPPORT_PHONE = '1234-1234';
+const SUPPORT_PHONE_HREF = 'tel:12341234';
 
 type SupportContentProps = {
   onClose: () => void;
 };
 
 export function SupportContent({ onClose }: SupportContentProps) {
-  const [inquiryText, setInquiryText] = useState('');
   const headingId = useId();
 
   return (
@@ -31,8 +34,8 @@ export function SupportContent({ onClose }: SupportContentProps) {
       <div className="space-y-1 rounded-xl border border-[#E1E5E8] bg-[#F7F8F8] p-4 text-xs">
         <p className="font-semibold text-[#14243A]">GAJI 고객안심 지원팀</p>
         <p className="leading-relaxed text-[#67717C]">
-          서비스 이용 중 궁금한 사항은 아래 자주 묻는 질문을 확인해 주세요.
-          온라인 문의 접수 기능은 현재 준비 중입니다.
+          서비스 이용 중 궁금한 사항은 아래 자주 묻는 질문을 확인하시거나,
+          하단의 전화 문의를 이용해 주세요.
         </p>
       </div>
 
@@ -55,31 +58,19 @@ export function SupportContent({ onClose }: SupportContentProps) {
         </div>
       </div>
 
-      <div className="space-y-3 border-t border-[#E1E5E8] pt-2">
-        <label htmlFor={`${headingId}-message`} className="block text-xs font-semibold text-[#14243A]">
-          1:1 온라인 문의
-        </label>
-        <textarea
-          id={`${headingId}-message`}
-          rows={3}
-          value={inquiryText}
-          onChange={(event) => setInquiryText(event.target.value)}
-          placeholder="궁금하신 점이나 서비스 이용 문의 내용을 남겨주세요."
-          className="w-full resize-none rounded-xl border border-[#E1E5E8] bg-white p-3 text-xs text-[#14243A] outline-none transition-colors placeholder:text-[#67717C] focus:border-[#426B93] focus-visible:ring-2 focus-visible:ring-[#426B93]/20"
-        />
-        <p role="status" className="flex items-start gap-1.5 text-xs leading-relaxed text-[#67717C]">
-          <HelpCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#426B93]" />
-          현재 문의 접수 API가 연결되지 않아 작성한 내용은 전송되지 않습니다.
+      <div className="space-y-3 border-t border-[#E1E5E8] pt-4">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-[#67717C]">전화 문의</h4>
+        <p className="text-xs leading-relaxed text-[#67717C]">
+          서비스 이용 문의는 아래 번호를 눌러 전화로 연결할 수 있습니다.
         </p>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            disabled
-            className="h-[40px] cursor-not-allowed rounded-lg bg-[#14243A] px-5 text-xs font-semibold text-white opacity-50"
-          >
-            문의 접수 준비 중
-          </button>
-        </div>
+        <a
+          href={SUPPORT_PHONE_HREF}
+          aria-label={`고객센터 ${SUPPORT_PHONE} 전화 걸기`}
+          className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#14243A] px-5 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#426B93] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93]"
+        >
+          <PhoneCall className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+          전화 연결 · {SUPPORT_PHONE}
+        </a>
       </div>
     </div>
   );

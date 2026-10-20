@@ -192,7 +192,7 @@ export default function SignupTermsPage() {
               </header>
               <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-6 sm:px-7">
                 <p id="agreement-detail-summary" className="rounded-xl border border-[#E1E5E8] bg-[#F5F6F8] px-4 py-3 text-sm leading-6 text-[#596777]">
-                  이 안내문은 서비스 정책 검토용 초안입니다. 실제 운영 주체·정보 제공 범위·보유 기간·시행일은 최종 확인이 필요합니다.
+                  약관 내용을 확인한 뒤 회원가입 화면에서 동의 여부를 직접 선택해 주세요.
                 </p>
                 {AGREEMENT_DETAILS[activeDetail].sections.map((section) => (
                   <section key={section.title} className="space-y-3">

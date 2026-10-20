@@ -17,6 +17,7 @@ import {
   type ClientProfileWriteRequest,
 } from '../api';
 import type { ClientProfileDto } from '../types';
+import WithdrawAccountButton from './WithdrawAccountButton';
 
 const INPUT = 'w-full h-11 rounded-lg border border-[#E1E5E8] bg-white px-3.5 text-sm text-[#14243A] placeholder:text-[#8B949E] outline-none focus:border-[#426B93] focus:ring-1 focus:ring-[#426B93]';
 const FIELD_LABEL = 'mb-1.5 block text-xs font-semibold text-[#14243A]';
@@ -200,6 +201,8 @@ export default function ClientInfoView() {
             <button type="button" className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-xs font-semibold text-[#B4413C] transition-colors hover:bg-[#F7F8F8]" onClick={async () => { await signOut(); router.replace('/'); }}>
               <span className="flex items-center gap-2.5"><LogOut aria-hidden="true" className="h-4 w-4" />로그아웃</span><ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
+            <div className="my-1 border-t border-[#E1E5E8]" />
+            <WithdrawAccountButton name={user.name} />
           </nav>
 
           <div className="space-y-6 lg:col-span-9">
