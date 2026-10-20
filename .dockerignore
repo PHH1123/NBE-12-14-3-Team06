@@ -1,0 +1,18 @@
+.git
+.gradle
+.idea
+*.iml
+build
+out
+.DS_Store
+*.log
+.env
+.claude
+.github
+Claude outputs
+frontend
+loadtest
+monitoring
+readme-images
+docker-compose.monitoring.yml
+docker-compose.yaml
