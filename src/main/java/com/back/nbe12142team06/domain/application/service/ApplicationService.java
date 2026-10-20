@@ -30,6 +30,7 @@ import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -133,6 +134,7 @@ public class ApplicationService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public ApplicationAcceptResponse accept(Long applicationId, Long userId) {
 
         Application application = applicationRepository.findById(applicationId).orElseThrow(
@@ -263,6 +265,7 @@ public class ApplicationService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void cancel(Long applicationId, Long userId) {
 
         Application application = applicationRepository.findById(applicationId)
@@ -332,6 +335,7 @@ public class ApplicationService {
 
     // 회원 탈퇴·정지 시 패널티 없이 지원 일괄 취소
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void cancelAllByEscort(Long escortId) {
 
         // 취소 가능한 지원 목록 조회

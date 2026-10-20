@@ -8,6 +8,7 @@ import com.back.nbe12142team06.domain.application.repository.ApplicationReposito
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.service.PaymentService;
+import com.back.nbe12142team06.domain.post.dto.PostDto;
 import com.back.nbe12142team06.domain.post.dto.PostSearchConditionDto;
 import com.back.nbe12142team06.domain.post.dto.PostWriteRequest;
 import com.back.nbe12142team06.domain.post.dto.PostWriteResponse;
@@ -30,6 +31,9 @@ import com.back.nbe12142team06.global.security.SecurityUser;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -90,6 +94,7 @@ public class PostService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public PostWriteResponse write(Long userId, PostWriteRequest request) {
         User user = getUser(userId);
         if(user.getUserStatus() != UserStatus.ACTIVE){
@@ -140,6 +145,7 @@ public class PostService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void modify(Long postId, Long userId, PostWriteRequest request) {
         User user = getUser(userId);
         Post post = postRepository.findByIdWithClient(postId)
@@ -183,6 +189,7 @@ public class PostService {
         log.info("[공고 수정] postId={}, userId={}", postId, userId);
     }
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void delete(Long postId, Long userId) {
         User user = getUser(userId);
         Post post = findById(postId);
@@ -207,6 +214,7 @@ public class PostService {
         log.info("[공고 삭제] postId={}, userId={}", postId, userId);
     }
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void matchedCancel(Long postId, Long userId) {
         User user = getUser(userId);
         //Post post = findById(postId);
@@ -234,6 +242,7 @@ public class PostService {
         log.info("[공고 매칭 취소] postId={}, userId={}", postId, userId);
     }
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void expireOverduePosts() {
         List<Post> targets = postRepository.findAllByPostStatusAndRecruitEndAtBefore(
                 PostStatus.OPEN, LocalDateTime.now());
@@ -258,6 +267,7 @@ public class PostService {
     }
     //escortComplete:동행완료가 되면, 에스코트 시작,종료 update되게
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void escortComplete(Long postId, Long userId) {
         User user = getUser(userId);
         Post post = findById(postId);
@@ -324,6 +334,7 @@ public class PostService {
      * 호출하는 쪽(UserService)에서 회원을 탈퇴 처리(withdraw)하기 전에 불러야 한다. (탈퇴하면 공고의 의뢰인을 불러올 수 없다)
      */
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void cancelAllByClient(Long clientId) {
         List<Post> posts = postRepository.findAllByClientIdAndPostStatusIn(
                 clientId, List.of(PostStatus.OPEN, PostStatus.MATCHED));
@@ -348,6 +359,7 @@ public class PostService {
 
     //공고 취소(OPEN,MATCHED상태)
     @Transactional
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void cancel(Long postId, Long userId) {
         User user = getUser(userId);
 
@@ -399,5 +411,8 @@ public class PostService {
         return applicationRepository.existsByPostIdAndEscortIdAndStatus(
                 post.getId(), userId, ApplicationStatus.ACCEPTED);
     }
-
+    @Cacheable(cacheNames = "postList", key="#condition + '-' + #pageable ")
+    public Page<PostDto> searchDtos(PostSearchConditionDto condition, Pageable pageable) {
+        return search(condition, pageable).map(p -> new PostDto(p, false));
+    }
 }

@@ -10,6 +10,7 @@ import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
+import com.back.nbe12142team06.domain.post.dto.PostSearchConditionDto;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.post.entity.PostStatus;
 import com.back.nbe12142team06.domain.post.repository.PostRepository;
@@ -24,13 +25,17 @@ import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.SessionFactory;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.cache.CacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -77,6 +82,10 @@ public class PostControllerTest {
     private PostService postService;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private CacheManager cacheManager;
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
 
     private Long testUserId;
     private Cookie accessTokenCookie;
@@ -99,6 +108,9 @@ public class PostControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        // 공고 목록 캐시는 테스트가 끝나도 남아서 다른 테스트의 조회에 섞이므로 매번 비운다
+        cacheManager.getCache("postList").clear();
+
         String username = "testUser";
         String password = "testPassword";
 
@@ -1088,5 +1100,75 @@ public class PostControllerTest {
                 .andExpect(jsonPath("$.data.content[0].title").exists())
                 .andExpect(jsonPath("$.data.content[0].patientNote").doesNotExist())
                 .andExpect(jsonPath("$.data.content[0].canViewSensitive").value(false));
+    }
+
+    // ===== 공고 목록 캐시 =====
+
+    private final PostSearchConditionDto openCondition =
+            new PostSearchConditionDto(null, null, null, null, null, null, true);
+
+    // 결제가 완료된 공고만 목록에 나오므로 결제를 완료 상태로 만든다
+    private Long registerPaidPost() throws Exception {
+        Long postId = registerPost();
+        Payment payment = paymentRepository.findAll().stream()
+                .filter(p -> p.getPost().getId().equals(postId))
+                .findFirst()
+                .orElseThrow();
+        payment.statusUpdate(PaymentStatus.DONE);
+        paymentRepository.saveAndFlush(payment);
+        return postId;
+    }
+
+    @Test
+    @DisplayName("[PostList 캐시] 같은 조건으로 두 번 조회하면 두 번째는 DB를 거치지 않는다")
+    void cache1() throws Exception {
+        registerPaidPost();
+        var stats = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        stats.setStatisticsEnabled(true);
+
+        var first = postService.searchDtos(openCondition, PageRequest.of(0, 8));
+        stats.clear();
+        var second = postService.searchDtos(openCondition, PageRequest.of(0, 8));
+
+        assertThat(first.getTotalElements()).isEqualTo(1);
+        assertThat(second).isSameAs(first);                       // 캐시에서 그대로 돌려줌
+        assertThat(stats.getPrepareStatementCount()).isZero();   // 두 번째 조회는 SQL이 나가지 않음
+    }
+
+    @Test
+    @DisplayName("[PostList 캐시] 조건이 다르면 캐시를 따로 쓴다")
+    void cache2() throws Exception {
+        registerPaidPost();
+        var open = postService.searchDtos(openCondition, PageRequest.of(0, 8));
+        var closed = postService.searchDtos(
+                new PostSearchConditionDto(null, null, null, null, null, null, false), PageRequest.of(0, 8));
+
+        assertThat(open.getTotalElements()).isEqualTo(1);    // 모집 중 탭
+        assertThat(closed.getTotalElements()).isZero();      // 모집 종료 탭에는 없다
+    }
+
+    @Test
+    @DisplayName("[PostList 캐시] 공고를 취소하면 캐시가 비워져 다음 조회에 바로 반영된다")
+    void cache3() throws Exception {
+        Long postId = registerPaidPost();
+
+        var before = postService.searchDtos(openCondition, PageRequest.of(0, 8));
+        assertThat(before.getTotalElements()).isEqualTo(1);       // 이 결과가 캐시에 저장됨
+
+        postService.cancel(postId, testUserId);
+
+        var after = postService.searchDtos(openCondition, PageRequest.of(0, 8));
+        assertThat(after.getTotalElements()).isZero();            // 캐시가 비워지지 않았다면 1이 남는다
+    }
+
+    @Test
+    @DisplayName("[PostList 캐시] 캐시된 목록에도 환자 특이사항은 들어 있지 않다")
+    void cache4() throws Exception {
+        registerPaidPost();
+
+        var page = postService.searchDtos(openCondition, PageRequest.of(0, 8));
+
+        assertThat(page.getContent().get(0).patientNote()).isNull();
+        assertThat(page.getContent().get(0).canViewSensitive()).isFalse();
     }
 }

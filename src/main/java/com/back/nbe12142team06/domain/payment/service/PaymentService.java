@@ -21,6 +21,7 @@ import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,7 @@ public class PaymentService {
     private final SettlementService settlementService;
     private final NoticeService noticeService;
 
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public Payment confirm(PaymentConfirmRequest request, Long paymentId, Long userId) {
 
         Payment payment = paymentPersistenceService.findById(userId, paymentId);
@@ -143,6 +145,7 @@ public class PaymentService {
         return payment;
     }
 
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public Payment cancel(Long userId, Long paymentId, PaymentCancelRequest request) {
         Payment payment = paymentPersistenceService.findById(userId, paymentId);
 
@@ -168,6 +171,7 @@ public class PaymentService {
     }
 
     // 공고 기반 결제 취소
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void cancel(Post post) {
         List<Payment> payments = paymentPersistenceService.findByPostId(post.getId());
 
@@ -266,6 +270,7 @@ public class PaymentService {
     }
     // 결제 - 공고 삭제 상태 변경
 
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public Payment cancelPostAndPayment(Long postId) {
         return paymentPersistenceService.updateDeleteStatus(postId);
     }
@@ -371,6 +376,7 @@ public class PaymentService {
         return paymentPersistenceService.getPaymentsForAdmin(startDateTime, endDateTime, pageable);
     }
 
+    @CacheEvict(cacheNames = "postList", allEntries = true)
     public void updateStatusForAdmin(Long paymentId, PaymentStatus status) {
         paymentPersistenceService.updateStatusForAdmin(paymentId, status);
     }
