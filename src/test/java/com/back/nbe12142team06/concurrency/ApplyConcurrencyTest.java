@@ -119,7 +119,7 @@ class ApplyConcurrencyTest {
                 .pickupLat(BigDecimal.valueOf(37.2636))
                 .pickupLng(BigDecimal.valueOf(127.0286))
                 .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now())
+                .recruitStartAt(LocalDateTime.now().minusMinutes(1))
                 .recruitEndAt(LocalDateTime.now().plusDays(1))
                 .escortStartAt(LocalDateTime.now().plusDays(2))
                 .escortEndAt(LocalDateTime.now().plusDays(2).plusHours(3))

@@ -31,6 +31,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -100,6 +101,14 @@ class EscortFlowIntegrationTest {
                 .willReturn(ResponseEntity.ok(new TossConfirmResponse("카드", "30000")));
         given(tossPaymentClient.callApiCancel(any(), any(), any()))
                 .willReturn(ResponseEntity.ok(new TossConfirmResponse("카드", "30000")));
+    }
+
+    // 공고 등록(모집 시작은 미래) 뒤 지원 시점까지 시간이 흐른 상황을 테스트에서 재현한다.
+    private void beginRecruitmentForTest(Long postId) {
+        transactionTemplate.executeWithoutResult(status -> {
+            var savedPost = postRepository.findById(postId).orElseThrow();
+            ReflectionTestUtils.setField(savedPost, "recruitStartAt", LocalDateTime.now().minusMinutes(1));
+        });
     }
 
     // ── 공용 헬퍼 ──────────────────────────────────────────────
@@ -307,6 +316,7 @@ class EscortFlowIntegrationTest {
                 .andExpect(jsonPath("$.statusCode").value("200-41"));
 
         // 7. 동행인이 공고에 지원
+        beginRecruitmentForTest(postId);
         String applyResponse = mvc.perform(post("/api/v1/applications/{postId}", postId)
                         .cookie(escortCookie))
                 .andExpect(status().isCreated())
@@ -507,6 +517,7 @@ class EscortFlowIntegrationTest {
         createEscortProfile(escort2Cookie);
         verifyEscortDirectly(escort2Id);
 
+        beginRecruitmentForTest(postId);
         String apply1Response = mvc.perform(post("/api/v1/applications/{postId}", postId).cookie(escort1Cookie))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -646,6 +657,7 @@ class EscortFlowIntegrationTest {
         createEscortProfile(escortCookie);
         verifyEscortDirectly(escortUserId);
 
+        beginRecruitmentForTest(postId);
         String applyResponse = mvc.perform(post("/api/v1/applications/{postId}", postId)
                         .cookie(escortCookie))
                 .andExpect(status().isCreated())
