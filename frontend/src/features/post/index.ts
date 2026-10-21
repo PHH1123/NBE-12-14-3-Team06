@@ -6,5 +6,5 @@ export { default as PostListPage } from './components/PostListPage';
 export { default as PostDetailPage } from './components/PostDetailPage';
 export { default as StatusLabel } from './components/StatusLabel';
 export { POST_STATUS_LABEL, postStatusLabel, toPostStatusKey } from './model/status';
-export { fetchPost, fetchPosts, fetchPostRaw, fetchMyPostsRaw, createPost, updatePost, deletePost } from './api';
+export { fetchPost, fetchPosts, fetchPostRaw, fetchMyPostsRaw, createPost, updatePost, deletePost, cancelMatchedPost } from './api';
 export type { LabelTone, PostDetail, PostDto, PostFilters, PostStatusKey, PostSummary, PostWriteRequest } from './types';

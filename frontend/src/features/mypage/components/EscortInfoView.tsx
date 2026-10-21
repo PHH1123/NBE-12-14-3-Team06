@@ -20,7 +20,9 @@ import type { EscortProfileDto } from '../types';
 import type { EscortGrade } from '@/features/application';
 import ManagerGradeCharacter from '@/components/ui/ManagerGradeCharacter';
 import DropdownSelect from '@/components/ui/DropdownSelect';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { BANKS } from '@/features/signup/model/banks';
+import WithdrawAccountButton from './WithdrawAccountButton';
 
 const GRADE_ORDER: EscortGrade[] = ['SEED', 'SPROUT', 'FLOWER', 'EGGPLANT'];
 const GRADE_DETAILS: Record<EscortGrade, { label: string; min: number; next: number | null }> = {
@@ -256,14 +258,11 @@ export default function EscortInfoView() {
   }, []);
 
   if (!state?.user) {
-    return (
-      <div className="w-full py-12 lg:py-16">
-        <div className="max-w-[1240px] mx-auto px-5 sm:px-8 lg:px-16">
-          <h1 className="text-3xl font-semibold text-[#14243A] tracking-tight">매니저 마이페이지</h1>
-          <p role={state?.error ? 'alert' : 'status'} className="mt-6 text-sm text-[#67717C]">{state?.error ? `프로필을 불러오지 못했습니다. (${state.error})` : '내 정보를 불러오는 중입니다.'}</p>
-        </div>
-      </div>
-    );
+    return <PageFeedback
+      kind={state?.error ? 'error' : 'loading'}
+      title={state?.error ? '매니저 프로필을 불러오지 못했습니다.' : '내 정보를 불러오는 중입니다.'}
+      description={state?.error}
+    />;
   }
 
   const { user, profile } = state;
@@ -292,6 +291,8 @@ export default function EscortInfoView() {
             <button type="button" onClick={async () => { await signOut(); router.replace('/'); }} className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold transition-colors text-[#B4413C] hover:bg-[#F7F8F8]">
               <span className="flex items-center gap-2.5"><LogOut className="w-4 h-4" />로그아웃</span><ChevronRight className="w-3.5 h-3.5" />
             </button>
+            <div className="my-1 border-t border-[#E1E5E8]" />
+            <WithdrawAccountButton name={user.name} />
           </nav>
           <div className="lg:col-span-9 space-y-6">
             {profile ? <GradeJourney name={user.name} profile={profile} /> : (

@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { applyToPost, fetchMyApplications } from '@/features/application';
 import { useCurrentUser } from '@/features/auth';
+import { usePostCreationEligibility, postCreationUnavailableReason } from '@/features/payment';
 import { isEducationRequiredError } from '@/features/education/api';
 import { fetchPosts, type PostPage } from '../api';
 import { daysFromNow, formatMonthDay } from '../lib/date';
@@ -140,6 +141,7 @@ function ListingRow({
 function AuthenticatedPostList({ detailBasePath, role }: { detailBasePath: string; role: Role }) {
   const router = useRouter();
   const { confirm, notice, dialog } = useActionDialog();
+  const creationAvailability = usePostCreationEligibility(role === 'CLIENT');
   const [filters, setFilters] = useState<PostFilters>(DEFAULT_FILTERS);
   const [keywordInput, setKeywordInput] = useState('');
   const [page, setPage] = useState(0);
@@ -225,7 +227,7 @@ function AuthenticatedPostList({ detailBasePath, role }: { detailBasePath: strin
             <h1 className="text-3xl font-semibold tracking-tight text-[#14243A] sm:text-4xl">동행 공고 찾기</h1>
           </div>
           {role === 'CLIENT' && (
-            <Link href="/client/posts/new" className="inline-flex h-11 items-center justify-center self-start rounded-[10px] bg-[#14243A] px-5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#1F3757]">새 공고 등록</Link>
+            creationAvailability === 'allowed' ? <Link href="/client/posts/new" className="inline-flex h-11 items-center justify-center self-start rounded-[10px] bg-[#14243A] px-5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#1F3757]">새 공고 등록</Link> : <span aria-disabled="true" title={postCreationUnavailableReason(creationAvailability)} className="inline-flex h-11 cursor-not-allowed items-center justify-center self-start rounded-[10px] bg-[#14243A] px-5 text-sm font-semibold text-white opacity-50">새 공고 등록</span>
           )}
         </div>
 

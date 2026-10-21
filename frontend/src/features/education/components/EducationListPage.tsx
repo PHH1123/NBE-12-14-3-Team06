@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { useRequireAuth } from '@/features/auth';
 import { fetchMyEscortProfile } from '@/features/mypage/api';
 import { Video, CheckCircle2, ChevronLeft, X, Clock, Info } from 'lucide-react';
@@ -56,9 +57,9 @@ export default function EducationListPage() {
     fetchMyEscortProfile().then((profile) => setState((prev) => ({ ...prev, verified: profile.verified }))).catch(() => {});
   };
 
-  if (authLoading) return <AppShell><section className="min-h-[55vh] bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">교육 정보를 불러오는 중입니다.</section></AppShell>;
+  if (authLoading) return <AppShell><PageFeedback kind="loading" title="교육 정보를 불러오는 중입니다." /></AppShell>;
   if (!user) return null;
-  if (!state?.videos) return <AppShell><div className="w-full bg-[#F7F8F8] py-12 lg:py-16"><div className="max-w-[1240px] mx-auto px-5 sm:px-8 lg:px-16"><p role={state?.error ? 'alert' : 'status'} className="text-sm text-[#67717C]">{state?.error ?? '교육 정보를 불러오는 중입니다.'}</p></div></div></AppShell>;
+  if (!state?.videos) return <AppShell><PageFeedback kind={state?.error ? "error" : "loading"} title={state?.error ? "교육 정보를 불러오지 못했습니다." : "교육 정보를 불러오는 중입니다."} description={state?.error} /></AppShell>;
 
   const required = state.videos.filter((v) => v.required);
   const requiredDone = required.filter((v) => v.completed).length;

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { CheckCircle2, ChevronLeft, ShieldCheck, Star, XCircle } from 'lucide-react';
 import { AppShell } from '@/components/layout';
+import PageFeedback from '@/components/ui/PageFeedback';
 import ManagerGradeCharacter from '@/components/ui/ManagerGradeCharacter';
 import {
   acceptApplication,
@@ -151,16 +152,17 @@ export default function ApplicantsPage() {
   const canChoose = post?.postStatus === '모집 중' && acceptedId === undefined;
 
   if (authLoading || !user) {
-    return <AppShell><div className="min-h-[55vh] bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">로그인 상태를 확인하는 중입니다.</div></AppShell>;
+    return <AppShell><PageFeedback kind="loading" title="로그인 상태를 확인하는 중입니다." /></AppShell>;
   }
 
   if (!post || !applicants) {
     return (
       <AppShell>
-        <div className="min-h-[55vh] bg-[#F7F8F8] px-5 py-24 text-center">
-          <p className="text-sm text-[#67717C]">{result?.error ? `지원자 정보를 불러오지 못했습니다. (${result.error})` : '지원자를 불러오는 중입니다.'}</p>
-          <Link href="/client/posts" className="mt-6 inline-flex text-sm font-semibold text-[#426B93] hover:underline">내 공고 목록으로 돌아가기</Link>
-        </div>
+        <PageFeedback kind={result?.error ? 'error' : 'loading'}
+          title={result?.error ? '지원자 정보를 불러오지 못했습니다.' : '지원자를 불러오는 중입니다.'}
+          description={result?.error}
+          href={result?.error ? '/client/posts' : undefined}
+          action="내 공고 목록으로 돌아가기" />
       </AppShell>
     );
   }

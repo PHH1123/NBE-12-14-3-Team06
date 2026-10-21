@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, ChevronLeft, ChevronRight, FileText, Search, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Activity, ChevronLeft, ChevronRight, FileText, Search } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import DropdownSelect from '@/components/ui/DropdownSelect';
+import { useActionDialog } from '@/components/ui/useActionDialog';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { cancelApplication, fetchMyApplications, type MyApplicationDto } from '@/features/application';
 import { useRequireAuth } from '@/features/auth';
 
@@ -116,6 +118,7 @@ function ApplicationAction({ row, onCancel }: { row: ApplicationRow; onCancel: (
 }
 
 export default function MyApplicationsPage() {
+  const { confirm, dialog } = useActionDialog();
   const { loading: authLoading, user } = useRequireAuth('ESCORT');
   const [rows, setRows] = useState<ApplicationRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,20 +128,7 @@ export default function MyApplicationsPage() {
   const [tab, setTab] = useState<StatusTab>('all');
   const [search, setSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('latest');
-  const [cancelTarget, setCancelTarget] = useState<ApplicationRow | null>(null);
   const [canceling, setCanceling] = useState(false);
-  const [cancelError, setCancelError] = useState<string>();
-  const dismissButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!cancelTarget) return;
-    dismissButtonRef.current?.focus();
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !canceling) setCancelTarget(null);
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [cancelTarget, canceling]);
 
   const reload = useCallback(() => setReloadKey((value) => value + 1), []);
 
@@ -160,18 +150,24 @@ export default function MyApplicationsPage() {
     return () => { ignored = true; };
   }, [authLoading, user?.role, user?.username, reloadKey]);
 
-  const confirmCancel = async () => {
-    if (!cancelTarget || canceling) return;
+  const confirmCancel = async (row: ApplicationRow) => {
+    if (canceling) return;
+    const approved = await confirm({
+      title: '지원을 취소하시겠습니까?',
+      description: `${row.title}\n대기 중 지원 취소는 노쇼로 처리되지 않습니다.`,
+      confirmLabel: '지원 취소',
+      tone: 'danger',
+    });
+    if (!approved) return;
     setCanceling(true);
-    setCancelError(undefined);
+    setError(undefined);
     try {
-      await cancelApplication(cancelTarget.id);
-      setRows((current) => current.map((row) => row.id === cancelTarget.id ? { ...row, status: 'canceled' } : row));
+      await cancelApplication(row.id);
+      setRows((current) => current.map((item) => item.id === row.id ? { ...item, status: 'canceled' } : item));
       setNotice('지원이 취소되었습니다.');
-      setCancelTarget(null);
       reload();
     } catch (cause: unknown) {
-      setCancelError(cause instanceof Error ? cause.message : '지원 취소에 실패했습니다.');
+      setError(cause instanceof Error ? cause.message : '지원 취소에 실패했습니다.');
     } finally {
       setCanceling(false);
     }
@@ -184,7 +180,7 @@ export default function MyApplicationsPage() {
     .sort((a, b) => sortOrder === 'latest' ? b.id - a.id : a.id - b.id);
 
   if (authLoading || !user || user.role !== 'ESCORT') {
-    return <AppShell><div className="min-h-[60vh] bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">확인 중입니다...</div></AppShell>;
+    return <AppShell><PageFeedback kind="loading" title="로그인 상태를 확인하는 중입니다." /></AppShell>;
   }
 
   return (
@@ -283,7 +279,7 @@ export default function MyApplicationsPage() {
                       <div className="text-sm tabular-nums text-[#202832]">{row.date}<br />{row.time}</div>
                       <div className="text-sm tabular-nums text-[#67717C]">약 {row.hours}시간</div>
                       <div className="text-right font-bold tabular-nums text-[#14243A]">{row.pay.toLocaleString('ko-KR')}원</div>
-                      <div className="flex items-center justify-center"><ApplicationAction row={row} onCancel={(item) => { setCancelError(undefined); setCancelTarget(item); }} /></div>
+                      <div className="flex items-center justify-center"><ApplicationAction row={row} onCancel={(item) => void confirmCancel(item)} /></div>
                     </div>
                     <div className="space-y-3 min-[1100px]:hidden">
                       <div className="flex items-center justify-between gap-3">
@@ -292,7 +288,7 @@ export default function MyApplicationsPage() {
                       </div>
                       <Link href={`/posts/${row.postId}`} className="block text-base font-semibold text-[#14243A] hover:text-[#426B93]">{row.title}</Link>
                       <p className="text-xs text-[#67717C]">{row.hospitalName}{row.region ? ` · ${row.region}` : ''} · 약 {row.hours}시간 · 시급 {row.pay.toLocaleString('ko-KR')}원</p>
-                      <div className="flex justify-end border-t border-[#E1E5E8] pt-3"><ApplicationAction row={row} onCancel={(item) => { setCancelError(undefined); setCancelTarget(item); }} /></div>
+                      <div className="flex justify-end border-t border-[#E1E5E8] pt-3"><ApplicationAction row={row} onCancel={(item) => void confirmCancel(item)} /></div>
                     </div>
                   </div>
                 ))}
@@ -302,28 +298,7 @@ export default function MyApplicationsPage() {
         </div>
       </div>
 
-      {cancelTarget && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-[#262626]/45 p-4"
-          onMouseDown={(event) => { if (event.target === event.currentTarget && !canceling) setCancelTarget(null); }}
-        >
-          <section role="alertdialog" aria-modal="true" aria-labelledby="cancel-application-title" aria-describedby="cancel-application-description" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-8">
-            <div className="flex items-center justify-between gap-3">
-              <h2 id="cancel-application-title" className="text-xl font-semibold text-[#14243A]">지원 취소</h2>
-              <button type="button" disabled={canceling} aria-label="닫기" onClick={() => setCancelTarget(null)} className="rounded-lg p-1.5 text-[#67717C] hover:bg-[#F7F8F8]"><X aria-hidden="true" className="size-5" /></button>
-            </div>
-            <p id="cancel-application-description" className="mt-4 text-sm leading-6 text-[#67717C]">
-              <strong className="text-[#14243A]">{cancelTarget.title}</strong> 공고의 지원을 취소하시겠습니까?
-              <span className="mt-2 block">대기 중 지원 취소는 노쇼로 처리되지 않습니다.</span>
-            </p>
-            {cancelError && <p role="alert" className="mt-3 text-sm text-[#B4413C]">{cancelError}</p>}
-            <div className="mt-6 flex gap-3">
-              <button ref={dismissButtonRef} type="button" disabled={canceling} onClick={() => setCancelTarget(null)} className="h-11 flex-1 rounded-xl border border-[#E1E5E8] bg-white text-sm font-semibold text-[#14243A] hover:bg-[#F7F8F8] disabled:opacity-50">돌아가기</button>
-              <button type="button" disabled={canceling} onClick={() => void confirmCancel()} className="h-11 flex-1 rounded-xl bg-[#14243A] text-sm font-semibold text-white hover:bg-[#1F3757] disabled:cursor-not-allowed disabled:opacity-50">{canceling ? '처리 중...' : '지원 취소'}</button>
-            </div>
-          </section>
-        </div>
-      )}
+      {dialog}
     </AppShell>
   );
 }

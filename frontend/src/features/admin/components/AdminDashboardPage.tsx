@@ -15,8 +15,9 @@ import {
 } from 'lucide-react';
 import { useRequireAuth } from '@/features/auth';
 import AdminShell from './AdminShell';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { AdminRoleBadge } from './AdminMemberBadges';
-import { fetchAdminUsersPage, type AdminUserDto } from '../api';
+import { fetchAdminUsersPage, fetchAllAdminUsers, fetchAdminPaymentAnalytics, fetchAdminDailyPayments, fetchAdminSettlementAnalytics, type AdminUserDto, type AdminPaymentAnalytics, type AdminSettlementAnalytics } from '../api';
 
 type Period = 'today' | 'week' | 'month';
 const PERIODS: { key: Period; label: string }[] = [
@@ -26,10 +27,10 @@ const PERIODS: { key: Period; label: string }[] = [
 ];
 
 const moneyCards = [
-  { label: '결제 금액', icon: CreditCard, color: 'text-[#14243A]', description: '총 결제 거래액' },
+  { label: '결제 금액', icon: CreditCard, color: 'text-[#14243A]', description: '취소 반영 후 결제액' },
   { label: '수수료 수익', icon: Percent, color: 'text-[#426B93]', description: '플랫폼 중개 수수료' },
   { label: '정산 지급액', icon: Banknote, color: 'text-[#2F7D5B]', description: '매니저 정산 지급액' },
-  { label: '노쇼 패널티 관리 기금', icon: ShieldCheck, color: 'text-[#426B93]', description: '이용자 보호 및 긴급 대체 지원 기금' },
+  { label: '노쇼 패널티 적립액', icon: ShieldCheck, color: 'text-[#426B93]', description: '정산 완료된 패널티 합계' },
 ] as const;
 
 const memberCards = [
@@ -41,9 +42,16 @@ const memberCards = [
 
 type DailyPayment = { date: string; day: string; count: number; amount: number };
 
-// 실제 통계 API 연동 후 이 배열을 서버 응답으로 교체합니다.
-// 빈 배열은 미연동 상태이며, 시연용 통계를 표시하지 않습니다.
-const dailyPayments: DailyPayment[] = [];
+const dateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const rangeFor = (period: Period) => {
+  const end = new Date(); const start = new Date(end);
+  if (period === 'today') return {start: dateKey(start), end: dateKey(end)};
+  if (period === 'week') start.setDate(end.getDate() - ((end.getDay() + 6) % 7));
+  if (period === 'month') start.setDate(1);
+  return {start: dateKey(start), end: dateKey(end)};
+};
+const weekday = (date: string) => ['일','월','화','수','목','금','토'][new Date(`${date}T12:00:00`).getDay()];
+
 
 /** 실제 데이터가 들어오면 화면 진입 시 막대 상승, 호버 시 블루와 툴팁을 표시합니다. */
 function DailyPaymentBarChart({ data }: { data: DailyPayment[] }) {
@@ -72,7 +80,7 @@ function DailyPaymentBarChart({ data }: { data: DailyPayment[] }) {
   if (data.length === 0) {
     return (
       <div className="flex h-60 items-center justify-center rounded-lg border-b border-[#E1E5E8] bg-[#FCFDFD] text-center text-sm text-[#67717C]">
-        결제 통계 API 연결 후 차트가 표시됩니다.
+        조회 기간에 결제 내역이 없습니다.
       </div>
     );
   }
@@ -152,16 +160,19 @@ function SlidingPeriodTabs({ period, onChange }: { period: Period; onChange: (pe
   );
 }
 
-/**
- * Signature Care 관리자 대시보드 레이아웃.
- * 현재 제공된 프론트에는 관리자 통계 API 계약이 없으므로 미확인 수치를 절대 생성하지 않습니다.
- */
+/** 관리자 대시보드: 2026-10-20 관리자 결제·정산 통계 API */
 export default function AdminDashboardPage() {
   const { loading, user } = useRequireAuth('ADMIN');
   const [period, setPeriod] = useState<Period>('month');
   const [showTable, setShowTable] = useState(false);
   const [recentMembers, setRecentMembers] = useState<AdminUserDto[] | null>(null);
   const [recentError, setRecentError] = useState(false);
+  const [allMembers, setAllMembers] = useState<AdminUserDto[] | null>(null);
+  const [payment, setPayment] = useState<AdminPaymentAnalytics | null>(null);
+  const [settlement, setSettlement] = useState<AdminSettlementAnalytics | null>(null);
+  const [dailyPayments, setDailyPayments] = useState<DailyPayment[]>([]);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState('');
   useEffect(() => {
     if (loading || user?.role !== 'ADMIN') return;
     const controller = new AbortController();
@@ -177,13 +188,44 @@ export default function AdminDashboardPage() {
     return () => controller.abort();
   }, [loading, user?.username, user?.role]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]" role="status">
-        불러오는 중입니다...
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (loading || user?.role !== 'ADMIN') return;
+    const ctrl = new AbortController();
+    fetchAllAdminUsers(ctrl.signal).then(rows => { if (!ctrl.signal.aborted) setAllMembers(rows); })
+      .catch(() => { if (!ctrl.signal.aborted) setAllMembers(null); });
+    return () => ctrl.abort();
+  }, [loading, user?.role, user?.username]);
+  useEffect(() => {
+    if (loading || user?.role !== 'ADMIN') return;
+    const ctrl = new AbortController();
+    const range = rangeFor(period);
+    setStatsLoading(true); setStatsError('');
+    Promise.allSettled([
+      fetchAdminPaymentAnalytics(range.start, range.end, ctrl.signal),
+      fetchAdminSettlementAnalytics(range.start, range.end, ctrl.signal),
+      fetchAdminDailyPayments(range.start, range.end, ctrl.signal),
+    ]).then(results => {
+      if (ctrl.signal.aborted) return;
+      const [pay, settle, daily] = results;
+      setPayment(pay.status === 'fulfilled' ? pay.value as AdminPaymentAnalytics : null);
+      setSettlement(settle.status === 'fulfilled' ? settle.value as AdminSettlementAnalytics : null);
+      setDailyPayments(daily.status === 'fulfilled' ? (daily.value as {approvedAt:string;paidAmount:number;counts:number}[]).map(d => ({
+        date: d.approvedAt, day: weekday(d.approvedAt), count: d.counts, amount: d.paidAmount,
+      })).sort((a,b) => a.date.localeCompare(b.date)) : []);
+      if (results.some(r => r.status === 'rejected')) setStatsError('일부 통계를 불러오지 못했습니다.');
+    }).finally(() => { if (!ctrl.signal.aborted) setStatsLoading(false); });
+    return () => ctrl.abort();
+  }, [loading, user?.role, user?.username, period]);
+  const moneyValues = [payment?.paidAmount, settlement?.totalPlatformFee, settlement?.totalSettledAmount, settlement?.totalDonationAmount];
+  const memberCounts = allMembers ? [
+    allMembers.filter(m => !m.deleted && m.userStatus === 'ACTIVE').length,
+    allMembers.filter(m => !m.deleted && m.userStatus === 'SUSPENDED').length,
+    allMembers.filter(m => !m.deleted && m.userStatus === 'BANNED').length,
+    allMembers.filter(m => m.deleted).length,
+  ] : null;
+  const sanctionedMembers = allMembers?.filter(m => !m.deleted && m.userStatus !== 'ACTIVE').slice(0, 4) ?? [];
+
+  if (loading) return <PageFeedback kind="loading" title="관리자 정보를 확인하는 중입니다." />;
   if (!user || user.role !== 'ADMIN') return null;
 
   return (
@@ -198,6 +240,7 @@ export default function AdminDashboardPage() {
           <SlidingPeriodTabs period={period} onChange={setPeriod} />
         </div>
 
+        {statsError && <p role="alert" className="rounded-lg border border-[#E1E5E8] bg-white px-4 py-3 text-xs text-[#B4413C]">{statsError}</p>}
         {/* 원본: 요약 통계 카드 네 개 */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="결제 및 운영 통계">
           {moneyCards.map((card) => {
@@ -208,8 +251,8 @@ export default function AdminDashboardPage() {
                   <span className="text-xs font-semibold">{card.label}</span>
                   <Icon aria-hidden="true" className={`size-4 ${card.color}`} />
                 </div>
-                <div className={`text-2xl font-bold tabular-nums tracking-tight ${card.color}`} aria-label={`${card.label}: 미연동`}>
-                  —
+                <div className={`text-2xl font-bold tabular-nums tracking-tight ${card.color}`} aria-label={card.label}>
+                  {statsLoading ? '—' : moneyValues[moneyCards.indexOf(card)] === undefined ? '—' : `${moneyValues[moneyCards.indexOf(card)]!.toLocaleString()}원`}
                 </div>
                 <p className="text-xs text-[#67717C]">{card.description}</p>
               </div>
@@ -222,7 +265,7 @@ export default function AdminDashboardPage() {
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 id="daily-payments-heading" className="text-lg font-bold tracking-tight text-[#14243A]">일별 결제 금액</h2>
-              <p className="mt-0.5 text-xs text-[#67717C]">최근 7일간의 일자별 총 결제 거래액 추이</p>
+              <p className="mt-0.5 text-xs text-[#67717C]">선택한 기간의 일자별 결제 거래액 추이</p>
             </div>
             <button
               type="button"
@@ -248,7 +291,7 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody>
                   {dailyPayments.length === 0 ? (
-                    <tr><td colSpan={4} className="px-4 py-14 text-center text-sm text-[#67717C]">결제 통계 API 연결 후 표시됩니다.</td></tr>
+                    <tr><td colSpan={4} className="px-4 py-14 text-center text-sm text-[#67717C]">조회 기간에 결제 내역이 없습니다.</td></tr>
                   ) : dailyPayments.map((item) => (
                     <tr key={item.date} className="transition-colors hover:bg-[#F3F7FB]">
                       <td className="px-4 py-3 font-mono">{item.date}</td>
@@ -282,7 +325,7 @@ export default function AdminDashboardPage() {
               <Link key={card.label} href="/admin/members" className="rounded-lg border border-[#E1E5E8] bg-[#F7F8F8] p-4 text-left transition-colors hover:border-[#14243A] focus-visible:border-[#14243A]">
                 <span className="mb-1 block text-xs font-medium text-[#67717C]">{card.label}</span>
                 <span className="flex items-baseline gap-1">
-                  <span aria-label="통계 미연동" className={`text-2xl font-bold tabular-nums ${card.color}`}>—</span>
+                  <span className={`text-2xl font-bold tabular-nums ${card.color}`}>{memberCounts ? memberCounts[memberCards.indexOf(card)] : '—'}</span>
                   <span className="text-xs text-[#67717C]">명</span>
                 </span>
               </Link>
@@ -324,11 +367,11 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between border-b border-[#E1E5E8] px-5 py-4">
               <h3 id="recent-sanctions-heading" className="flex items-center gap-2 text-sm font-bold text-[#14243A]">
                 <ShieldAlert aria-hidden="true" className="size-4 text-[#B4413C]" />
-                최근 정지 처리
+                현재 제재 회원
               </h3>
-              <span className="text-xs font-semibold text-[#9AA4AD]">블랙리스트 연동 예정</span>
+              <Link href="/admin/blacklist" className="text-xs font-semibold text-[#426B93] hover:underline">전체 보기</Link>
             </div>
-            <div className="flex min-h-40 items-center justify-center px-5 text-center text-sm text-[#67717C]">회원 제재 이력 API 연결 후 표시됩니다.</div>
+            {sanctionedMembers.length ? <div className="divide-y divide-[#E1E5E8]">{sanctionedMembers.map(m => <Link key={m.id} href={`/admin/members/${m.id}`} className="flex items-center justify-between gap-3 px-5 py-3 text-sm hover:bg-[#F7F8F8]"><span className="truncate font-semibold text-[#14243A]">{m.name}</span><span className="text-xs text-[#B4413C]">{m.userStatus === 'BANNED' ? '영구 정지' : '기간 정지'}</span></Link>)}</div> : <div className="flex min-h-40 items-center justify-center px-5 text-center text-sm text-[#67717C]">{allMembers ? '현재 제재 중인 회원이 없습니다.' : '회원 정보를 불러오는 중입니다...'}</div>}
           </section>
         </div>
       </div>

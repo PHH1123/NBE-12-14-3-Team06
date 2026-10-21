@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'motion/react';
 
 import Image from 'next/image';
 
-/** Signature Care 서비스 신뢰 기준 섹션. 기존 인증/API 구조와 독립적인 UI입니다. */
+/** 서비스 신뢰 기준 섹션. 기존 인증/API 구조와 독립적인 UI입니다. */
 const trustPoints = [
   {
     number: '01',

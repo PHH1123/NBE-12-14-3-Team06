@@ -5,7 +5,7 @@ import { ArrowRight, Home, LifeBuoy } from 'lucide-react';
 import AppShell from '@/components/layout/AppShell';
 import { openGajiSupport } from '@/lib/gajiSupport';
 
-/** GAJI Signature Care — 찾을 수 없는 페이지 안내 */
+/** GAJI — 찾을 수 없는 페이지 안내 */
 export default function NotFoundPage() {
   return (
     <AppShell>

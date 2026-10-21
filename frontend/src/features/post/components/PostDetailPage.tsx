@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useParams, useRouter } from 'next/navigation';
+import { usePathname, useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AppShell } from '@/components/layout';
-import { AlertCircle, ArrowRight, Building2, ChevronLeft, FileCheck, LoaderCircle, Lock, Shield, ShieldAlert, MapPin, Users } from 'lucide-react';
+import PageFeedback from '@/components/ui/PageFeedback';
+import { Building2, ChevronLeft, FileCheck, Lock, Shield, MapPin, Users } from 'lucide-react';
 import { applyToPost, fetchMyApplications } from '@/features/application';
 import { useCurrentUser, useRequireAuth, type CurrentUser } from '@/features/auth';
 import PostGuestNotice from './PostGuestNotice';
@@ -20,7 +21,7 @@ import {
 } from '@/features/payment';
 import { fetchRidesByPost, type RideDto } from '@/features/ride';
 import { cn } from '@/lib/cn';
-import { deletePost, fetchPost } from '../api';
+import { cancelMatchedPost, deletePost, fetchPost } from '../api';
 import { daysFromNow, formatFullDate, formatTime, parseDateTime } from '../lib/date';
 import { canDeletePost, canEditPost, postStatusLabel, toPostStatusKey } from '../model/status';
 import type { PostDetail, PostStatusKey } from '../types';
@@ -31,7 +32,7 @@ const CARD_TITLE = 'text-xl font-semibold text-[#14243A]';
 const BUTTON =
   'flex items-center justify-center rounded-[10px] px-5 font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50';
 
-/** 공고 상세에서만 사용하는 로딩·오류·접근 제한 안내. 목록 이동과 권한 판별은 기존 로직을 그대로 유지합니다. */
+/** 공고 상세의 로딩·오류·접근 제한은 다른 GAJI 화면과 동일한 공통 UI를 사용합니다. */
 function PostDetailFeedback({
   kind,
   title,
@@ -47,41 +48,15 @@ function PostDetailFeedback({
   listLabel?: string;
   detail?: string;
 }) {
-  const isLoading = kind === 'loading';
-  const Icon = isLoading ? LoaderCircle : kind === 'forbidden' ? ShieldAlert : AlertCircle;
-
   return (
     <AppShell>
-      <section className="flex min-h-[calc(100svh-72px)] items-center bg-[#F7F8F8] px-5 py-14 sm:px-8 lg:py-20">
-        <div className="mx-auto w-full max-w-[1240px] lg:px-16">
-          <div className="mx-auto w-full max-w-[680px] rounded-2xl border border-[#E1E5E8] bg-white px-6 py-12 text-center shadow-[0_4px_20px_rgba(30,39,57,0.045)] sm:px-12 sm:py-14">
-            <span className="inline-flex items-center rounded-md bg-[#EDF0F2] px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-[#426B93]">
-              {isLoading ? 'LOADING' : kind === 'forbidden' ? 'ACCESS RESTRICTED' : 'NOTICE'}
-            </span>
-            <div className="mx-auto mt-7 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EDF0F2] text-[#426B93]">
-              <Icon className={`h-8 w-8 ${isLoading ? 'animate-spin' : ''}`} strokeWidth={1.8} aria-hidden="true" />
-            </div>
-            <h1 role={isLoading ? 'status' : undefined} className="mt-6 text-2xl font-semibold tracking-tight text-[#14243A] sm:text-[28px]">
-              {title}
-            </h1>
-            <p className="mx-auto mt-3 max-w-[460px] text-sm leading-7 text-[#67717C] sm:text-base">
-              {description}
-            </p>
-            {detail && (
-              <p role="alert" className="mx-auto mt-4 max-w-[480px] break-words rounded-lg bg-[#F7F8F8] px-4 py-3 text-sm leading-6 text-[#67717C]">
-                {detail}
-              </p>
-            )}
-            <Link
-              href={listHref}
-              className="group mx-auto mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-[10px] border border-[#DDE3EA] bg-white px-6 text-sm font-semibold text-[#14243A] transition-colors duration-200 hover:border-[#A5B7CA] hover:bg-[#F7F8F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93]"
-            >
-              {listLabel}
-              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-      </section>
+      <PageFeedback
+        kind={kind}
+        title={title}
+        description={detail ? `${description} ${detail}` : description}
+        href={kind === 'loading' ? undefined : listHref}
+        action={listLabel}
+      />
     </AppShell>
   );
 }
@@ -89,7 +64,7 @@ function PostDetailFeedback({
 /** 결제 취소 사유 길이 제한. 입력한 사유가 그대로 토스 취소 내역으로 넘어가서 넉넉하게만 잡아 둡니다. */
 const MAX_CANCEL_REASON_LENGTH = 200;
 
-/** 결제 상태 배지 — 결제 내역 화면과 같은 차분한 Signature Care 톤을 사용합니다. */
+/** 결제 상태 배지 */
 const PAYMENT_LABEL: Record<PaymentStatus, { text: string; className: string }> = {
   READY: { text: '미결제', className: 'border-[#9A6B12]/20 bg-[#9A6B12]/10 text-[#84601B]' },
   IN_PROGRESS: { text: '결제 중', className: 'border-[#426B93]/20 bg-[#426B93]/10 text-[#426B93]' },
@@ -161,7 +136,7 @@ function CommonPostDetailGate() {
   const { user, loading, unauthenticated, error } = useCurrentUser();
 
   if (loading) {
-    return <AppShell><section className="bg-[#F7F8F8] py-28 text-center text-sm text-[#67717C]">로그인 상태를 확인하는 중입니다.</section></AppShell>;
+    return <AppShell><PageFeedback kind="loading" title="로그인 상태를 확인하는 중입니다." /></AppShell>;
   }
   if (unauthenticated) {
     return <AppShell><PostGuestNotice nextPath={pathname} /></AppShell>;
@@ -169,10 +144,7 @@ function CommonPostDetailGate() {
   if (!user) {
     return (
       <AppShell>
-        <section className="bg-[#F7F8F8] px-5 py-28 text-center">
-          <p role="alert" className="mb-4 text-sm text-[#67717C]">{error || '로그인 상태를 확인하지 못했습니다.'}</p>
-          <button type="button" onClick={() => window.location.reload()} className="rounded-[10px] bg-[#14243A] px-5 py-3 text-sm font-semibold text-white">다시 확인하기</button>
-        </section>
+        <PageFeedback kind="error" title="로그인 상태를 확인하지 못했습니다." description={error ?? undefined} onRetry={() => window.location.reload()} />
       </AppShell>
     );
   }
@@ -206,6 +178,7 @@ function PostDetailPageBody({ viewer }: Props) {
   const params = useParams<{ postId: string }>();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, unauthenticated } = useCurrentUser();
   const { openChatWith } = useChatWidget();
   const { confirm, dialog } = useActionDialog();
@@ -215,6 +188,8 @@ function PostDetailPageBody({ viewer }: Props) {
   const [result, setResult] = useState<{ postId: number; data?: PostDetail; error?: string }>();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string>();
+  const [matchingCancel, setMatchingCancel] = useState(false);
+  const [matchingCancelError, setMatchingCancelError] = useState<string>();
   const [applyState, setApplyState] = useState<'idle' | 'applying' | 'applied'>('idle');
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [applyError, setApplyError] = useState<string>();
@@ -307,7 +282,8 @@ function PostDetailPageBody({ viewer }: Props) {
     (user?.role === 'CLIENT' || user?.role === 'ESCORT') &&
     user.username !== post.clientId;
 
-  const listHref =
+  const fromAdminPayments = viewer === 'common' && user?.role === 'ADMIN' && searchParams.get('from') === 'admin-payments';
+  const listHref = fromAdminPayments ? '/admin/payments' :
     viewer === 'client'
       ? '/client/posts'
       : viewer === 'escort'
@@ -357,6 +333,23 @@ function PostDetailPageBody({ viewer }: Props) {
     } catch (error) {
       setDeleteError(error instanceof Error ? error.message : '삭제에 실패했습니다.');
       setDeleting(false);
+    }
+  };
+
+  const handleMatchedCancel = async () => {
+    if (matchingCancel) return;
+    if (!await confirm({
+      title: '매칭된 동행을 취소할까요?',
+      description: '매칭된 지원은 노쇼 페널티 없이 취소됩니다.\n공고는 취소 상태로 변경되며 되돌릴 수 없습니다.',
+      tone: 'danger', confirmLabel: '매칭 취소',
+    })) return;
+    setMatchingCancel(true); setMatchingCancelError(undefined);
+    try {
+      await cancelMatchedPost(postId);
+      router.push('/client/posts');
+    } catch (error) {
+      setMatchingCancelError(error instanceof Error ? error.message : '매칭 취소에 실패했습니다.');
+      setMatchingCancel(false);
     }
   };
 
@@ -419,6 +412,7 @@ function PostDetailPageBody({ viewer }: Props) {
         description={loading ? '공고 상세 정보를 준비하고 있어요. 잠시만 기다려 주세요.' : '일시적인 오류가 발생했거나 공고가 삭제되었을 수 있어요. 목록에서 다시 확인해 주세요.'}
         detail={loadError}
         listHref={listHref}
+        listLabel={fromAdminPayments ? '결제 관리로 돌아가기' : '목록으로'}
       />
     );
   }
@@ -505,10 +499,11 @@ function PostDetailPageBody({ viewer }: Props) {
   // (조건이 서로 달라서 따로 계산합니다 — 모집이 시작된 공고는 삭제만 됩니다)
   const canEdit = isClient && canEditPost(post.postStatus, post.recruitStarted);
   const canDelete = isClient && canDeletePost(post.postStatus);
+  const canCancelMatch = isClient && statusKey === 'matched';
 
   const estimatedTotal = Math.round(post.hourlyPay * post.hours);
 
-  const actionErrors = deleteError || cancelError || applyError;
+  const actionErrors = deleteError || matchingCancelError || cancelError || applyError;
 
   return (
     <AppShell>
@@ -520,7 +515,7 @@ function PostDetailPageBody({ viewer }: Props) {
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] hover:text-[#14243A] mb-8 sc-focus"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span>목록으로 돌아가기</span>
+          <span>{fromAdminPayments ? '결제 관리로 돌아가기' : '목록으로 돌아가기'}</span>
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
@@ -846,6 +841,7 @@ function PostDetailPageBody({ viewer }: Props) {
                         ) : (
                           <button type="button" disabled aria-describedby="post-edit-unavailable" className="flex-1 h-[44px] rounded-[10px] border border-[#E1E5E8] bg-[#F7F8F8] text-sm font-semibold text-[#8793A0] cursor-not-allowed">수정하기</button>
                         )}
+                        {canCancelMatch && <button type="button" onClick={handleMatchedCancel} disabled={matchingCancel} className="h-[44px] px-4 rounded-[10px] border border-[#B4413C]/30 text-sm font-semibold text-[#B4413C] hover:bg-[#B4413C]/5 disabled:opacity-50">{matchingCancel ? '취소 중…' : '매칭 취소'}</button>}
                         {canDelete && <button type="button" onClick={handleDelete} disabled={deleting} className="h-[44px] px-4 rounded-[10px] border border-[#B4413C]/30 text-sm font-semibold text-[#B4413C] hover:bg-[#B4413C]/5 disabled:opacity-50">{deleting ? '삭제 중…' : '삭제하기'}</button>}
                       </div>
                       {!canEdit && (

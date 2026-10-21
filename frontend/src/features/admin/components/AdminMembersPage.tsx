@@ -1,12 +1,12 @@
 'use client';
 
-import { useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Search } from 'lucide-react';
 import { useRequireAuth } from '@/features/auth';
-import { MEMBERS } from '../model';
+import { fetchAllAdminUsers, type AdminUserDto } from '../api';
 import AdminShell from './AdminShell';
-import { AdminRoleBadge, type AdminMemberRole } from './AdminMemberBadges';
+import { AdminRoleBadge, AdminStatusBadge, type AdminMemberRole, type AdminMemberStatus } from './AdminMemberBadges';
 
 type RoleFilter = 'all' | AdminMemberRole;
 type StatusFilter = 'all' | 'active' | 'suspended' | 'banned';
@@ -82,24 +82,36 @@ export default function AdminMembersPage() {
   const [includeWithdrawn, setIncludeWithdrawn] = useState(false);
   const [page, setPage] = useState(0);
 
-  // 회원 목록은 기존 가지의 시연 데이터 그대로 사용합니다. 상태/탈퇴 필드는 포함되어 있지 않습니다.
-  const members = useMemo(() => MEMBERS.map((member) => ({
-    ...member,
-    role: (member.role === 'manager' ? 'escort' : 'client') as AdminMemberRole,
-  })), []);
+  const [members, setMembers] = useState<AdminUserDto[]>([]);
+  const [fetching, setFetching] = useState(true);
+  const [fetchError, setFetchError] = useState('');
+  const [reload, setReload] = useState(0);
+  useEffect(() => {
+    if (loading || user?.role !== 'ADMIN') return;
+    const controller = new AbortController();
+    fetchAllAdminUsers(controller.signal).then((rows) => {
+      if (controller.signal.aborted) return;
+      setMembers(rows);
+      setFetchError('');
+    }).catch((error: unknown) => {
+      if (!controller.signal.aborted) { setMembers([]); setFetchError(error instanceof Error ? error.message : '회원 목록 조회에 실패했습니다.'); }
+    }).finally(() => { if (!controller.signal.aborted) setFetching(false); });
+    return () => controller.abort();
+  }, [loading, user?.role, user?.username, reload]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    // 상태 필터에 필요한 값이 원래 데이터에 없어 결과를 임의로 분류하지 않습니다.
-    if (statusFilter !== 'all') return [];
+    const digits = q.replace(/\D/g, '');
     return members.filter((member) => {
-      if (roleFilter !== 'all' && member.role !== roleFilter) return false;
+      if (!includeWithdrawn && member.deleted) return false;
+      const role = member.role.toLowerCase();
+      if (roleFilter !== 'all' && role !== roleFilter) return false;
+      if (statusFilter !== 'all' && (member.deleted || member.userStatus.toLowerCase() !== statusFilter)) return false;
       if (!q) return true;
-      const digits = q.replace(/\D/g, '');
-      return [member.id, member.name, member.email, member.phone].some((field) => field.toLowerCase().includes(q)) ||
-        Boolean(digits && member.phone.replace(/\D/g, '').includes(digits));
+      return [String(member.id), member.username, member.name, member.email, member.phoneNum ?? ''].some((field) => field.toLowerCase().includes(q)) ||
+        Boolean(digits && (member.phoneNum ?? '').replace(/\D/g, '').includes(digits));
     });
-  }, [members, roleFilter, statusFilter, query]);
+  }, [members, roleFilter, statusFilter, includeWithdrawn, query]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount - 1);
   const visible = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
@@ -124,7 +136,7 @@ export default function AdminMembersPage() {
               <h1 className="text-2xl font-bold tracking-tight text-[#14243A]">회원 관리</h1>
               <p className="mt-1 text-sm text-[#67717C]">전체 회원의 계정 정보, 가입일, 상태 및 역할별 필터링을 통해 상세 제재를 관리합니다.</p>
             </div>
-            <span className="text-xs text-[#67717C]" aria-live="polite">시연용 회원 목록 · {filtered.length}명 표시</span>
+            <span className="text-xs text-[#67717C]" aria-live="polite">{fetching ? '조회 중' : `전체 ${members.length}명 · ${filtered.length}명 표시`}</span>
           </div>
           <form onSubmit={search} className="relative mt-6">
             <Search className="absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-[#67717C]" aria-hidden="true" />
@@ -149,12 +161,12 @@ export default function AdminMembersPage() {
               탈퇴 회원 포함
             </label>
           </div>
-          {(statusFilter !== 'all' || includeWithdrawn) && (
-            <p role="status" className="mt-3 text-xs text-[#67717C]">기존 시연용 회원 데이터에는 회원 상태와 탈퇴 여부가 포함되지 않아 해당 조건은 실제로 조회할 수 없습니다.</p>
-          )}
         </section>
 
         <section className="overflow-hidden rounded-xl border border-[#E1E5E8] bg-white shadow-xs" aria-label="회원 목록">
+          {fetchError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E1E5E8] px-5 py-4 text-sm text-[#B4413C]">
+            <span>{fetchError}</span><button type="button" className="rounded-lg border px-3 py-1.5 text-xs" onClick={() => {setFetching(true); setReload((v) => v + 1);}}>다시 시도</button>
+          </div>}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px] border-collapse text-left">
               <thead className="border-b border-[#E1E5E8] bg-[#F7F8F8] text-xs font-bold text-[#67717C]">
@@ -165,17 +177,17 @@ export default function AdminMembersPage() {
                   <tr key={member.id} className="transition-colors hover:bg-[#F7F8F8]">
                     <td className="px-5 py-4 font-mono text-xs text-[#67717C]">{member.id}</td>
                     <td className="px-5 py-4 text-sm font-semibold text-[#14243A]">{member.name}</td>
-                    <td className="px-5 py-4 text-xs"><p className="font-medium text-[#14243A]">{member.id}</p><p className="text-[#67717C]">{member.email}</p></td>
-                    <td className="px-5 py-4"><AdminRoleBadge role={member.role}/></td>
-                    <td className="px-5 py-4 text-xs text-[#67717C]">—</td>
-                    <td className="px-5 py-4 font-mono text-xs text-[#67717C]">{member.joinedAt}</td>
+                    <td className="px-5 py-4 text-xs"><p className="font-medium text-[#14243A]">{member.username}</p><p className="text-[#67717C]">{member.email}</p></td>
+                    <td className="px-5 py-4"><AdminRoleBadge role={member.role.toLowerCase() as AdminMemberRole}/></td>
+                    <td className="px-5 py-4">{member.deleted ? <AdminStatusBadge status="withdrawn" /> : <AdminStatusBadge status={member.userStatus.toLowerCase() as AdminMemberStatus} />}</td>
+                    <td className="px-5 py-4 font-mono text-xs text-[#67717C]">{member.createdAt?.slice(0, 10) ?? '—'}</td>
                     <td className="px-5 py-4 text-right"><Link href={`/admin/members/${encodeURIComponent(member.id)}`}
                       className="inline-flex items-center gap-1 rounded-lg border border-[#E1E5E8] px-3 py-1.5 text-xs font-semibold text-[#14243A] transition-colors hover:border-[#426B93] hover:bg-[#426B93] hover:text-white">
                       상세 <ChevronRight className="size-3.5" aria-hidden="true" />
                     </Link></td>
                   </tr>
                 ))}
-                {visible.length === 0 && <tr><td colSpan={7} className="px-5 py-16 text-center text-sm text-[#67717C]">{statusFilter !== 'all' ? '회원 상태 정보가 없어 해당 필터로 조회할 수 없습니다.' : '검색 조건에 일치하는 회원이 없습니다.'}</td></tr>}
+                {visible.length === 0 && <tr><td colSpan={7} className="px-5 py-16 text-center text-sm text-[#67717C]">{fetching ? '회원 목록을 불러오는 중입니다...' : fetchError ? '목록을 불러오지 못했습니다.' : '검색 조건에 일치하는 회원이 없습니다.'}</td></tr>}
               </tbody>
             </table>
           </div>

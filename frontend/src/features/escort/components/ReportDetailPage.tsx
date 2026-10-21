@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ChevronLeft, FileText, MessageSquare, Pill, Printer, Sparkles } from 'lucide-react';
 import { AppShell } from '@/components/layout';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { useRequireAuth } from '@/features/auth';
 import { useChatWidget } from '@/features/chat';
 import { fetchReport, isReportNotFoundError, parseAiSummary, aiSummaryItems, type ReportDto } from '@/features/report';
@@ -83,11 +84,11 @@ export default function ReportDetailPage() {
   }, [applicationId, authLoading, user]);
 
   if (authLoading || (user && Number.isInteger(applicationId) && applicationId > 0 && result.key !== applicationId)) {
-    return <AppShell><div className="w-full bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">진료 보고서를 불러오는 중입니다.</div></AppShell>;
+    return <AppShell><PageFeedback kind="loading" title="진료 보고서를 불러오는 중입니다." /></AppShell>;
   }
   if (!user || user.role !== 'ESCORT') return null;
   if (!Number.isInteger(applicationId) || applicationId <= 0) {
-    return <AppShell><div className="w-full bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">잘못된 동행 번호입니다.</div></AppShell>;
+    return <AppShell><PageFeedback kind="error" title="잘못된 동행 번호입니다." href="/mypage/applications" action="신청 목록으로" /></AppShell>;
   }
 
   const state = result.data;
@@ -97,10 +98,8 @@ export default function ReportDetailPage() {
         : state?.status === 'error' ? state.message : '진료 보고서를 불러올 수 없습니다.';
     return (
       <AppShell>
-        <div className="w-full bg-[#F7F8F8] py-24 px-5 text-center">
-          <p role={state?.status === 'error' ? 'alert' : undefined} className="text-sm text-[#67717C]">{message}</p>
-          <Link href={state?.status === 'noEscort' ? '/mypage/applications' : `/escort/${applicationId}`} className="inline-flex items-center justify-center mt-6 px-5 h-[46px] rounded-xl bg-[#14243A] text-white text-xs font-semibold">돌아가기</Link>
-        </div>
+        <PageFeedback kind={state?.status === 'error' ? 'error' : 'empty'} title={message}
+          href={state?.status === 'noEscort' ? '/mypage/applications' : `/escort/${applicationId}`} action="돌아가기" />
       </AppShell>
     );
   }

@@ -20,7 +20,9 @@ export async function fetchClientEscortCase(postId: number, applicationId: numbe
   const [post, profile, rides, progress] = await Promise.all([
     fetchPostRaw(postId),
     fetchEscortProfile(applicationId),
-    fetchRidesByPost(postId),
+    // 이동수단 미등록·조회 제한 때문에 전체 동행 현황을 막지 않습니다.
+    // 공고·지원자·진행 정보의 권한 검증은 각 API에서 계속 수행합니다.
+    fetchRidesByPost(postId).catch(() => []),
     fetchProgress(applicationId),
   ]);
 

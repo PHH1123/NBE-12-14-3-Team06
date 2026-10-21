@@ -1,5 +1,5 @@
 import type { CurrentUser } from '@/features/auth';
-import { api, apiPatch, apiPost, apiPut, type SpringPage } from '@/lib/api';
+import { api, apiDelete, apiPatch, apiPost, apiPut, type SpringPage } from '@/lib/api';
 import type { ClientProfileDto, EscortProfileDto, ReviewDto, SettlementDto, SettlementStatus } from './types';
 
 /** 기본 정보 수정 — PATCH /api/v1/users/profile. 백엔드가 수정할 때마다 비밀번호 재확인을 요구합니다. */
@@ -15,6 +15,11 @@ export type ProfileUpdateRequest = {
 
 export function updateMyProfile(request: ProfileUpdateRequest): Promise<CurrentUser> {
   return apiPatch<CurrentUser>('/api/v1/users/profile', request);
+}
+
+/** 본인 회원 탈퇴 — CLIENT / ESCORT만 가능. 성공하면 서버가 인증 쿠키를 제거합니다. */
+export function withdrawMyAccount(): Promise<void> {
+  return apiDelete<void>('/api/v1/users/profile');
 }
 
 /** 동행 매니저 추가 정보 — GET /api/v1/users/profile/escort (계좌 정보 포함, 본인만) */

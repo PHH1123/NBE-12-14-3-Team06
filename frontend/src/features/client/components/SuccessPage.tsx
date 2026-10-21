@@ -76,30 +76,30 @@ export default function SuccessPage() {
   return (
     <AppShell>
       <section className="min-h-[calc(100vh-90px)] bg-[#F5F6F8] px-5 py-16 text-[#1E2739] sm:py-24">
-        <div className="mx-auto w-full max-w-[720px]">
-          <div className="rounded-[20px] border border-[#E0E4E9] bg-white px-6 py-12 text-center shadow-[0_2px_3px_rgba(30,39,57,0.04)] sm:px-12 sm:py-14">
-            <div className="mx-auto flex h-[88px] w-[88px] items-center justify-center rounded-full bg-[#E8EFF7]">
-              {confirmed ? <Check size={44} strokeWidth={2.6} className="text-[#55749B]" /> : <LoaderCircle size={40} className="animate-spin text-[#55749B]" />}
+        <div className="mx-auto w-full max-w-[640px]">
+          <div className="rounded-[18px] border border-[#E0E4E9] bg-white px-6 py-10 text-center shadow-[0_2px_3px_rgba(30,39,57,0.04)] sm:px-10 sm:py-11">
+            <div className="mx-auto flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[#E8EFF7]">
+              {confirmed ? <Check size={34} strokeWidth={2.6} className="text-[#55749B]" /> : <LoaderCircle size={34} className="animate-spin text-[#55749B]" />}
             </div>
-            <h1 className="mt-7 text-[30px] font-bold tracking-[-0.035em] sm:text-[34px]">
+            <h1 className="mt-5 text-[26px] font-bold tracking-[-0.035em] sm:text-[28px]">
               {confirmed ? (isExtra ? '추가 결제가 완료되었습니다' : '결제가 완료되었습니다') : '결제 승인을 확인하고 있습니다'}
             </h1>
-            <p className="mt-3 text-[15px] text-[#657184]">
+            <p className="mt-2 text-[14px] text-[#657184]">
               {confirmed ? '결제 정보가 안전하게 확인되었습니다.' : '승인 결과를 확인하는 동안 잠시만 기다려 주세요.'}
             </p>
 
             {confirmed && (
-              <div className="mt-9 rounded-[14px] border border-[#E3E7EC] bg-[#FAFBFC] px-5 py-6 text-left sm:px-7">
-                <dl className="space-y-5 text-[14px] sm:text-[15px]">
+              <div className="mt-7 rounded-[12px] border border-[#E3E7EC] bg-[#FAFBFC] px-5 py-5 text-left sm:px-6">
+                <dl className="space-y-3 text-[14px]">
                   <div className="flex items-center justify-between gap-4">
                     <dt className="text-[#657184]">결제 상태</dt>
                     <dd className="font-semibold text-[#476A50]">결제 완료</dd>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <dt className="text-[#657184]">결제 금액</dt>
-                    <dd className="text-[22px] font-bold tabular-nums text-[#1E2739]">{paidAmount != null && Number.isFinite(paidAmount) ? `${paidAmount.toLocaleString('ko-KR')}원` : '금액 확인 중'}</dd>
+                    <dd className="text-[20px] font-bold tabular-nums text-[#1E2739]">{paidAmount != null && Number.isFinite(paidAmount) ? `${paidAmount.toLocaleString('ko-KR')}원` : '금액 확인 중'}</dd>
                   </div>
-                  <div className="flex items-start justify-between gap-4 border-t border-[#E3E7EC] pt-5">
+                  <div className="flex items-start justify-between gap-4 border-t border-[#E3E7EC] pt-4">
                     <dt className="shrink-0 text-[#657184]">주문 번호</dt>
                     <dd className="break-all text-right font-medium text-[#344055]">{confirmed.orderId}</dd>
                   </div>
@@ -107,11 +107,11 @@ export default function SuccessPage() {
               </div>
             )}
 
-            <p className="mt-7 text-[13px] text-[#738094]">
+            <p className="mt-6 text-[13px] text-[#738094]">
               {confirmed ? `잠시 후 ${isExtra ? '공고 상세' : '공고 등록 완료'} 화면으로 이동합니다.` : '결제 확인 중에는 페이지를 닫지 말아 주세요.'}
             </p>
             {confirmed && (
-              <button type="button" onClick={() => router.replace(nextHref)} className="mt-5 flex h-[52px] w-full items-center justify-center rounded-[12px] bg-[#1E2739] text-[15px] font-semibold text-white transition-colors hover:bg-[#344055]">
+              <button type="button" onClick={() => router.replace(nextHref)} className="mt-5 flex h-[46px] w-full items-center justify-center rounded-[12px] bg-[#1E2739] text-[14px] font-semibold text-white transition-colors hover:bg-[#344055]">
                 {nextLabel}
               </button>
             )}

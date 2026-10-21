@@ -1,4 +1,4 @@
-import { api, apiDelete, apiPost, apiPut, type SpringPage } from '@/lib/api';
+import { api, apiDelete, apiPatch, apiPost, apiPut, type SpringPage } from '@/lib/api';
 import { daysFromNow, toDateTimeParam } from './lib/date';
 import { toPostDetail, toPostSummary } from './model/mapper';
 import type { PostDetail, PostDto, PostFilters, PostSummary, PostWriteRequest } from './types';
@@ -86,4 +86,9 @@ export function updatePost(postId: number, request: PostWriteRequest): Promise<v
  */
 export async function deletePost(postId: number): Promise<void> {
   await apiDelete<void>(`/api/v1/posts/${postId}`);
+}
+
+/** 매칭된 공고의 동행 매칭을 취소합니다. 작성자 CLIENT 또는 ADMIN만 호출할 수 있습니다. */
+export function cancelMatchedPost(postId: number): Promise<void> {
+  return apiPatch<void>(`/api/v1/posts/${postId}/matchedCancel`);
 }
