@@ -7,6 +7,7 @@ import { Activity, ChevronRight, FileText, LogOut, Receipt, User, CheckCircle2 }
 import { fetchMyProfile, useAuth, type CurrentUser } from '@/features/auth';
 import { fetchMyPosts, type ClientPost } from '@/features/client';
 import DropdownSelect from '@/components/ui/DropdownSelect';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { ApiError } from '@/lib/api';
 import { REGIONS } from '@/lib/regions';
 import {
@@ -162,14 +163,11 @@ export default function ClientInfoView() {
   }, []);
 
   if (!state.user) {
-    return (
-      <div className="w-full py-12 lg:py-16">
-        <div className="mx-auto max-w-[1240px] px-5 sm:px-8 lg:px-16">
-          <h1 className="text-3xl font-semibold tracking-tight text-[#14243A]">의뢰인 마이페이지</h1>
-          <p role={state.error ? 'alert' : 'status'} className="mt-6 text-sm text-[#67717C]">{state.error ? `프로필을 불러오지 못했습니다. (${state.error})` : '내 정보를 불러오는 중입니다.'}</p>
-        </div>
-      </div>
-    );
+    return <PageFeedback
+      kind={state.error ? 'error' : 'loading'}
+      title={state.error ? '의뢰인 프로필을 불러오지 못했습니다.' : '내 정보를 불러오는 중입니다.'}
+      description={state.error}
+    />;
   }
 
   const { user, profile, posts, postsError } = state;

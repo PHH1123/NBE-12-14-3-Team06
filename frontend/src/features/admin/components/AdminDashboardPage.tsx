@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useRequireAuth } from '@/features/auth';
 import AdminShell from './AdminShell';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { AdminRoleBadge } from './AdminMemberBadges';
 import { fetchAdminUsersPage, fetchAllAdminUsers, fetchAdminPaymentAnalytics, fetchAdminDailyPayments, fetchAdminSettlementAnalytics, type AdminUserDto, type AdminPaymentAnalytics, type AdminSettlementAnalytics } from '../api';
 
@@ -224,13 +225,7 @@ export default function AdminDashboardPage() {
   ] : null;
   const sanctionedMembers = allMembers?.filter(m => !m.deleted && m.userStatus !== 'ACTIVE').slice(0, 4) ?? [];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]" role="status">
-        불러오는 중입니다...
-      </div>
-    );
-  }
+  if (loading) return <PageFeedback kind="loading" title="관리자 정보를 확인하는 중입니다." />;
   if (!user || user.role !== 'ADMIN') return null;
 
   return (

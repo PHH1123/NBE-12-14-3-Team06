@@ -15,6 +15,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout';
+import PageFeedback from '@/components/ui/PageFeedback';
 import ManagerGradeCharacter from '@/components/ui/ManagerGradeCharacter';
 import { useRequireAuth } from '@/features/auth';
 import { useChatWidget } from '@/features/chat';
@@ -53,18 +54,10 @@ function InfoBox({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Notice({ title, message, href, action }: { title: string; message?: string; href: string; action: string }) {
-  return (
-    <AppShell>
-      <main className="mx-auto w-full max-w-[1240px] px-5 py-16 sm:px-8 lg:px-16">
-        <div className={`${SURFACE} px-6 py-14 text-center`}>
-          <h1 className="text-xl font-semibold text-[#14243A]">{title}</h1>
-          {message && <p role="alert" className="mt-3 text-sm text-[#67717C]">{message}</p>}
-          <Link href={href} className={`${SECONDARY_BUTTON} mt-7`}>{action}</Link>
-        </div>
-      </main>
-    </AppShell>
-  );
+function Notice({ title, message, href, action, loading = false }: { title: string; message?: string; href: string; action: string; loading?: boolean }) {
+  return <AppShell><PageFeedback kind={loading ? 'loading' : message ? 'error' : 'empty'}
+    title={title} description={message} href={loading ? undefined : href}
+    action={action} /></AppShell>;
 }
 
 /** 기존 실제 보고서·동행 API와 권한 검증은 유지*/
@@ -106,19 +99,19 @@ export default function ClientReportPage() {
     return () => { ignore = true; };
   }, [applicationId]);
 
-  if (authLoading) return <Notice title="인증 정보를 확인하고 있습니다." href="/client/posts" action="작성한 공고로" />;
+  if (authLoading) return <Notice loading title="인증 정보를 확인하고 있습니다." href="/client/posts" action="작성한 공고로" />;
   if (!user) return null;
 
   if (postId === undefined || !Number.isFinite(postId) || !Number.isFinite(applicationId)) {
     return <Notice title="동행 정보를 찾을 수 없습니다." message="올바른 공고에서 진료 보고서를 열어주세요." href="/client/posts" action="작성한 공고로" />;
   }
 
-  if (live.key !== postId) return <Notice title="동행 정보를 불러오는 중입니다." href="/client/posts" action="작성한 공고로" />;
+  if (live.key !== postId) return <Notice loading title="동행 정보를 불러오는 중입니다." href="/client/posts" action="작성한 공고로" />;
   const escort = live.escort;
   if (!escort) return <Notice title="동행 정보를 찾을 수 없습니다." href="/client/posts" action="작성한 공고로" />;
 
-  const escortHref = `/client/escort/${escort.applicationId}`;
-  if (result.key !== applicationId || !result.data) return <Notice title="진료 보고서를 불러오는 중입니다." href={escortHref} action="동행 현황으로" />;
+  const escortHref = `/client/escort/${escort.applicationId}?postId=${escort.postId}`;
+  if (result.key !== applicationId || !result.data) return <Notice loading title="진료 보고서를 불러오는 중입니다." href={escortHref} action="동행 현황으로" />;
 
   const state = result.data;
   if (state.status === 'notFound') return <Notice title="아직 진료 보고서가 작성되지 않았습니다." href={escortHref} action="동행 현황으로" />;

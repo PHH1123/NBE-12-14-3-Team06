@@ -11,6 +11,7 @@ import {
   type AdminEscortProfileDto, type AdminUserDto, type AdminUserUpdate, type AdminSanctionAction,
 } from '../api';
 import AdminShell from './AdminShell';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { AdminRoleBadge, AdminStatusBadge, type AdminMemberRole } from './AdminMemberBadges';
 
 const card = 'rounded-xl border border-[#E1E5E8] bg-white shadow-xs';
@@ -111,7 +112,7 @@ export default function AdminMemberDetailPage() {
     finally { setBusy(false); }
   };
 
-  if (loading) return <div className="min-h-screen bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">불러오는 중입니다...</div>;
+  if (loading) return <PageFeedback kind="loading" title="관리자 정보를 확인하는 중입니다." />;
   if (!user || user.role !== 'ADMIN') return null;
   const locked = busy || !!member?.deleted;
 

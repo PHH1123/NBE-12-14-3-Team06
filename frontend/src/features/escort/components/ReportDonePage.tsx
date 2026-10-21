@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { CheckCircle2, ChevronLeft } from 'lucide-react';
 import { AppShell } from '@/components/layout';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { useRequireAuth } from '@/features/auth';
 import { fetchReport, isReportNotFoundError } from '@/features/report';
 
@@ -31,13 +32,13 @@ export default function ReportDonePage() {
   if (authLoading || (user && Number.isInteger(applicationId) && applicationId > 0 && (result.id !== applicationId || result.state === 'loading'))) {
     return (
       <AppShell>
-        <div className="w-full bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">보고서 제출 내역을 확인하는 중입니다.</div>
+        <PageFeedback kind="loading" title="보고서 제출 내역을 확인하는 중입니다." />
       </AppShell>
     );
   }
   if (!user || user.role !== 'ESCORT') return null;
   if (!Number.isInteger(applicationId) || applicationId <= 0) {
-    return <AppShell><div className="w-full bg-[#F7F8F8] py-24 text-center text-sm text-[#67717C]">잘못된 동행 번호입니다.</div></AppShell>;
+    return <AppShell><PageFeedback kind="error" title="잘못된 동행 번호입니다." href="/mypage/applications" action="신청 목록으로" /></AppShell>;
   }
 
   return (

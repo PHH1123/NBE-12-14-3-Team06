@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { LayoutDashboard, LogOut, Users, UserX, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, LogOut, Users, UserX, ShieldCheck, CreditCard, Wallet } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import { useAuth } from '@/features/auth/lib/AuthProvider';
 
@@ -16,6 +16,8 @@ type AdminMenuItem = {
 const NAV_TABS: AdminMenuItem[] = [
   { label: '대시보드', icon: LayoutDashboard, href: '/admin' },
   { label: '회원 관리', icon: Users, href: '/admin/members' },
+  { label: '결제 관리', icon: CreditCard, href: '/admin/payments' },
+  { label: '정산 관리', icon: Wallet, href: '/admin/settlements' },
   { label: '블랙리스트', icon: UserX, href: '/admin/blacklist' },
   { label: '자격 검증', icon: ShieldCheck, href: '/admin/verification' },
 ];
@@ -37,7 +39,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     }
   };
 
-  const activeHref = pathname.startsWith('/admin/members') ? '/admin/members' : pathname.startsWith('/admin/blacklist') ? '/admin/blacklist' : pathname.startsWith('/admin/verification') ? '/admin/verification' : '/admin';
+  const activeHref = pathname.startsWith('/admin/members') ? '/admin/members' : pathname.startsWith('/admin/payments') ? '/admin/payments' : pathname.startsWith('/admin/settlements') ? '/admin/settlements' : pathname.startsWith('/admin/blacklist') ? '/admin/blacklist' : pathname.startsWith('/admin/verification') ? '/admin/verification' : '/admin';
 
   const renderMenu = (mobile: boolean) => NAV_TABS.map(({ label, icon: Icon, href }) => {
     const isActive = href === activeHref;
