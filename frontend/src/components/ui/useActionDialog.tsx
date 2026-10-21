@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 
 /** 기존 GAJI 리뷰·승인 확인창 디자인을 따르는 공통 확인/안내 모달. */
 type DialogOptions = {
@@ -10,7 +10,7 @@ type DialogOptions = {
   description?: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  tone?: 'default' | 'danger';
+  tone?: 'default' | 'danger' | 'error';
   kind?: 'confirm' | 'notice';
 };
 
@@ -90,7 +90,7 @@ export function useActionDialog() {
   const dialog = active && typeof document !== 'undefined' ? createPortal(
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
-      onMouseDown={(event) => { if (event.target === event.currentTarget && active.kind === 'notice') close(false); }}
+      
     >
       <div
         role="alertdialog"
@@ -99,8 +99,8 @@ export function useActionDialog() {
         aria-describedby={active.description ? descriptionId : undefined}
         className="w-full max-w-sm rounded-2xl border border-[#E1E5E8] bg-white p-6 text-center shadow-xl"
       >
-        <div className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${active.tone === 'danger' ? 'bg-[#B4413C]/10 text-[#B4413C]' : 'bg-[#426B93]/10 text-[#426B93]'}`}>
-          {active.tone === 'danger' ? <AlertTriangle className="h-6 w-6" aria-hidden="true" /> : <CheckCircle2 className="h-6 w-6" aria-hidden="true" />}
+        <div className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${active.tone === 'danger' || active.tone === 'error' ? 'bg-[#B4413C]/10 text-[#B4413C]' : 'bg-[#426B93]/10 text-[#426B93]'}`}>
+          {active.tone === 'error' ? <XCircle className="h-6 w-6" aria-hidden="true" /> : active.tone === 'danger' ? <AlertTriangle className="h-6 w-6" aria-hidden="true" /> : <CheckCircle2 className="h-6 w-6" aria-hidden="true" />}
         </div>
         <h2 id={titleId} className="text-lg font-semibold text-[#14243A]">{active.title}</h2>
         {active.description && <p id={descriptionId} className="mt-3 whitespace-pre-line text-xs leading-relaxed text-[#67717C]">{active.description}</p>}

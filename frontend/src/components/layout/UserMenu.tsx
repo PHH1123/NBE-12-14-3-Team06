@@ -73,7 +73,6 @@ export default function UserMenu({ name, href, items, role, transparent = false,
           { label: '결제 관리', href: '/admin/payments' },
           { label: '정산 관리', href: '/admin/settlements' },
           { label: '블랙리스트', href: '/admin/blacklist' },
-          { label: '자격 검증', href: '/admin/verification' },
         ]
       : available;
   const roleLabel = role === 'CLIENT' ? '의뢰인' : role === 'ESCORT' ? '동행 매니저' : role === 'ADMIN' ? '관리자' : '';
