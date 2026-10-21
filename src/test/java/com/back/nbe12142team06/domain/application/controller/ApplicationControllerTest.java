@@ -29,6 +29,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,10 +39,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -139,7 +137,7 @@ public class ApplicationControllerTest {
                 .pickupLat(BigDecimal.valueOf(37.2636))
                 .pickupLng(BigDecimal.valueOf(127.0286))
                 .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().plusDays(1))
+                .recruitStartAt(LocalDateTime.now().minusDays(1))
                 .recruitEndAt(LocalDateTime.now().plusDays(2))
                 .escortStartAt(LocalDateTime.now().plusDays(3))
                 .escortEndAt(LocalDateTime.now().plusDays(3).plusHours(3))
@@ -243,6 +241,73 @@ public class ApplicationControllerTest {
         );
     }
 
+    @Test
+    @DisplayName("[ApplicationController] 지원하기 - 모집 시작 전에는 지원 불가")
+    void applyBeforeRecruitStart() throws Exception {
+
+        // given: 모집 시작일을 내일로 변경
+        Post post = postRepository.findById(testPostId)
+                .orElseThrow();
+
+        ReflectionTestUtils.setField(
+                post,
+                "recruitStartAt",
+                LocalDateTime.now().plusDays(1)
+        );
+
+        postRepository.saveAndFlush(post);
+
+        // when: 동행매니저가 지원 요청
+        mvc.perform(post("/api/v1/applications/{postId}", testPostId)
+                        .cookie(escortAccessTokenCookie))
+
+                // then: 모집 기간 오류 반환
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value("400-26"))
+                .andExpect(jsonPath("$.msg")
+                        .value("모집 기간 내에만 지원할 수 있습니다."));
+
+        // 실제 지원 데이터가 저장되지 않았는지 확인
+        assertTrue(
+                applicationRepository
+                        .findAllByPostIdWithEscort(testPostId)
+                        .isEmpty()
+        );
+    }
+
+    @Test
+    @DisplayName("[ApplicationController] 지원하기 - 모집 마감 후에는 OPEN이어도 지원 불가")
+    void applyAfterRecruitEnd() throws Exception {
+
+        // given: 모집 마감일을 1분 전으로 변경
+        Post post = postRepository.findById(testPostId)
+                .orElseThrow();
+
+        ReflectionTestUtils.setField(
+                post,
+                "recruitEndAt",
+                LocalDateTime.now().minusMinutes(1)
+        );
+
+        postRepository.saveAndFlush(post);
+
+        // when: 동행매니저가 지원 요청
+        mvc.perform(post("/api/v1/applications/{postId}", testPostId)
+                        .cookie(escortAccessTokenCookie))
+
+                // then: 모집 기간 오류 반환
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value("400-26"))
+                .andExpect(jsonPath("$.msg")
+                        .value("모집 기간 내에만 지원할 수 있습니다."));
+
+        // 지원 내역이 생성되지 않았는지 확인
+        assertTrue(
+                applicationRepository
+                        .findAllByPostIdWithEscort(testPostId)
+                        .isEmpty()
+        );
+    }
 
     @Test
     @DisplayName("[ApplicationController] 지원하기 - 영구 정지 회원은 지원할 수 없다")
@@ -542,7 +607,7 @@ public class ApplicationControllerTest {
                 .pickupLat(BigDecimal.valueOf(37.2636))
                 .pickupLng(BigDecimal.valueOf(127.0286))
                 .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().plusDays(1))
+                .recruitStartAt(LocalDateTime.now().minusDays(1))
                 .recruitEndAt(LocalDateTime.now().plusDays(2))
                 .escortStartAt(LocalDateTime.now().plusDays(3))
                 .escortEndAt(LocalDateTime.now().plusDays(3).plusHours(3))
@@ -1094,7 +1159,7 @@ public class ApplicationControllerTest {
                 .pickupLat(BigDecimal.valueOf(37.2700))
                 .pickupLng(BigDecimal.valueOf(127.0300))
                 .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().plusDays(1))
+                .recruitStartAt(LocalDateTime.now().minusDays(1))
                 .recruitEndAt(LocalDateTime.now().plusDays(2))
 
                 // 기존 testPost: 3일 뒤 ~ 3일 뒤 + 3시간
@@ -1205,7 +1270,7 @@ public class ApplicationControllerTest {
                 .pickupLat(BigDecimal.valueOf(37.2700))
                 .pickupLng(BigDecimal.valueOf(127.0300))
                 .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().plusDays(1))
+                .recruitStartAt(LocalDateTime.now().minusDays(1))
                 .recruitEndAt(LocalDateTime.now().plusDays(2))
 
                 // 기존 testPost: 3일 뒤 ~ 3일 뒤 + 3시간
@@ -1373,7 +1438,7 @@ public class ApplicationControllerTest {
                 .pickupLat(BigDecimal.valueOf(37.2700))
                 .pickupLng(BigDecimal.valueOf(127.0300))
                 .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().plusDays(1))
+                .recruitStartAt(LocalDateTime.now().minusDays(1))
                 .recruitEndAt(LocalDateTime.now().plusDays(2))
 
                 // 기존 testPost: 3일 뒤 ~ 3일 뒤 + 3시간
@@ -2486,7 +2551,7 @@ public class ApplicationControllerTest {
                 .pickupLat(BigDecimal.valueOf(37.2636))
                 .pickupLng(BigDecimal.valueOf(127.0286))
                 .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().plusDays(1))
+                .recruitStartAt(LocalDateTime.now().minusDays(1))
                 .recruitEndAt(LocalDateTime.now().plusDays(2))
                 .escortStartAt(LocalDateTime.now().plusDays(3))
                 .escortEndAt(LocalDateTime.now().plusDays(3).plusHours(3))

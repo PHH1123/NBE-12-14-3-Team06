@@ -1,7 +1,8 @@
 # application-dev.yaml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/${POSTGRES_DB}?allowPublicKeyRetrieval=true&useSSL=false
+#    url: jdbc:postgresql://localhost:5433/${POSTGRES_DB}?allowPublicKeyRetrieval=true&useSSL=false   # MySQL 용 옵션이 남아 있어 주석 처리
+    url: jdbc:postgresql://localhost:5433/${POSTGRES_DB}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver

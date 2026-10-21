@@ -74,6 +74,11 @@ public class ApplicationService {
             throw new InvalidException(21, "모집 중인 공고에만 지원할 수 있습니다.");
         }
 
+        // 공고가 OPEN 상태여도 모집 시작 전이거나 마감 후라면 지원할 수 없다.
+        if (!post.isWithinPeriod(LocalDateTime.now())) {
+            throw new InvalidException(26, "모집 기간 내에만 지원할 수 있습니다.");
+        }
+
         User escort = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(1, "회원 정보를 찾을 수 없습니다."));
 

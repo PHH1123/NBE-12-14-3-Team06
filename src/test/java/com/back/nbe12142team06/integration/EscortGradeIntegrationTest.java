@@ -108,7 +108,10 @@ class EscortGradeIntegrationTest {
 
         Post post = postService.findById(postService.write(client.getId(), request).id());
         paymentRepository.testStatusDone(post.getId());   // 결제 완료 상태로 만든다
+        // 공고 다시 조회
+        post = postService.findById(post.getId());
 
+        ReflectionTestUtils.setField(post, "recruitStartAt", LocalDateTime.now().minusMinutes(1));
         Long applicationId = applicationService.apply(post.getId(), escort.getId()).id();
         applicationService.accept(applicationId, client.getId());
 
