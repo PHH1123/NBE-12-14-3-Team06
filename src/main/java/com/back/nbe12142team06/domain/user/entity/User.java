@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.global.crypto.PiiConverter;
+import com.back.nbe12142team06.global.crypto.PiiLocalDateConverter;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
@@ -55,7 +56,8 @@ public class User extends BaseSoftDeleteTimeEntity {
     private Gender gender;
 
     // 회원 생년월일
-    @Column(nullable = false)
+    @Convert(converter = PiiLocalDateConverter.class)
+    @Column(nullable = false, length = 255)
     private LocalDate birthDate;
 
     // 회원 전화번호
