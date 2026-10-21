@@ -22,10 +22,7 @@ import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.enums.UserStatus;
-import com.back.nbe12142team06.domain.user.repository.ClientProfileRepository;
-import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
-import com.back.nbe12142team06.domain.user.repository.UserRepository;
-import com.back.nbe12142team06.domain.user.repository.UserStatusHistoryRepository;
+import com.back.nbe12142team06.domain.user.repository.*;
 import com.back.nbe12142team06.global.exception.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,6 +62,7 @@ public class UserService {
     private final PostService postService;
     private final PaymentService paymentService;
     private final SettlementService settlementService;
+    private final EscortGradeHistoryRepository escortGradeHistoryRepository;
 
 
 
@@ -390,7 +388,7 @@ public class UserService {
     // [ADMIN] 관리자용 회원 탈퇴
     @Transactional
     public void deleteUser(Long adminId, Long userId) {
-        User user = this.userRepository.findByIdIncludingDeleted(userId)
+        User user = this.userRepository.findByIdIncludingDeletedWithLock(userId)
                 .orElseThrow(() -> new NotFoundException(1, "회원 정보를 찾을 수 없습니다."));
 
         // 관리자는 자신에 대한 탈퇴 불가
@@ -513,6 +511,7 @@ public class UserService {
             case CLIENT -> this.clientProfileRepository.deleteByUserId(userId);
             case ESCORT -> {
                 this.educationService.deleteProgresses(userId);
+                this.escortGradeHistoryRepository.deleteAllByEscortUserId(userId);
                 this.escortProfileRepository.deleteByUserId(userId);
             }
         }

@@ -100,10 +100,8 @@ public class EducationService {
     // 동행 매니저 탈퇴 시 교육 데이터 삭제 (로그 → 진행 상황 순서)
     @Transactional
     public void deleteProgresses(Long userId) {
-        List<EducationProgress> progresses = this.educationProgressRepository.findAllByEscortProfileUserId(userId);
-
-        this.watchProgressLogRepository.deleteAllByEducationProgressIn(progresses);
-        this.educationProgressRepository.deleteAll(progresses);
+        this.watchProgressLogRepository.deleteAllByEscortUserId(userId);
+        this.educationProgressRepository.deleteAllByEscortUserId(userId);
     }
 
     // 필수 영상을 모두 완료했는지

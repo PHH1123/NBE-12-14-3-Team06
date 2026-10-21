@@ -15,9 +15,9 @@ public interface EscortProfileRepository extends JpaRepository<EscortProfile, Lo
     Optional<EscortProfile> findByIdWithUser(@Param("userId") Long userId);
 
 
-    @Modifying
+    @Modifying(flushAutomatically = true)
     @Query("delete from EscortProfile p where p.user.id = :userId")
-    void deleteByUserId(Long userId);
+    void deleteByUserId(@Param("userId") Long userId);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
