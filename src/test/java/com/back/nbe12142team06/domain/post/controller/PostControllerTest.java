@@ -1119,6 +1119,7 @@ public class PostControllerTest {
                 .filter(p -> p.getPost().getId().equals(postId))
                 .findFirst()
                 .orElseThrow();
+        payment.statusUpdate(PaymentStatus.IN_PROGRESS);   // 결제 대기 → 결제 중 → 결제 완료 순서를 지킨다
         payment.statusUpdate(PaymentStatus.DONE);
         paymentRepository.saveAndFlush(payment);
         return postId;
