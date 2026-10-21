@@ -34,18 +34,15 @@ public class Report extends BaseTimeEntity {  // createdAt, updatedAt 상속
     @Column(nullable = false, length = 200)
     private String purpose;  // 진료 목적 (한 줄)
 
-    // length 를 명시하지 않으면 기본값 255 가 적용되어 MySQL 에서 tinytext(255바이트)로 생성된다.
-    // 한글은 글자당 3바이트라 85자면 꽉 차므로, 65535 를 지정해 text 로 생성되게 한다.
-    @Lob
-    @Column(name = "origin_content", nullable = false, length = 65535)
+    // @Lob 은 PostgreSQL 에서 oid(대용량 객체)로 만들어져 트랜잭션 밖에서 읽으면 오류가 날 수 있어서,
+    // 긴 문자열은 TEXT 컬럼으로 직접 지정한다.
+    @Column(name = "origin_content", nullable = false, columnDefinition = "TEXT")
     private String originContent;  // 동행인이 작성한 진료 내용 본문 (원문)
 
-    @Lob
-    @Column(length = 65535)
+    @Column(columnDefinition = "TEXT")
     private String notes;  // 특이사항 (선택)
 
-    @Lob
-    @Column(name = "ai_summary", length = 65535)
+    @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;  // LLM 요약본 (JSON 문자열, nullable / 요약 완료 후 채워짐)
 
     @Column(name = "summarized_at")
