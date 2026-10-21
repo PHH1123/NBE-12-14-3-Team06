@@ -37,7 +37,8 @@ public class User extends BaseSoftDeleteTimeEntity {
     private String password;
 
     // 회원 이메일
-    @Column(nullable = false, unique = true)
+    @Convert(converter = PiiConverter.class)
+    @Column(nullable = false, unique = true, length = 500)
     private String email;
 
     // 회원 실명
