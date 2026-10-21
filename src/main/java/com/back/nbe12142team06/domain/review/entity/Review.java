@@ -31,7 +31,7 @@ public class Review extends BaseTimeEntity {  // createdAt, updatedAt 상속
     @NotNull(message = "별점은 필수입니다.")
     @Min(value = 1, message = "별점은 1점 이상이어야 합니다.")
     @Max(value = 5, message = "별점은 5점 이하여야 합니다.")
-    @Column(nullable = false, columnDefinition = "TINYINT")
+    @Column(nullable = false, columnDefinition = "SMALLINT")
     private Integer rating;  // 별점 (CHECK 1~5)
 
     // 선택형 후기 태그 (다중 선택 최대 5개 / review_tag 테이블에 별도 저장)
