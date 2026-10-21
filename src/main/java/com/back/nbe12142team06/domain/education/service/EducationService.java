@@ -102,7 +102,7 @@ public class EducationService {
     public void deleteProgresses(Long userId) {
         List<EducationProgress> progresses = this.educationProgressRepository.findAllByEscortProfileUserId(userId);
 
-        this.watchProgressLogRepository.deleteAllByEducationProgressIn(progresses);
+        this.watchProgressLogRepository.deleteAllByEscortUserId(userId);
         this.educationProgressRepository.deleteAll(progresses);
     }
 
