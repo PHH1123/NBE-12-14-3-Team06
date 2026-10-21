@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users")
 @SQLRestriction("deleted_at IS NULL")
+@EntityListeners(UserBlindIndexListener.class)
 public class User extends BaseSoftDeleteTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -111,12 +112,20 @@ public class User extends BaseSoftDeleteTimeEntity {
         this.region = region;
     }
 
+    // 블라인드 인덱스 설정
+    public void updateBlindIndex(String emailHash, String phoneNumHash) {
+        this.emailHash = emailHash;
+        this.phoneNumHash = phoneNumHash;
+    }
+
     // 회원 탈퇴 시
     public void deleteUser(){
         this.setDeletedAt(LocalDateTime.now());
         this.username = "deleted_%d".formatted(this.id);
         this.email = "deleted_%d".formatted(this.id);
         this.phoneNum = "deleted_%d".formatted(this.id);
+        this.emailHash = null;
+        this.phoneNumHash = null;
     }
 
     // 탈퇴 여부

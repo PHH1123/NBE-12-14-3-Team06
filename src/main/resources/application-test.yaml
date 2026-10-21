@@ -23,3 +23,4 @@ custom:
     secret-key: ${TOSS_SECRET:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}
   crypto:
     encryption-key: 5XWW67fzm7t8wH/4+WYfHb/HUfiWrsQBjuuI2Pu0sys=
+    hmac-key: 2Fh3aY3872U9OTSOn/LDFv4BUomfTAdJzHQHboLE2RE=

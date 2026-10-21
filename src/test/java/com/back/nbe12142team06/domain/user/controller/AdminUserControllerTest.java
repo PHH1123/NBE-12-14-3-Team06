@@ -64,6 +64,8 @@ public class AdminUserControllerTest {
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
+    private int phoneSeq = 0;
+
     // 정지 해제 요청
     private ResultActions requestRelease(Long userId, Cookie token) throws Exception {
         var request = post("/api/v1/admin/users/{userId}/release", userId)
@@ -158,6 +160,9 @@ public class AdminUserControllerTest {
 
     // 역할 지정 회원가입 후 accessToken 쿠키 반환
     private Cookie signUp(String username, String role) throws Exception {
+        // 전화번호 형식 검증(@Pattern)을 통과하면서 회원마다 겹치지 않는 번호
+        String phoneNum = "010-8080-%04d".formatted(++phoneSeq);
+
         String signUpBody = """
                 {
                     "username": "%s",
@@ -167,10 +172,10 @@ public class AdminUserControllerTest {
                     "role": "%s",
                     "gender": "MALE",
                     "birthDate": "1990-05-20",
-                    "phoneNum": "%s010-8080-0000",
+                    "phoneNum": "%s",
                     "region": "서울시"
                 }
-                """.formatted(username, username, role, username);
+                """.formatted(username, username, role, phoneNum);
 
         Cookie accessToken = mvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -201,31 +206,9 @@ public class AdminUserControllerTest {
     }
 
     // 일반 회원 가입 후 accessToken 쿠키 반환 (가입 시 토큰이 발급됨)
+    // 일반 회원 가입 후 accessToken 쿠키 반환 (가입 시 토큰이 발급됨)
     private Cookie signUp(String username) throws Exception {
-        String signUpBody = """
-                {
-                    "username": "%s",
-                    "password": "testPassword",
-                    "email": "%s@user.user",
-                    "name": "김춘식",
-                    "role": "CLIENT",
-                    "gender": "MALE",
-                    "birthDate": "1990-05-20",
-                    "phoneNum": "%s010-8080-0000",
-                    "region": "서울시"
-                }
-                """.formatted(username, username, username);
-
-        Cookie accessToken = mvc.perform(post("/api/v1/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(signUpBody))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getCookie("accessToken");
-
-        assertThat(accessToken).isNotNull();
-        return accessToken;
+        return signUp(username, "CLIENT");
     }
 
     private Long findUserId(String username) {
@@ -257,7 +240,7 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.data.role").value("CLIENT"))
                 .andExpect(jsonPath("$.data.gender").value("MALE"))
                 .andExpect(jsonPath("$.data.birthDate").value("1990-05-20"))
-                .andExpect(jsonPath("$.data.phoneNum").value("user1010-8080-0000"))
+                .andExpect(jsonPath("$.data.phoneNum").value("010-8080-0001"))
                 .andExpect(jsonPath("$.data.region").value("서울시"))
                 .andExpect(jsonPath("$.data.createdAt").exists())
                 .andExpect(jsonPath("$.data.password").doesNotExist())

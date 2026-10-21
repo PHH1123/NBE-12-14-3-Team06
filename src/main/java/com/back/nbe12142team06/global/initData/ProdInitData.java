@@ -6,6 +6,7 @@ import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import com.back.nbe12142team06.global.crypto.BlindIndexer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,7 @@ public class ProdInitData {
     private final EducationVideoRepository educationVideoRepository;
     private final PasswordEncoder passwordEncoder;
     private final PlatformTransactionManager transactionManager;
+    private final BlindIndexer blindIndexer;
 
     @Value("${custom.admin.username}")
     private String adminUsername;
@@ -82,8 +84,12 @@ public class ProdInitData {
             return;
         }
 
+        // 이메일·전화번호는 암호화돼 있어 원본으로 비교할 수 없으므로 블라인드 인덱스(해시)로 비교합니다.
+        String adminEmailHash = this.blindIndexer.hashEmail(adminEmail);
+        String adminPhoneNumHash = this.blindIndexer.hashPhoneNum(adminPhoneNum);
+
         // 아이디는 없는데 이메일·전화번호를 다른 회원이 쓰고 있으면 유니크 제약에 걸리므로 먼저 알려 줍니다.
-        if (userRepository.existsByEmail(adminEmail) || userRepository.existsByPhoneNum(adminPhoneNum)) {
+        if (userRepository.existsByEmailHash(adminEmailHash) || userRepository.existsByPhoneNumHash(adminPhoneNumHash)) {
             throw new IllegalStateException("관리자 이메일 또는 전화번호를 이미 다른 회원이 사용 중입니다. .env 값을 확인해주세요.");
         }
 
