@@ -37,8 +37,7 @@ public class Post extends BaseSoftDeleteTimeEntity {  // createdAt, updatedAt, d
     @Column(nullable = false)
     private String title;  // 공고 제목
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;  // 공고 상세 내용 (TEXT)
 
     @Column(name = "patient_note", length = 500)

@@ -1,4 +1,4 @@
-package com.back.nbe12142team06.domain.user.service;
+package com.back.nbe12142team06.concurrency;
 
 import com.back.nbe12142team06.DatabaseCleaner;
 import com.back.nbe12142team06.domain.user.dto.signup.common.UserSignUpRequest;
@@ -7,7 +7,9 @@ import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
+import com.back.nbe12142team06.domain.user.service.UserService;
 import com.back.nbe12142team06.global.exception.DuplicatedException;
+import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.UnauthorizedException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -196,5 +198,54 @@ class UserConcurrencyTest {
             assertThat(result.isDeleted()).as("탈퇴 실패 시 회원 유지").isFalse();
             assertThat(result.getEmail()).as("수정 반영").isEqualTo("new@test.com");
         }
+    }
+
+    @Test
+    @DisplayName("[UserConcurrencyTest] 관리자 탈퇴 - 같은 회원을 동시에 탈퇴시키면 1건만 성공하고 나머지는 이미 탈퇴한 회원으로 거절")
+    void t3() throws InterruptedException {
+        Long userId = this.userService.signUp(createRequest("user1", 0)).getId();
+        // deleteUser 는 adminId 를 자기 자신 탈퇴 여부 비교에만 쓴다
+        Long adminId = Long.MAX_VALUE;
+
+        CountDownLatch ready = new CountDownLatch(THREAD_COUNT);
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(THREAD_COUNT);
+
+        AtomicInteger success = new AtomicInteger();
+        AtomicInteger alreadyDeleted = new AtomicInteger();
+        List<Throwable> unexpected = Collections.synchronizedList(new ArrayList<>());
+
+        boolean finished;
+        try (ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT)) {
+            for (int i = 0; i < THREAD_COUNT; i++) {
+                executor.submit(() -> {
+                    ready.countDown();
+                    try {
+                        start.await();
+                        this.userService.deleteUser(adminId, userId);
+                        success.incrementAndGet();
+                    } catch (InvalidException e) {
+                        // 먼저 커밋된 탈퇴를 잠금 대기 후 확인하고 거절
+                        alreadyDeleted.incrementAndGet();
+                    } catch (Throwable e) {
+                        unexpected.add(e);
+                    } finally {
+                        done.countDown();
+                    }
+                });
+            }
+
+            ready.await();
+            start.countDown();
+            finished = done.await(10, TimeUnit.SECONDS);
+        }
+
+        assertThat(finished).as("제한 시간 내 종료").isTrue();
+        assertThat(unexpected).as("예상하지 못한 예외").isEmpty();
+        assertThat(success.get()).as("탈퇴 성공은 1건").isEqualTo(1);
+        assertThat(alreadyDeleted.get()).as("나머지는 이미 탈퇴로 거절").isEqualTo(THREAD_COUNT - 1);
+
+        User result = this.userRepository.findByIdIncludingDeleted(userId).orElseThrow();
+        assertThat(result.isDeleted()).as("탈퇴 상태").isTrue();
     }
 }
