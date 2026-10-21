@@ -71,6 +71,10 @@ dependencies {
 
     // 웹소켓
     implementation ("org.springframework.boot:spring-boot-starter-websocket")
+
+    // 캐싱
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
 }
 
 tasks.named('test', Test) {

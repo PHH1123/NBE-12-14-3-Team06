@@ -60,8 +60,10 @@ public class PostController {
                 keyword, region, dateFrom, dateTo, minPay, maxPay, openOnly);
 
         // 목록은 환자 특이사항이 필요 없으므로 모두에게 가린다 (상세 조회에서만 권한에 따라 노출)
-        Page<PostDto> postDtoPage = postService.search(condition, PageRequest.of(page, size, sortOption))
-                .map(post -> new PostDto(post, false));
+        /*Page<PostDto> postDtoPage = postService.search(condition, PageRequest.of(page, size, sortOption))
+                .map(post -> new PostDto(post, false));*/
+
+        Page<PostDto> postDtoPage = postService.searchDtos(condition, PageRequest.of(page, size, sortOption));
 
         if (postDtoPage.isEmpty()) {
             return new RsData<>("200-12", "조회 내역이 없습니다.", postDtoPage);
