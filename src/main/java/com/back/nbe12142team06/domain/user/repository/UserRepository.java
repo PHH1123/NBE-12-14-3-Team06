@@ -37,6 +37,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query(value = "SELECT * FROM users WHERE id = :id", nativeQuery = true)
     Optional<User> findByIdIncludingDeleted(@Param("id") Long id);
 
+    // [ADMIN] 탈퇴 회원 포함 단건 조회 + 비관적 잠금 (관리자 탈퇴용)
+    @Query(value = "SELECT * FROM users WHERE id = :id FOR UPDATE", nativeQuery = true)
+    Optional<User> findByIdIncludingDeletedWithLock(@Param("id") Long id);
+
     // [ADMIN] 탈퇴 회원 포함 목록 조회
     @Query(
             value = "SELECT * FROM users order by id DESC",

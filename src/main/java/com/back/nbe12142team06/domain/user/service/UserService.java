@@ -388,7 +388,7 @@ public class UserService {
     // [ADMIN] 관리자용 회원 탈퇴
     @Transactional
     public void deleteUser(Long adminId, Long userId) {
-        User user = this.userRepository.findByIdIncludingDeleted(userId)
+        User user = this.userRepository.findByIdIncludingDeletedWithLock(userId)
                 .orElseThrow(() -> new NotFoundException(1, "회원 정보를 찾을 수 없습니다."));
 
         // 관리자는 자신에 대한 탈퇴 불가
