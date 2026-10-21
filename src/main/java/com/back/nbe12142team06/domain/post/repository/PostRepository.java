@@ -18,14 +18,15 @@ import java.util.Optional;
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("SELECT p FROM Post p JOIN FETCH p.client " +
-            "WHERE (:keyword IS NULL OR p.title LIKE CONCAT('%', :keyword, '%') " +
-            "       OR p.hospitalName LIKE CONCAT('%', :keyword, '%') " +
-            "       OR p.region LIKE CONCAT('%', :keyword, '%')) " +
-            "AND (:region IS NULL OR p.region = :region) " +
-            "AND (:dateFrom IS NULL OR p.escortStartAt >= :dateFrom) " +
-            "AND (:dateTo IS NULL OR p.escortStartAt <= :dateTo) " +
-            "AND (:minPay IS NULL OR p.hourlyPay >= :minPay) " +
-            "AND (:maxPay IS NULL OR p.hourlyPay <= :maxPay) " +
+            // 선택 조건(null 가능)은 PostgreSQL 이 파라미터 타입을 추측하지 못해 오류가 나므로(bytea / could not determine data type) CAST 로 타입을 명시한다
+            "WHERE (CAST(:keyword AS string) IS NULL OR p.title LIKE CONCAT('%', CAST(:keyword AS string), '%') " +
+            "       OR p.hospitalName LIKE CONCAT('%', CAST(:keyword AS string), '%') " +
+            "       OR p.region LIKE CONCAT('%', CAST(:keyword AS string), '%')) " +
+            "AND (CAST(:region AS string) IS NULL OR p.region = :region) " +
+            "AND (CAST(:dateFrom AS LocalDateTime) IS NULL OR p.escortStartAt >= :dateFrom) " +
+            "AND (CAST(:dateTo AS LocalDateTime) IS NULL OR p.escortStartAt <= :dateTo) " +
+            "AND (CAST(:minPay AS Integer) IS NULL OR p.hourlyPay >= :minPay) " +
+            "AND (CAST(:maxPay AS Integer) IS NULL OR p.hourlyPay <= :maxPay) " +
             "AND ((:openOnly = TRUE AND p.postStatus = com.back.nbe12142team06.domain.post.entity.PostStatus.OPEN) " +
             "     OR (:openOnly = FALSE AND p.postStatus <> com.back.nbe12142team06.domain.post.entity.PostStatus.OPEN)) " +
             "AND EXISTS (" +
