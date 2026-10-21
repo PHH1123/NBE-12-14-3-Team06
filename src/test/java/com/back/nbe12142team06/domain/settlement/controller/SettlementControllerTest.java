@@ -33,6 +33,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -161,6 +162,10 @@ class SettlementControllerTest {
         PostWriteResponse post2 = postService.write(savedUser1.getId(), postWriteRequest2);
         paymentRepository.testStatusDone(post2.id());
 
+        // 영속성 컨텍스트 초기화 후 공고 다시 조회
+        savedPost1 = postService.findById(savedPost1.getId());
+
+        ReflectionTestUtils.setField(savedPost1, "recruitStartAt", LocalDateTime.now().minusMinutes(1));
         ApplicationApplyResponse applyResponse1 = applicationService.apply(savedPost1.getId(), savedUser2.getId());
         ApplicationAcceptResponse acceptResponse1 = applicationService.accept(applyResponse1.id(), savedUser1.getId());
 
@@ -208,7 +213,7 @@ class SettlementControllerTest {
     @DisplayName("[SettlementController] 정산 요청 - 성공")
     void settlementReq() throws Exception {
 
-        savedPost1.match();                                         // 모집 중 → 매칭 완료 → 동행 진행 중 → 동행 완료 순서를 지킨다
+        // init()에서 이미 MATCHED 상태로 변경됨
         savedPost1.startProgress(LocalDateTime.now().minusHours(1));
         savedPost1.complete(LocalDateTime.now()); //post.complete() 변경으로 now() 추가
 

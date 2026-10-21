@@ -126,6 +126,11 @@ public class Post extends BaseSoftDeleteTimeEntity {  // createdAt, updatedAt, d
         this.reportRequired = reportRequired;
     }
 
+    // 모집 시작,마감 시간 포함하여 모집 기간인지 확인
+    public boolean isWithinPeriod(LocalDateTime now){
+        return !now.isBefore(recruitStartAt) && !now.isAfter(recruitEndAt);
+    }
+
     // 동행 시간(시간 단위, 소수점 1자리) = 동행 종료 - 동행 시작
     public BigDecimal getEscortHours() {
         //2시간30분인경우 2.5시간 * 10,000 = 25,000

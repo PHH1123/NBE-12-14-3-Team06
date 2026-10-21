@@ -1,6 +1,5 @@
 package com.back.nbe12142team06.integration;
 
-import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.application.service.ApplicationService;
@@ -25,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -98,6 +98,9 @@ class PostCancelApplicationIntegrationTest {
 
         Post post = postService.findById(postService.write(client.getId(), request).id());
         paymentRepository.testStatusDone(post.getId());
+        // 공고 다시 조회
+        post = postService.findById(post.getId());
+        ReflectionTestUtils.setField(post, "recruitStartAt", LocalDateTime.now().minusMinutes(1));
         return post;
     }
 
