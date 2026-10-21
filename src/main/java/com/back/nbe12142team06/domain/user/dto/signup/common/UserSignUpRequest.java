@@ -16,6 +16,7 @@ public record UserSignUpRequest(
 
         @NotBlank(message = "이메일은 필수 항목입니다.")
         @Email(message = "이메일 형식이 올바르지 않습니다.")  // 이메일 형식 검증
+        @Size(max = 100, message = "이메일은 100자 이하여야 합니다.")
         String email,
 
         @NotBlank(message = "이름은 필수 항목입니다.")
