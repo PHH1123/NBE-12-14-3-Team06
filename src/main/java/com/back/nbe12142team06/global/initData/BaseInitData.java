@@ -9,6 +9,10 @@ import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.post.entity.PostStatus;
 import com.back.nbe12142team06.domain.post.repository.PostRepository;
+import com.back.nbe12142team06.domain.ride.entity.Ride;
+import com.back.nbe12142team06.domain.ride.entity.RideDirection;
+import com.back.nbe12142team06.domain.ride.entity.RideSelect;
+import com.back.nbe12142team06.domain.ride.repository.RideRepository;
 import com.back.nbe12142team06.domain.user.entity.ClientProfile;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
@@ -74,6 +78,7 @@ public class BaseInitData {
     private final EducationService educationService;
     private final ClientProfileRepository clientProfileRepository;
     private final UserStatusHistoryRepository userStatusHistoryRepository;
+    private final RideRepository rideRepository;
 
     @PersistenceContext
     private EntityManager em;
@@ -321,6 +326,10 @@ public class BaseInitData {
                     .build();
             postRepository.save(post);
 
+            // 이동 수단 데이터 생성
+            rideRepository.save(createRide(RideDirection.TO_HOSPITAL, RideSelect.TAXI, post));
+            rideRepository.save(createRide(RideDirection.TO_HOME, RideSelect.TAXI, post));
+
             // 목록 API 가 "결제 완료(DONE)" 된 공고만 보여주므로, 공고마다 결제를 하나씩 만들어 둡니다.
             // 단, readyPaymentIndexes 에 해당하는 3건은 결제 대기(READY) 상태로 남겨서
             // "결제 완료 처리" 테스트용으로 씁니다. (이 3건은 목록 API 에는 노출되지 않습니다.)
@@ -467,5 +476,13 @@ public class BaseInitData {
     /** 오늘 23:59 — 프론트 daysUntil() 계산상 "오늘 마감"(closing 뱃지)이 되도록 */
     private static LocalDateTime today2359() {
         return LocalDate.now().atTime(23, 59);
+    }
+
+    private Ride createRide(RideDirection direction, RideSelect select, Post post) {
+        return Ride.builder()
+                .direction(direction)
+                .selected(select)
+                .post(post)
+                .build();
     }
 }
