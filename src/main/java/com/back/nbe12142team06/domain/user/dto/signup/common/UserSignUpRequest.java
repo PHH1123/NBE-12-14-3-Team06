@@ -19,6 +19,7 @@ public record UserSignUpRequest(
         String email,
 
         @NotBlank(message = "이름은 필수 항목입니다.")
+        @Size(max = 50, message = "이름은 50자 이하여야 합니다.")
         String name,
 
         @NotNull(message = "동행인, 의뢰인 중 역할을 골라주세요.")

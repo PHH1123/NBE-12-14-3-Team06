@@ -3,6 +3,7 @@ package com.back.nbe12142team06.domain.user.entity;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.enums.UserStatus;
+import com.back.nbe12142team06.global.crypto.PiiConverter;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
@@ -39,7 +40,8 @@ public class User extends BaseSoftDeleteTimeEntity {
     private String email;
 
     // 회원 실명
-    @Column(nullable = false, length = 50)
+    @Convert(converter = PiiConverter.class)
+    @Column(nullable = false, length = 255)
     private String name;
 
     // 회원 역할
