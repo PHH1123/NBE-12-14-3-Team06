@@ -37,6 +37,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
@@ -83,6 +84,9 @@ public class UserControllerTest {
     @Value("${custom.jwt.secret-key}")
     private String secretKey;
 
+    // signUp 도우미가 회원마다 서로 다른 전화번호를 만들기 위한 일련번호
+    private static final AtomicInteger PHONE_SEQ = new AtomicInteger();
+
     // 관리자 계정 주입
     private void createTestAdmin() {
         User admin = new User(
@@ -127,6 +131,9 @@ public class UserControllerTest {
 
     // 역할 지정 회원가입 후 accessToken 쿠키 반환
     private Cookie signUp(String username, String role) throws Exception {
+        // 전화번호 형식 검증(@Pattern)을 통과하면서 회원마다 겹치지 않는 번호
+        String phoneNum = "010-8080-%04d".formatted(PHONE_SEQ.incrementAndGet());
+
         String signUpBody = """
                 {
                     "username": "%s",
@@ -136,10 +143,10 @@ public class UserControllerTest {
                     "role": "%s",
                     "gender": "MALE",
                     "birthDate": "1990-05-20",
-                    "phoneNum": "%s010-8080-0000",
+                    "phoneNum": "%s",
                     "region": "서울시"
                 }
-                """.formatted(username, username, role, username);
+                """.formatted(username, username, role, phoneNum);
 
         Cookie accessToken = mvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
