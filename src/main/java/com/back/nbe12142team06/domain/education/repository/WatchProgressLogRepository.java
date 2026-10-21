@@ -1,18 +1,14 @@
 package com.back.nbe12142team06.domain.education.repository;
 
-import com.back.nbe12142team06.domain.education.entity.EducationProgress;
 import com.back.nbe12142team06.domain.education.entity.WatchProgressLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-
 public interface WatchProgressLogRepository extends JpaRepository<WatchProgressLog, Long> {
 
 
-    void deleteAllByEducationProgressIn(List<EducationProgress> progresses);
 
     @Modifying(flushAutomatically = true)
     @Query("""
@@ -21,6 +17,5 @@ public interface WatchProgressLogRepository extends JpaRepository<WatchProgressL
                 select p.id from EducationProgress p where p.escortProfile.userId = :userId
                 )
     """)
-    // TODO: BUG FIX 이후 지워야함
     void deleteAllByEscortUserId(@Param("userId") Long userId);
 }

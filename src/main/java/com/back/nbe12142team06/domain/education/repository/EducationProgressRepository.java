@@ -7,12 +7,12 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface EducationProgressRepository extends JpaRepository<EducationProgress, Long> {
-    List<EducationProgress> findAllByEscortProfileUserId(Long userId);
 
     long countByEscortProfileAndCompletedTrueAndEducationVideoRequiredTrue(EscortProfile escortProfile);
 
@@ -29,5 +29,5 @@ public interface EducationProgressRepository extends JpaRepository<EducationProg
         delete from EducationProgress e
             where e.escortProfile.userId = :userId
     """)
-    void deleteAllByEscortUserId(Long userId);
+    void deleteAllByEscortUserId(@Param("userId") Long userId);
 }
