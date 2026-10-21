@@ -38,7 +38,7 @@ public class User extends BaseSoftDeleteTimeEntity {
 
     // 회원 이메일
     @Convert(converter = PiiConverter.class)
-    @Column(nullable = false, unique = true, length = 500)
+    @Column(nullable = false, length = 500)
     private String email;
 
     // 회원 실명
@@ -62,7 +62,8 @@ public class User extends BaseSoftDeleteTimeEntity {
     private LocalDate birthDate;
 
     // 회원 전화번호
-    @Column(nullable = false, length = 20, unique = true)
+    @Convert(converter = PiiConverter.class)
+    @Column(nullable = false, length = 255)
     private String phoneNum;
 
     // 지역
@@ -74,6 +75,13 @@ public class User extends BaseSoftDeleteTimeEntity {
     @Column(nullable = false, length = 20)
     private UserStatus userStatus = UserStatus.ACTIVE;
 
+    // 이메일 블라인드 인덱스 (중복 검사용 HMAC 값, 복호화 불가)
+    @Column(unique = true, length = 64)
+    private String emailHash;
+
+    // 전화번호 블라인드 인덱스 (중복 검사용 HMAC 값, 복호화 불가)
+    @Column(unique = true, length = 64)
+    private String phoneNumHash;
 
     @Version
     @ColumnDefault("0")
