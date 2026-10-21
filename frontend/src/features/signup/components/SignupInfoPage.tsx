@@ -1,7 +1,7 @@
 'use client';
 import { useActionDialog } from '@/components/ui/useActionDialog';
 
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LockKeyhole, UserRound, Eye, EyeOff, ClipboardList } from 'lucide-react';
@@ -221,6 +221,21 @@ export default function SignupInfoPage() {
     if (alertUnverified()) event.preventDefault();
   };
 
+  // 여러 칸을 작성하는 회원가입 폼에서는 입력 중 Enter로 자동 제출하지 않습니다.
+  // 아이디·이메일 중복 확인 안내는 '가입 완료하기'를 눌렀을 때만 표시합니다.
+  const handleInputKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (!['text', 'password', 'email', 'tel', 'number'].includes(target.type)) return;
+
+    event.preventDefault();
+    if (target.name === 'password') confirmRef.current?.focus();
+    else if (target.name === 'passwordConfirm') {
+      formRef.current?.querySelector<HTMLInputElement>('input[name="name"]')?.focus();
+    }
+  };
+
   /**
    * 가입 요청이 오가는 중인지. submitting 상태는 다시 그려진 뒤에야 버튼을 막으므로,
    * 그 사이에 한 번 더 제출되어 가입 요청이 두 번 나가는 것을 여기서 바로 막습니다.
@@ -303,7 +318,7 @@ export default function SignupInfoPage() {
             </p>
           </header>
 
-          <form ref={formRef} onSubmit={handleSubmit} className="w-full">
+          <form ref={formRef} onSubmit={handleSubmit} onKeyDown={handleInputKeyDown} className="w-full">
             <div className="w-full rounded-2xl border border-[#E1E5E8] bg-white p-6 shadow-[0_3px_12px_rgba(20,36,58,0.035)] sm:p-8">
               <section aria-labelledby="signup-account-heading">
                 <div className="mb-6 flex items-start gap-2.5">

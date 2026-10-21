@@ -8,6 +8,7 @@ import Container from '@/components/ui/Container';
 import { NotificationBell } from '@/features/notification';
 import { cn } from '@/lib/cn';
 import { openGajiSupport } from '@/lib/gajiSupport';
+import { usePostCreationEligibility, postCreationUnavailableReason } from '@/features/payment';
 import UserMenu, { type UserMenuItem } from './UserMenu';
 
 type MenuItem = { label: string; href: string };
@@ -45,6 +46,10 @@ export default function Header({ user, role, pending, onLogout, canRegisterPost,
   }, [pathname]);
 
   useEffect(() => setMobileOpen(false), [pathname]);
+
+  const creationAvailability = usePostCreationEligibility(role === 'CLIENT' && !!user);
+  const creationBlocked = role === 'CLIENT' && creationAvailability !== 'allowed';
+  const creationReason = postCreationUnavailableReason(creationAvailability);
 
   const transparent = isHome && !scrolled && !mobileOpen;
   const resolveHref = (item: MenuItem) =>
@@ -140,13 +145,13 @@ export default function Header({ user, role, pending, onLogout, canRegisterPost,
     </div>
   );
 
-  const registerButton = (
-    <Link
-      href="/client/posts/new"
-      className="inline-flex h-[44px] items-center gap-1.5 rounded-[10px] bg-[#426B93] px-4 text-[15px] font-semibold text-white transition-colors duration-200 hover:bg-[#345778]"
-    >
-      <PlusCircle className="h-4 w-4" />
-      <span>공고등록</span>
+  const registerButton = creationBlocked ? (
+    <span aria-disabled="true" title={creationReason} className="inline-flex h-[44px] cursor-not-allowed items-center gap-1.5 rounded-[10px] bg-[#426B93] px-4 text-[15px] font-semibold text-white opacity-50">
+      <PlusCircle className="h-4 w-4" /><span>공고등록</span>
+    </span>
+  ) : (
+    <Link href="/client/posts/new" className="inline-flex h-[44px] items-center gap-1.5 rounded-[10px] bg-[#426B93] px-4 text-[15px] font-semibold text-white transition-colors duration-200 hover:bg-[#345778]">
+      <PlusCircle className="h-4 w-4" /><span>공고등록</span>
     </Link>
   );
 

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useCurrentUser } from '@/features/auth';
+import { usePostCreationEligibility, postCreationUnavailableReason } from '@/features/payment';
 
 /** GAJI 히어로. API/인증 구조를 유지하며 UI만 교체합니다. */
 const easeOutCubic = [0.22, 1, 0.36, 1] as const;
@@ -14,6 +15,8 @@ export default function HeroSection() {
   const { user } = useCurrentUser();
   const shouldReduceMotion = useReducedMotion();
   const isEscort = user?.role === 'ESCORT';
+  const availability = usePostCreationEligibility(user?.role === 'CLIENT');
+  const creationBlocked = user?.role === 'CLIENT' && availability !== 'allowed';
   const requestHref = isEscort ? '/escort/posts' : user ? '/client/posts/new' : '/login';
   const browseHref = isEscort ? '/#report' : user ? '/posts' : '/login';
 
@@ -38,12 +41,15 @@ export default function HeroSection() {
             믿을 수 있는 동행 매니저와 함께, 병원 가는 길부터 진료까지 안전하게 동행합니다.
           </motion.p>
           <motion.div initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.35, ease: easeOutCubic }} className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
-            <Link
-              href={requestHref}
-              className="group inline-flex h-[52px] items-center justify-center gap-2 rounded-[10px] bg-[#426B93] px-8 text-base font-semibold text-white shadow-xs transition-all duration-200 hover:bg-[#345778] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
-            >
-              <span>{isEscort ? '공고 찾아보기' : '동행 요청하기'}</span><ArrowRight aria-hidden="true" className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
-            </Link>
+            {creationBlocked ? (
+              <span aria-disabled="true" title={postCreationUnavailableReason(availability)} className="inline-flex h-[52px] cursor-not-allowed items-center justify-center gap-2 rounded-[10px] bg-[#426B93] px-8 text-base font-semibold text-white opacity-50">
+                동행 요청하기 <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              </span>
+            ) : (
+              <Link href={requestHref} className="group inline-flex h-[52px] items-center justify-center gap-2 rounded-[10px] bg-[#426B93] px-8 text-base font-semibold text-white shadow-xs transition-all duration-200 hover:bg-[#345778] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
+                <span>{isEscort ? '공고 찾아보기' : '동행 요청하기'}</span><ArrowRight aria-hidden="true" className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
+              </Link>
+            )}
             <Link
               href={browseHref}
               className="inline-flex h-[52px] items-center justify-center rounded-[10px] border border-white/60 bg-transparent px-6 text-base font-semibold text-white transition-all duration-200 hover:border-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"

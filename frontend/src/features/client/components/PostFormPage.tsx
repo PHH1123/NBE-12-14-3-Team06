@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { ChevronLeft, Info } from 'lucide-react';
+import { AlertCircle, ArrowRight, ChevronLeft, Info, LoaderCircle } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import DropdownSelect from '@/components/ui/DropdownSelect';
 import { LOGIN_HOME_BY_ROLE, useRequireAuth } from '@/features/auth';
 import { createPost, fetchPostRaw, updatePost, type PostDto, type PostWriteRequest } from '@/features/post';
 import { fetchRidesByPost, type RideDto } from '@/features/ride';
+import { fetchMyPayments, usePostCreationEligibility, postCreationUnavailableReason } from '@/features/payment';
 import type { PlaceSearchResult } from '@/lib/kakaoMap';
 import {
   EMPTY_FORM,
@@ -40,6 +41,51 @@ const TRANSPORT_SELECT_OPTIONS = TRANSPORT_OPTIONS.map((label) => ({ value: labe
 
 function Required() {
   return <span className="text-[#B4413C]">*</span>;
+}
+
+/** 공고 등록·수정 화면의 로딩과 조회 실패 상태도 공고 상세 안내 카드와 같은 톤으로 표시합니다. */
+function PostFormFeedback({
+  title,
+  description,
+  loading = true,
+  detail,
+  showListLink = false,
+}: {
+  title: string;
+  description: string;
+  loading?: boolean;
+  detail?: string;
+  showListLink?: boolean;
+}) {
+  const Icon = loading ? LoaderCircle : AlertCircle;
+  return (
+    <AppShell>
+      <section className="flex min-h-[calc(100svh-72px)] items-center bg-[#F7F8F8] px-5 py-14 sm:px-8 lg:py-20">
+        <div className="mx-auto w-full max-w-[680px] rounded-2xl border border-[#E1E5E8] bg-white px-6 py-12 text-center shadow-[0_4px_20px_rgba(30,39,57,0.045)] sm:px-12 sm:py-14">
+          <span className="inline-flex items-center rounded-md bg-[#EDF0F2] px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-[#426B93]">
+            {loading ? 'LOADING' : 'NOTICE'}
+          </span>
+          <div className="mx-auto mt-7 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EDF0F2] text-[#426B93]">
+            <Icon className={`h-8 w-8 ${loading ? 'animate-spin motion-reduce:animate-none' : ''}`} strokeWidth={1.8} aria-hidden="true" />
+          </div>
+          <h1 role={loading ? 'status' : undefined} className="mt-6 text-2xl font-semibold tracking-tight text-[#14243A] sm:text-[28px]">
+            {title}
+          </h1>
+          <p className="mx-auto mt-3 max-w-[460px] text-sm leading-7 text-[#67717C] sm:text-base">{description}</p>
+          {detail && <p role="alert" className="mx-auto mt-4 max-w-[480px] break-words rounded-lg bg-[#F7F8F8] px-4 py-3 text-sm leading-6 text-[#67717C]">{detail}</p>}
+          {showListLink && (
+            <Link
+              href="/client/posts"
+              className="group mx-auto mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-[10px] border border-[#DDE3EA] bg-white px-6 text-sm font-semibold text-[#14243A] transition-colors duration-200 hover:border-[#A5B7CA] hover:bg-[#F7F8F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93]"
+            >
+              작성한 공고로
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true" />
+            </Link>
+          )}
+        </div>
+      </section>
+    </AppShell>
+  );
 }
 
 function FormCard({ title, first = false, children }: { title: string; first?: boolean; children: ReactNode }) {
@@ -130,6 +176,7 @@ export default function PostFormPage() {
   // role 은 훅이 하나만 받을 수 있어서(CLIENT|ADMIN 둘 다 허용해야 함) 여기서 직접 확인합니다.
   const { user, loading: authLoading, unauthenticated } = useRequireAuth();
   const authorized = !!user && (user.role === 'CLIENT' || user.role === 'ADMIN');
+  const creationAvailability = usePostCreationEligibility(!editing && user?.role === 'CLIENT');
 
   useEffect(() => {
     if (authLoading || unauthenticated || !user || authorized) return;
@@ -158,38 +205,32 @@ export default function PostFormPage() {
   // 로그인 확인 중이거나(스피너), 로그인이 안 됐거나(곧 /login 으로 이동), 역할이 안 맞으면(곧 자기 홈으로 이동)
   // 폼을 그리지 않고 기다립니다.
   if (authLoading || unauthenticated || !authorized) {
-    return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p className="text-xl font-semibold text-brand">확인하는 중입니다.</p>
-        </section>
-      </AppShell>
-    );
+    return <PostFormFeedback title="로그인 상태를 확인하는 중입니다." description="안전한 서비스 이용을 위해 로그인 상태를 확인하고 있어요." />;
   }
 
   if (!initial) {
     return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p className="text-xl font-semibold text-brand">{loadError ? `불러오지 못했습니다. (${loadError})` : '불러오는 중입니다.'}</p>
-          <Link href="/client/posts" className="mx-auto mt-8 flex h-14 w-60 items-center justify-center rounded-[25px] border border-line text-xl font-semibold text-brand">
-            작성한 공고로
-          </Link>
-        </section>
-      </AppShell>
+      <PostFormFeedback
+        title={loadError ? '공고를 불러오지 못했습니다.' : '공고를 불러오는 중입니다.'}
+        description={loadError ? '잠시 후 다시 시도하거나 작성한 공고 목록으로 돌아가 주세요.' : '공고 정보를 준비하고 있어요. 잠시만 기다려 주세요.'}
+        detail={loadError}
+        loading={!loadError}
+        showListLink
+      />
     );
   }
 
-  return <PostFormFields key={postId ?? 'new'} postId={postId} initial={initial} />;
+  return <PostFormFields key={postId ?? 'new'} postId={postId} initial={initial} creationAvailability={creationAvailability} />;
 }
 
 type FormFieldsProps = {
   /** 있으면 수정, 없으면 새로 작성 */
   postId?: number;
   initial: PostFormValues;
+  creationAvailability: ReturnType<typeof usePostCreationEligibility>;
 };
 
-function PostFormFields({ postId, initial }: FormFieldsProps) {
+function PostFormFields({ postId, initial, creationAvailability }: FormFieldsProps) {
   const router = useRouter();
   const editing = postId !== undefined;
 
@@ -428,6 +469,13 @@ function PostFormFields({ postId, initial }: FormFieldsProps) {
         await updatePost(postId, payload);
         router.push(`/client/posts/${postId}`);
       } else {
+        // 폼을 열어둔 사이 결제가 바뀔 수 있으므로 제출 직전에도 확인합니다.
+        const payments = await fetchMyPayments();
+        if (payments.some(payment => payment.paymentStatus === 'READY')) {
+          setSubmitError('미결제 공고가 있습니다. 먼저 결제를 완료해 주세요.');
+          setSubmitting(false);
+          return;
+        }
         const created = await createPost(payload);
         // paymentId 는 공고 등록 시 함께 생성된 결제(Payment) 의 id 입니다. 결제 승인 때 필요합니다.
         // 결제 금액은 넘기지 않습니다 — 결제 화면이 서버의 Payment.amount 를 직접 받아 씁니다.
@@ -443,6 +491,23 @@ function PostFormFields({ postId, initial }: FormFieldsProps) {
       setSubmitting(false);
     }
   };
+
+  if (!editing && creationAvailability !== 'allowed') {
+    return (
+      <AppShell>
+        <section className="flex min-h-[60vh] items-center justify-center bg-[#F7F8F8] px-5 py-16">
+          <div className="w-full max-w-xl rounded-2xl border border-[#E1E5E8] bg-white px-8 py-12 text-center shadow-xs">
+            <h1 className="text-2xl font-semibold text-[#14243A]">새 공고 등록</h1>
+            <p role="status" className="mt-4 text-sm leading-7 text-[#67717C]">{postCreationUnavailableReason(creationAvailability)}</p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link href="/client/posts" className="inline-flex h-11 items-center justify-center rounded-lg bg-[#14243A] px-5 text-sm font-semibold text-white hover:bg-[#1F3757]">내 공고·결제 확인</Link>
+              <button type="button" onClick={() => window.location.reload()} className="h-11 rounded-lg border border-[#E1E5E8] px-5 text-sm font-semibold text-[#14243A] hover:bg-[#F7F8F8]">다시 확인</button>
+            </div>
+          </div>
+        </section>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
