@@ -103,7 +103,7 @@ public class EducationService {
         List<EducationProgress> progresses = this.educationProgressRepository.findAllByEscortProfileUserId(userId);
 
         this.watchProgressLogRepository.deleteAllByEscortUserId(userId);
-        this.educationProgressRepository.deleteAll(progresses);
+        this.educationProgressRepository.deleteAllByEscortUserId(userId);
     }
 
     // 필수 영상을 모두 완료했는지

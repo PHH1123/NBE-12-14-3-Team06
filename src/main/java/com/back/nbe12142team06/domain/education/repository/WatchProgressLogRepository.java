@@ -21,5 +21,6 @@ public interface WatchProgressLogRepository extends JpaRepository<WatchProgressL
                 select p.id from EducationProgress p where p.escortProfile.userId = :userId
                 )
     """)
+    // TODO: BUG FIX 이후 지워야함
     void deleteAllByEscortUserId(@Param("userId") Long userId);
 }
