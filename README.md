@@ -1,7 +1,5 @@
 <div align=center>
 
-![Header](readme-images/header.png)
-
 <div align=left>
 
 # 📌목차
@@ -16,6 +14,7 @@
     - [🌊상태 플로우](#-상태-플로우)
     - [📂패키지 구조](#-패키지-구조)
 7. [🚀트러블 슈팅](#-트러블-슈팅)
+8. [✍️2차 프로젝트 후 보완](#-2차-프로젝트-후-보완)
 
 
 </div>
@@ -91,6 +90,9 @@
 ![html](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=HTML5&logoColor=white)
 ![css](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=CSS3&logoColor=white)
 ![typescript](https://img.shields.io/badge/typescript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![websocket](https://img.shields.io/badge/websocket-3c790a?style=for-the-badge&logo=websocket&logoColor=white)
+![stomp](https://img.shields.io/badge/stomp-000000?style=for-the-badge&logo=stomp&logoColor=white)
+![sse](https://img.shields.io/badge/sse-5e17eb?style=for-the-badge&logo=messenger&logoColor=white)
 
 ### Back End
 
@@ -102,6 +104,9 @@
 ![swagger](https://img.shields.io/badge/swagger-34E27A?style=for-the-badge&logo=swagger&logoColor=white)
 ![mysql](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=MySQL&logoColor=white)
 ![gradle](https://img.shields.io/badge/gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white)
+![websocket](https://img.shields.io/badge/websocket-3c790a?style=for-the-badge&logo=websocket&logoColor=white)
+![stomp](https://img.shields.io/badge/stomp-000000?style=for-the-badge&logo=stomp&logoColor=white)
+![sse](https://img.shields.io/badge/sse-5e17eb?style=for-the-badge&logo=messenger&logoColor=white)
 
 ### Third-Party
 
@@ -114,6 +119,7 @@
 ![railway](https://img.shields.io/badge/railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)
 ![vercel](https://img.shields.io/badge/vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![docker](https://img.shields.io/badge/docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![aws-rds](https://img.shields.io/badge/aws_rds-1271b7?style=for-the-badge&logo=aws_rds&logoColor=white)
 
 ### Tools
 
@@ -125,13 +131,14 @@
 ![figma](https://img.shields.io/badge/figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white)
 ![canva](https://img.shields.io/badge/canva-0D83CD?style=for-the-badge&logo=canva&logoColor=white)
 ![intellijidea](https://img.shields.io/badge/intellijidea-000000?style=for-the-badge&logo=intellijidea&logoColor=white)
+![claude_code](https://img.shields.io/badge/claude_code-D97757?style=for-the-badge&logo=claudecode&logoColor=white)
 
 # 👥 팀원
 
-|                [최훈희](https://github.com/hunhee99)<br>(BE, 팀장)                 |                 [장윤찬](https://github.com/globaltoper)<br>(BE)                  |                 [김신영](https://github.com/kimssin1991)<br>(BE)                 |                   [나희원](https://github.com/lion1230)<br>(BE)                   |                   [박현호](https://github.com/PHH1123)<br>(BE)                    |
-|:-----------------------------------------------------------------------------:|:------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------:|:------------------------------------------------------------------------------:|:------------------------------------------------------------------------------:|
-| <img src='https://avatars.githubusercontent.com/u/67158609?v=4' width='100'/> | <img src='https://avatars.githubusercontent.com/u/276445634?v=4' width='100'/> | <img src='https://avatars.githubusercontent.com/u/82699095?v=4' width='100'/> | <img src='https://avatars.githubusercontent.com/u/301536526?v=4' width='100'/> | <img src='https://avatars.githubusercontent.com/u/193578436?v=4' width='100'/> |
-|    <p align="left">- 회원 도메인<br/>- 인증·인가<br/>- 교육 영상 시청 검증<br/>- ERD 설계</p>    |  <p align="left">- 진료 보고서 도메인<br>- 리뷰 도메인<br/>- AI 요약 연동<br/>- 전체 통합 테스트</p>   |      <p align="left">- 공고 도메인<br/>- 카카오맵 연동<br/>- 스케줄러<br/>- 로깅·모니터링</p>      |         <p align="left">- 지원 도메인<br>- 동행 진행 상태<br/>- UI·UX·와이어프레임</p>          |     <p align="left">- 결제, 정산 도메인<br/>- 이동수단 도메인<br/>- 정산 스케줄러<br/>- 서기</p>     |
+|                [최훈희](https://github.com/hunhee99)<br>(BE, 팀장)                 |                       [장윤찬](https://github.com/globaltoper)<br>(BE)                       |                 [김신영](https://github.com/kimssin1991)<br>(BE)                 |                   [나희원](https://github.com/lion1230)<br>(BE)                   |                        [박현호](https://github.com/PHH1123)<br>(BE)                         |
+|:-----------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------:|:------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------:|
+| <img src='https://avatars.githubusercontent.com/u/67158609?v=4' width='100'/> |      <img src='https://avatars.githubusercontent.com/u/276445634?v=4' width='100'/>       | <img src='https://avatars.githubusercontent.com/u/82699095?v=4' width='100'/> | <img src='https://avatars.githubusercontent.com/u/301536526?v=4' width='100'/> |      <img src='https://avatars.githubusercontent.com/u/193578436?v=4' width='100'/>      |
+|    <p align="left">- 회원 도메인<br/>- 인증·인가<br/>- 교육 영상 시청 검증<br/>- ERD 설계</p>    | <p align="left">- 진료 보고서 도메인<br>- 리뷰 도메인<br/>- AI 요약 연동<br/>- 발표자료 제작<br/>- 전체 통합 테스트</p> |      <p align="left">- 공고 도메인<br/>- 카카오맵 연동<br/>- 스케줄러<br/>- 로깅·모니터링</p>      |         <p align="left">- 지원 도메인<br>- 동행 진행 상태<br/>- UI·UX·와이어프레임</p>          | <p align="left">- 결제, 정산 도메인<br/>- 이동수단 도메인<br/>- 채팅(2차 보완)<br/>- 알림(2차 보완)<br/>- 서기</p> |
 
 # 🗓️ 프로젝트 일정
 
@@ -1298,5 +1305,18 @@ class SettlementConcurrencyTest {
 </details>
 
 </div>
+
+# ✍️ 2차 프로젝트 후 보완
+
+1. UI 전면 수정
+2. 모든 상태 전이 검증
+3. 공고 목록 조회 최적화(캐싱)
+4. 관리자 기능 추가
+3. 채팅 기능 추가
+4. 알림 기능 추가
+5. DB 마이그레이션(MySQL -> PostgreSQL)
+6. WAS 배포 클라우드 이전(Railway -> AWS EC2)
+7. DB 클라우드화(LocalDB -> Supabase)
+8. 모니터링 서버 추가(AWS EC2)
 
 </div>
