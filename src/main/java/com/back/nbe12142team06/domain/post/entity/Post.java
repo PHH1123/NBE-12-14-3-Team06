@@ -1,6 +1,7 @@
 package com.back.nbe12142team06.domain.post.entity;
 
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.global.crypto.PiiConverter;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
@@ -41,7 +42,8 @@ public class Post extends BaseSoftDeleteTimeEntity {  // createdAt, updatedAt, d
     @Column(nullable = false)
     private String content;  // 공고 상세 내용 (TEXT)
 
-    @Column(name = "patient_note", length = 500)
+    @Convert(converter = PiiConverter.class)
+    @Column(name = "patient_note", columnDefinition = "TEXT")
     private String patientNote;  // 환자 특이사항
 
     @Column(nullable = false, length = 50)
