@@ -37,3 +37,5 @@ custom:
   ai:
     report-summary:
       prompt-version: v2
+  crypto:
+    encryption-key: ${PII_ENCRYPTION_KEY}
