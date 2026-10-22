@@ -46,4 +46,15 @@ public class PiiConverterTest {
         assertThatNoException().isThrownBy(() -> Base64.getDecoder().decode(encrypted));
         assertThat(Base64.getDecoder().decode(encrypted)).isNotEmpty();
     }
+
+
+    @Test
+    @DisplayName("[PiiConverter] 같은 값을 암호화해도 결과가 다름")
+    void t3() {
+        String first = piiConverter.convertToDatabaseColumn("user1@user.user");
+        String second = piiConverter.convertToDatabaseColumn("user1@user.user");
+
+        assertThat(first).isNotEqualTo(second);
+        assertThat(piiConverter.convertToEntityAttribute(first)).isEqualTo(piiConverter.convertToEntityAttribute(second));
+    }
 }
