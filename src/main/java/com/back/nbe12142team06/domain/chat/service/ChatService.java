@@ -64,7 +64,6 @@ public class ChatService {
         ChatMessage chatMessage = chatMessageService.createRoomMessage(sender.getName() + CREATE_ROOM_MESSAGE, chatPart);
         chatRoom.updateLastChat(chatMessage.getContent(), chatMessage.getSentAt());
 
-
         return chatRoom;
     }
 
