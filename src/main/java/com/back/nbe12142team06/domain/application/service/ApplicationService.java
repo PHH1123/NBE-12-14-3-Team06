@@ -85,7 +85,7 @@ public class ApplicationService {
         // ACTIVE 상태인 회원만 지원 가능
         if (escort.getUserStatus() != UserStatus.ACTIVE) {
             throw new ForbiddenException(
-                    31, "활성 상태의 회원만 지원할 수 있습니다.");
+                    31, "정지된 계정입니다.");
         }
 
         // 동행인만 지원 가능
