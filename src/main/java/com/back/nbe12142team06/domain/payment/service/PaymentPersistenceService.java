@@ -56,9 +56,9 @@ public class PaymentPersistenceService {
     }
 
     @Transactional
-    public void paymentSaveDb(ResponseEntity<TossConfirmResponse> response, Long paymentId, String tossPaymentKey, String tossOrderId) {
+    public Payment paymentSaveDb(ResponseEntity<TossConfirmResponse> response, Long paymentId, String tossPaymentKey, String tossOrderId) {
         TossConfirmResponse body = response.getBody();
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentRepository.findByIdFetchJoin(paymentId)
                 .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
         if (body != null) {
             // 승인 시 상태 변경, 더티 체킹으로 자동 변경
@@ -66,6 +66,7 @@ public class PaymentPersistenceService {
         } else {
             payment.ApprovePayment(tossOrderId, tossPaymentKey, null);
         }
+        return payment;
     }
 
     @Transactional

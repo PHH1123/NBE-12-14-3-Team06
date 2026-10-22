@@ -66,10 +66,11 @@ public class PaymentService {
         }
         // 3. DB 반영
         try {
-            paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId);
+            payment = paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId);
         } catch (NotFoundException e) {
             cancel(userId, paymentId, new PaymentCancelRequest("서버 에러 발생"));
             log.error("결제 승인 실패", e);
+            throw e;
         } catch (RuntimeException ex) {
             cancel(userId, paymentId, new PaymentCancelRequest("서버 에러 발생"));
             log.error("결제 승인 실패", ex);
