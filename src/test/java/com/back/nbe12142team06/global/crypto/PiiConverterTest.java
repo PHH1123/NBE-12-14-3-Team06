@@ -45,6 +45,7 @@ public class PiiConverterTest {
 
         assertThatNoException().isThrownBy(() -> Base64.getDecoder().decode(encrypted));
         assertThat(Base64.getDecoder().decode(encrypted)).isNotEmpty();
+        assertThat(encrypted).matches("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$");
     }
 
 
