@@ -1274,7 +1274,7 @@ public class AdminUserControllerTest {
         resultActions
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.statusCode").value("403-31"))
-                .andExpect(jsonPath("$.msg").value("정지된 계정입니다."));
+                .andExpect(jsonPath("$.msg").value("공고 등록 권한이 없습니다."));
 
     }
 
@@ -1352,7 +1352,7 @@ public class AdminUserControllerTest {
         resultActions
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.statusCode").value("403-31"))
-                .andExpect(jsonPath("$.msg").value("정지된 계정입니다."));
+                .andExpect(jsonPath("$.msg").value("활성 상태의 회원만 지원할 수 있습니다."));
     }
 
     @Test
@@ -1407,7 +1407,7 @@ public class AdminUserControllerTest {
         resultActions
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.statusCode").value("403-31"))
-                .andExpect(jsonPath("$.msg").value("정지된 계정입니다."));
+                .andExpect(jsonPath("$.msg").value("공고 등록 권한이 없습니다."));
 
     }
 
@@ -1485,6 +1485,6 @@ public class AdminUserControllerTest {
         resultActions
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.statusCode").value("403-31"))
-                .andExpect(jsonPath("$.msg").value("정지된 계정입니다."));
+                .andExpect(jsonPath("$.msg").value("활성 상태의 회원만 지원할 수 있습니다."));
     }
 }
