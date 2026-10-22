@@ -83,7 +83,7 @@ public class PostController {
 
         Page<PostDto> postDtoPage = postService
                 .findMyPosts(actor.getId(), PageRequest.of(page, size))
-                .map(PostDto::new);
+                .map(post -> new PostDto(post, true, true));
 
         if (postDtoPage.isEmpty()) {
             return new RsData<>("200-14", "조회 내역이 없습니다.", postDtoPage);
@@ -101,7 +101,7 @@ public class PostController {
 
         Post post = postService.findById(postId);
         boolean canView = postService.canViewSensitive(post, actor.getId());
-        return new RsData<>("200-15", "상세 조회 성공", new PostDto(post, canView));
+        return new RsData<>("200-15", "상세 조회 성공", new PostDto(post, canView, post.getClient().getId().equals(actor.getId())));
     }
 
     @Operation(

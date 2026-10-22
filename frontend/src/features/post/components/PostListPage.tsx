@@ -208,7 +208,7 @@ function AuthenticatedPostList({ detailBasePath, role }: { detailBasePath: strin
         }
         return;
       }
-      await notice({ title: '지원에 실패했습니다.', description: error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.' });
+      await notice({ title: '지원에 실패했습니다.', tone: 'error', description: error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.' });
     }
   };
 
