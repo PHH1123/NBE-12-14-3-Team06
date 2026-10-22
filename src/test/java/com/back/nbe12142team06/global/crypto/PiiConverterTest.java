@@ -57,4 +57,12 @@ public class PiiConverterTest {
         assertThat(first).isNotEqualTo(second);
         assertThat(piiConverter.convertToEntityAttribute(first)).isEqualTo(piiConverter.convertToEntityAttribute(second));
     }
+
+
+    @Test
+    @DisplayName("[PiiConverter] null은 암호화해도 null")
+    void t4() {
+        assertThat(piiConverter.convertToDatabaseColumn(null)).isNull();
+        assertThat(piiConverter.convertToEntityAttribute(null)).isNull();
+    }
 }
