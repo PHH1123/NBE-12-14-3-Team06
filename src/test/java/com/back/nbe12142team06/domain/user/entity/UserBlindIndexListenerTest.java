@@ -49,5 +49,21 @@ public class UserBlindIndexListenerTest {
         assertThat(user.getPhoneNumHash()).isEqualTo(blindIndexer.hashPhoneNum("01012345678"));
     }
 
+    @Test
+    @DisplayName("[UserBlindIndexListener] 이메일, 전화번호를 수정 시 해시값도 변경")
+    void t2() {
+        User user = createUser();
+        listener.fillBlindIndex(user);
+        String oldEmailHash = user.getEmailHash();
+
+        user.updateUser("testPassword", "new@user.user", "김춘식",
+                LocalDate.of(1990, 5, 20), "010-9999-9999", "서울시");
+        listener.fillBlindIndex(user);
+
+        assertThat(user.getEmailHash())
+                .isNotEqualTo(oldEmailHash)
+                .isEqualTo(blindIndexer.hashEmail("new@user.user"));
+        assertThat(user.getPhoneNumHash()).isEqualTo(blindIndexer.hashPhoneNum("010-9999-9999"));
+    }
 
 }
