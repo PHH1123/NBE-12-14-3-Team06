@@ -10,7 +10,6 @@ public record NotificationResponse(
         String url,
         Boolean isRead,
         Long userId,
-        String name,
         LocalDateTime createdAt
 ) {
     public NotificationResponse(Notification notification) {
@@ -20,7 +19,6 @@ public record NotificationResponse(
                 notification.getUrl(),
                 notification.isRead(),
                 notification.getReceiver().getId(),
-                notification.getReceiver().getName(),
                 notification.getCreatedAt()
         );
     }

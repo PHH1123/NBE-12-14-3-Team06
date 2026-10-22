@@ -95,7 +95,7 @@ public class SettlementService {
         }
 
         // 알림
-        noticeService.send(settlement.getEscort(),
+        noticeService.send(settlement.getEscort().getId(),
                 C_SETTLEMENT_DONE.of(String.valueOf(settlement.getPayoutAmount())),
                 U_SETTLEMENT_DONE.of(settlement.getApplication().getId()));
     }

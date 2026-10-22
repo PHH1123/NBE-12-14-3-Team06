@@ -26,7 +26,7 @@ public class NotificationEventListener {
 
     @TransactionalEventListener
     public void sendEvent(NotificationEvent event) {
-        Map<String, SseEmitter> emitterMap = emitterRepository.findAllEmitterStartWithByUserId(event.receiver().getId());
+        Map<String, SseEmitter> emitterMap = emitterRepository.findAllEmitterStartWithByUserId(event.receiverId());
 
         emitterMap.forEach((key, emitter) ->
                 sendToClient(emitter, key,

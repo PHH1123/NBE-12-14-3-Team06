@@ -168,6 +168,7 @@ class ApplicationCancelServiceTest {
         Long postId = 3L;
 
         User escort = mock(User.class);
+        User client = mock(User.class);
         Application application = mock(Application.class);
         Post post = mock(Post.class);
         EscortProfile escortProfile = mock(EscortProfile.class);
@@ -190,6 +191,8 @@ class ApplicationCancelServiceTest {
         when(post.getPostStatus()).thenReturn(PostStatus.MATCHED);
         when(post.getRecruitEndAt())
                 .thenReturn(LocalDateTime.now().plusDays(1));
+        when(post.getClient())
+                .thenReturn(client);
 
         when(postRepository.findByIdWithLock(postId))
                 .thenReturn(Optional.of(post));

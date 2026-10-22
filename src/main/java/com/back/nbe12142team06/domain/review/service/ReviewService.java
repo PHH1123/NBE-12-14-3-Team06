@@ -84,7 +84,7 @@ public class ReviewService {
         log.info("[리뷰 작성] applicationId={}, clientId={}, rating={}", applicationId, actorId, request.rating());
 
         // 알림
-        noticeService.send(application.getEscort(),
+        noticeService.send(application.getEscort().getId(),
                 C_REVIEW_WRITE.of(application.getPost().getTitle()),
                 U_REVIEW_WRITE.of());
 
