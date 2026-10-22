@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.chat.entity.ChatMessage;
 import com.back.nbe12142team06.domain.chat.entity.ChatPart;
 import com.back.nbe12142team06.domain.chat.entity.ChatRoom;
 import com.back.nbe12142team06.domain.chat.entity.MessageType;
+import com.back.nbe12142team06.domain.chat.event.ChatMessageEvent;
 import com.back.nbe12142team06.domain.chat.repository.ChatMessageRepository;
 import com.back.nbe12142team06.domain.chat.repository.ChatPartRepository;
 import com.back.nbe12142team06.domain.chat.repository.ChatRoomRepository;
@@ -23,6 +24,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Field;
@@ -37,6 +40,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
+@RecordApplicationEvents
 class ChatServiceTest {
 
     private final String CREATE_ROOM_MESSAGE = "님이 채팅방을 개설했습니다.";
@@ -45,6 +49,8 @@ class ChatServiceTest {
     private ChatService chatService;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    ApplicationEvents events;
     @MockitoSpyBean
     private ChatRoomRepository chatRoomRepository;
     @MockitoSpyBean
@@ -237,6 +243,13 @@ class ChatServiceTest {
         assertThat(clientChatMessage.getType()).isEqualTo(MessageType.TALK);
         assertThat(clientChatMessage.getContent()).isEqualTo(CLIENT_CONTENT);
         assertThat(clientChatMessage.getSentAt()).isBeforeOrEqualTo(LocalDateTime.now());
+
+        assertThat(events.stream(ChatMessageEvent.class))
+                .element(0)
+                .satisfies(e -> assertThat(e.chatMessageResponse().content()).isEqualTo(ESCORT_CONTENT));
+        assertThat(events.stream(ChatMessageEvent.class))
+                .element(1)
+                .satisfies(e -> assertThat(e.chatMessageResponse().content()).isEqualTo(CLIENT_CONTENT));
     }
 
     @Test
