@@ -6,8 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Base64;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.*;
 
 public class PiiConverterTest {
     // 키 생성
@@ -65,5 +64,14 @@ public class PiiConverterTest {
     void t4() {
         assertThat(piiConverter.convertToDatabaseColumn(null)).isNull();
         assertThat(piiConverter.convertToEntityAttribute(null)).isNull();
+    }
+
+    @Test
+    @DisplayName("[PiiConverter] 다른 키로는 복호화 불가")
+    void t5() {
+        String encrypted = piiConverter.convertToDatabaseColumn("user1@user.user");;
+
+        assertThatThrownBy(() -> converter(2).convertToEntityAttribute(encrypted))
+                .isInstanceOf(IllegalStateException.class);
     }
 }
