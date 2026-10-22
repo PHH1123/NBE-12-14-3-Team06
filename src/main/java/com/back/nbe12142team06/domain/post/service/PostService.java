@@ -98,7 +98,7 @@ public class PostService {
     public PostWriteResponse write(Long userId, PostWriteRequest request) {
         User user = getUser(userId);
         if(user.getUserStatus() != UserStatus.ACTIVE){
-            throw new ForbiddenException(31, "공고 등록 권한이 없습니다.");
+            throw new ForbiddenException(31, "정지된 계정입니다.");
         }
         if (user.getRole() != Role.CLIENT && user.getRole() != Role.ADMIN) {
             throw new ForbiddenException(11, "공고 등록 권한이 없습니다. 의뢰인으로 로그인 해주세요.");
