@@ -10,12 +10,12 @@ public record PaymentAnalyticsResponse(
         Long counts
 ) {
     public PaymentAnalyticsResponse(List<Payment> payments) {
-        int paidAmount = 0;
-        int canceledAmount = 0;
+        long paidAmount = 0;
+        long canceledAmount = 0;
         for (Payment payment : payments) {
             paidAmount += payment.getBalanceAmount().intValue();
             canceledAmount += payment.getAmount().subtract(payment.getBalanceAmount()).intValue();
         }
-        this((long) paidAmount, (long) canceledAmount, (long) payments.size());
+        this(paidAmount, canceledAmount, (long) payments.size());
     }
 }
