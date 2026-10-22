@@ -12,8 +12,8 @@ export function sendLocation(applicationId: number, body: SendLocationRequest): 
 
 /**
  * 동행 매니저의 가장 최근 위치 조회 — GET /api/v1/applications/{applicationId}/location
- * 해당 공고의 의뢰인·동행 매니저 본인·관리자만 볼 수 있습니다.
- * 아직 위치가 올라오지 않았으면(404 이거나 data 가 null) null 을 돌려줍니다.
+ * 동행 진행 중 해당 공고의 의뢰인과 동행 매니저 본인만 볼 수 있습니다. 관리자는 조회할 수 없습니다.
+ * 귀가 완료 시 저장된 위치는 삭제되며, 위치가 없거나 공유가 종료되면(404 이거나 data 가 null) null 을 돌려줍니다.
  */
 export async function fetchLocation(applicationId: number): Promise<EscortLocationDto | null> {
   try {
