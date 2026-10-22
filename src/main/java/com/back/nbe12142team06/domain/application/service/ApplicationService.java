@@ -293,20 +293,28 @@ public class ApplicationService {
     @CacheEvict(cacheNames = "postList", allEntries = true)
     public void cancel(Long applicationId, Long userId) {
 
-        // 1. 공고 ID만 조회
+        // 1. 지원 ID로 동행매니저 ID 조회
+        Long escortId = applicationRepository.findEscortIdById(applicationId)
+                .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
+
+        // 2. 승인 로직과 동일한 동행매니저 잠금 (User -> Post -> Application)
+        User escort = userRepository.findByIdWithLock(escortId)
+                .orElseThrow(() -> new NotFoundException(1, "회원 정보를 찾을 수 없습니다."));
+
+        // 3. 공고 ID만 조회
         Long postId = applicationRepository.findPostIdById(applicationId)
                 .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
-        // 2. 공고 잠금
+        // 4. 공고 잠금
         Post post = postRepository.findByIdWithLock(postId)
                 .orElseThrow(() -> new NotFoundException(11, "%s번 공고가 없습니다.".formatted(postId)));
 
-        // 3. 지원 잠금 후 상태 확인
+        // 5. 지원 잠금 후 최신 상태 확인
         Application application = applicationRepository.findByIdWithLock(applicationId)
                 .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
         // 본인이 지원한 내역만 취소 가능
-        if (!application.getEscort().getId().equals(userId)) {
+        if (!escort.getId().equals(userId)) {
             throw new ForbiddenException(25, "본인이 지원한 내역만 취소할 수 있습니다.");
         }
 

@@ -12,6 +12,7 @@ import com.back.nbe12142team06.domain.post.entity.PostStatus;
 import com.back.nbe12142team06.domain.post.repository.PostRepository;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.repository.UserRepository;
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.service.EscortService;
 import com.back.nbe12142team06.global.exception.InvalidException;
@@ -39,6 +40,9 @@ class ApplicationCancelServiceTest {
 
     @Mock
     private PostRepository postRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private EscortProfileRepository escortProfileRepository;
@@ -72,16 +76,20 @@ class ApplicationCancelServiceTest {
         Application application = mock(Application.class);
         Post post = mock(Post.class);
 
+        when(applicationRepository.findEscortIdById(applicationId))
+                .thenReturn(Optional.of(escortId));
+        when(userRepository.findByIdWithLock(escortId))
+                .thenReturn(Optional.of(escort));
+
         when(applicationRepository.findPostIdById(applicationId))
                 .thenReturn(Optional.of(postId));
 
         when(applicationRepository.findByIdWithLock(applicationId))
                 .thenReturn(Optional.of(application));
 
-        when(application.getEscort()).thenReturn(escort);
         when(escort.getId()).thenReturn(escortId);
         when(application.getStatus())
-                .thenReturn(com.back.nbe12142team06.domain.application.enums.ApplicationStatus.ACCEPTED);
+                .thenReturn(ApplicationStatus.ACCEPTED);
         when(post.getPostStatus()).thenReturn(status);
 
         when(postRepository.findByIdWithLock(postId))
@@ -121,6 +129,11 @@ class ApplicationCancelServiceTest {
         Application application = mock(Application.class);
         Post post = mock(Post.class);
 
+        when(applicationRepository.findEscortIdById(applicationId))
+                .thenReturn(Optional.of(escortId));
+        when(userRepository.findByIdWithLock(escortId))
+                .thenReturn(Optional.of(escort));
+
         when(applicationRepository.findPostIdById(applicationId))
                 .thenReturn(Optional.of(postId));
 
@@ -130,7 +143,6 @@ class ApplicationCancelServiceTest {
         when(applicationRepository.findByIdWithLock(applicationId))
                 .thenReturn(Optional.of(application));
 
-        when(application.getEscort()).thenReturn(escort);
         when(escort.getId()).thenReturn(escortId);
         when(application.getStatus())
                 .thenReturn(ApplicationStatus.PENDING);
@@ -159,6 +171,11 @@ class ApplicationCancelServiceTest {
         Application application = mock(Application.class);
         Post post = mock(Post.class);
         EscortProfile escortProfile = mock(EscortProfile.class);
+
+        when(applicationRepository.findEscortIdById(applicationId))
+                .thenReturn(Optional.of(escortId));
+        when(userRepository.findByIdWithLock(escortId))
+                .thenReturn(Optional.of(escort));
 
         when(applicationRepository.findPostIdById(applicationId))
                 .thenReturn(Optional.of(postId));
