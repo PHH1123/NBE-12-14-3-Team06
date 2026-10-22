@@ -101,4 +101,7 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     int updateProcessingForAdmin(@Param("settlementId") Long settlementId);
 
     boolean existsByEscortIdAndSettlementStatusNot(Long escortId, SettlementStatus status);
+
+    @Query("select s from Settlement s join fetch s.escort where s.id=:settlementId")
+    Optional<Settlement> fetchJoinById(@Param("settlementId") Long settlementId);
 }
