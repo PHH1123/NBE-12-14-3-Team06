@@ -369,8 +369,8 @@ public class SettlementServiceTest {
                 .when(settlementPersistenceService).updateSettlement(any(), any());
 
         assertThatThrownBy(() -> settlementService.request(escort.getId(), settlement.getId()))
-                .isInstanceOf(PersistenceException.class)
-                .hasMessage("스레드 고갈");
+                .isInstanceOf(InternalServerErrorException.class)
+                .hasMessageContaining("DB 에러");
 
         assertThatThrownBy(() -> settlementService.request(escort.getId(), settlement.getId()))
                 .isInstanceOf(InvalidException.class)
