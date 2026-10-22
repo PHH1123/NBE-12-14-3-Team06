@@ -12,10 +12,11 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class ChatMessageEventListener {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private static final String CHAT_SUBSCRIBE_PATH = "/topic/chat/";
 
     @TransactionalEventListener
     public void sendEvent(ChatMessageEvent event) {
-        messagingTemplate.convertAndSend(event.path() + event.chatRoomId(),
+        messagingTemplate.convertAndSend(CHAT_SUBSCRIBE_PATH + event.chatRoomId(),
                 event.chatMessageResponse());
     }
 }

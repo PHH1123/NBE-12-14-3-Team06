@@ -29,8 +29,6 @@ public class ChatMessageService {
     private final ChatRoomRepository chatRoomRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    private static final String CHAT_SUBSCRIBE_PATH = "/topic/chat/";
-
     @Transactional
     public ChatMessage sendMessage(Long chatRoomId, String content, ChatPart chatPart) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
@@ -48,7 +46,7 @@ public class ChatMessageService {
 
         // 메시지 전송
         eventPublisher.publishEvent(
-                new ChatMessageEvent(CHAT_SUBSCRIBE_PATH, chatRoomId, new ChatMessageResponse(chatMessage)));
+                new ChatMessageEvent(chatRoomId, new ChatMessageResponse(chatMessage)));
 
         return chatMessage;
     }
@@ -84,7 +82,7 @@ public class ChatMessageService {
 
         // 채팅방 나갔을 때는 상대방이 채팅 중일 수 있으므로 메시지 전송
         eventPublisher.publishEvent(
-                new ChatMessageEvent(CHAT_SUBSCRIBE_PATH, chatRoomId, new ChatMessageResponse(chatMessage)));
+                new ChatMessageEvent(chatRoomId, new ChatMessageResponse(chatMessage)));
 
         return chatMessage;
     }
