@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 public class PiiConverterTest {
     // 키 생성
@@ -24,7 +25,7 @@ public class PiiConverterTest {
     private final PiiConverter piiConverter = converter(1);
 
     @Test
-    @DisplayName("[PiiConverterTest] DB에 저장되는 값은 평문이 아닌 BASE64")
+    @DisplayName("[PiiConverter] 암호를 복호화하면 원문이 나온다")
     void t1() {
 
         String plain = "김춘식 user1@user.user 010-1234-5678";
@@ -33,5 +34,16 @@ public class PiiConverterTest {
 
         assertThat(encrypted).isNotEqualTo(plain);
         assertThat(piiConverter.convertToEntityAttribute(encrypted)).isEqualTo(plain);
+    }
+
+    @Test
+    @DisplayName("[PiiConverter] DB에 저장되는 값은 평문이 아닌 BASE64")
+    void t2() {
+        String encrypted = piiConverter.convertToDatabaseColumn("user1@user.user");
+
+        assertThat(encrypted).doesNotContain("user1@user.user");
+
+        assertThatNoException().isThrownBy(() -> Base64.getDecoder().decode(encrypted));
+        assertThat(Base64.getDecoder().decode(encrypted)).isNotEmpty();
     }
 }
