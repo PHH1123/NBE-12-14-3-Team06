@@ -66,4 +66,16 @@ public class UserBlindIndexListenerTest {
         assertThat(user.getPhoneNumHash()).isEqualTo(blindIndexer.hashPhoneNum("010-9999-9999"));
     }
 
+    @Test
+    @DisplayName("[UserBlindIndexListener] 탈퇴 회원은 해시값이 null")
+    void t3() {
+        User user = createUser();
+        user.deleteUser();
+        user.updateBlindIndex("stale", "stale");
+
+        listener.fillBlindIndex(user);
+
+        assertThat(user.getEmailHash()).isNull();
+        assertThat(user.getPhoneNumHash()).isNull();
+    }
 }
