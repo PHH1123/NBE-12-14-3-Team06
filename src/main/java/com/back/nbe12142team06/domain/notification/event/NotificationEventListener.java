@@ -26,7 +26,7 @@ public class NotificationEventListener {
 
     @TransactionalEventListener
     public void sendEvent(NotificationEvent event) {
-        Map<String, SseEmitter> emitterMap = emitterRepository.findAllEmitterStartWithByUserId(event.receiverId());
+        Map<String, SseEmitter> emitterMap = emitterRepository.findAllByUserId(event.receiverId());
         RsData<NotificationResponse> rsData = new RsData<>("200-132", "알림이 전송되었습니다.",
                 new NotificationResponse(event.notification()));
 
