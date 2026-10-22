@@ -74,4 +74,13 @@ public class PiiConverterTest {
         assertThatThrownBy(() -> converter(2).convertToEntityAttribute(encrypted))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    @DisplayName("[PiiConverter] 암호화 키가 32바이트가 아니면 예외 발생")
+    void t6() {
+        String shortKey = Base64.getEncoder().encodeToString(new byte[16]);
+
+        assertThatThrownBy(() -> new CryptoConfig().piiBytesEncryptor(shortKey))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }
