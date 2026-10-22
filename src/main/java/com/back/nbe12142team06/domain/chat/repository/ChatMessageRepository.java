@@ -25,7 +25,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             "and m.chatPart.user.id <> cp.user.id " +
             "and m.sentAt > cp.lastReadAt " +
             "where cp.user.id=:userId " +
-            "and cp.chatRoom.id=:chatRoomIds " +
+            "and cp.chatRoom.id in :chatRoomIds " +
             "group by cp.chatRoom.id")
     List<UnreadCountDto> getUnreadCountsByChatRoomIds(@Param("userId") Long userId,
                                                       @Param("chatRoomIds") List<Long> chatRoomIds);

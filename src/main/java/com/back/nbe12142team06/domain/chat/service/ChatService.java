@@ -124,7 +124,7 @@ public class ChatService {
     }
 
     @Transactional(readOnly = true)
-    public Map<Long, Integer> getUnReadCounts(Long userId, List<ChatRoom> chatRooms) {
+    public Map<Long, Long> getUnReadCounts(Long userId, List<ChatRoom> chatRooms) {
         if (chatRooms.isEmpty()) {
             return Map.of();
         }
