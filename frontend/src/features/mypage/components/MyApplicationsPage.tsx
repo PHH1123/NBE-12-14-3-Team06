@@ -101,7 +101,7 @@ function ApplicationAction({ row, onCancel }: { row: ApplicationRow; onCancel: (
       return <button type="button" onClick={() => onCancel(row)} className={CANCEL}>지원 취소</button>;
     case 'matched':
       return (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex flex-col items-center gap-2">
           <Link href={`/escort/${row.id}`} className={PRIMARY}>
             <Activity aria-hidden="true" className="size-3.5 text-[#2F7D5B]" />동행 보기
           </Link>
