@@ -281,10 +281,6 @@ public class PaymentService {
             // DB 반영
             try {
                 paymentPersistenceService.paymentCancelDb(payment.getId(), cancelReason, false);
-            } catch (NotFoundException e) {
-                log.error("결제 취소 - DB 저장 실패", e);
-                failedCount++;
-                continue;
             } catch (RuntimeException ex) {
                 log.error("결제 취소 - DB 저장 실패", ex);
                 failedCount++;
