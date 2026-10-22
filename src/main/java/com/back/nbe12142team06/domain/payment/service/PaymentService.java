@@ -66,10 +66,11 @@ public class PaymentService {
         }
         // 3. DB 반영
         try {
-            paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId);
+            payment = paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId);
         } catch (NotFoundException e) {
             cancel(userId, paymentId, new PaymentCancelRequest("서버 에러 발생"));
             log.error("결제 승인 실패", e);
+            throw e;
         } catch (RuntimeException ex) {
             cancel(userId, paymentId, new PaymentCancelRequest("서버 에러 발생"));
             log.error("결제 승인 실패", ex);
@@ -271,8 +272,7 @@ public class PaymentService {
 
             // 외부 API 요청
             try {
-                ResponseEntity<TossConfirmResponse> response =
-                        tossPaymentClient.callApiCancel(cancelReason, tossPaymentKey, String.valueOf(payment.getBalanceAmount()));
+                tossPaymentClient.callApiCancel(cancelReason, tossPaymentKey, String.valueOf(payment.getBalanceAmount()));
             } catch (RuntimeException e) {
                 failedCount++;
                 continue;
@@ -281,10 +281,6 @@ public class PaymentService {
             // DB 반영
             try {
                 paymentPersistenceService.paymentCancelDb(payment.getId(), cancelReason, false);
-            } catch (NotFoundException e) {
-                log.error("결제 취소 - DB 저장 실패", e);
-                failedCount++;
-                continue;
             } catch (RuntimeException ex) {
                 log.error("결제 취소 - DB 저장 실패", ex);
                 failedCount++;
