@@ -3,6 +3,7 @@ package com.back.nbe12142team06.global.crypto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -82,5 +83,19 @@ public class PiiConverterTest {
 
         assertThatThrownBy(() -> new CryptoConfig().piiBytesEncryptor(shortKey))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("[PiiConverter] 생년월일(LocalDate)도 암/복호화 가능")
+    void t7() {
+        PiiLocalDateConverter dateConverter = new PiiLocalDateConverter(piiConverter);
+        LocalDate birthDate = LocalDate.of(1990, 5, 20);
+
+        String encrypted = dateConverter.convertToDatabaseColumn(birthDate);
+
+        assertThat(encrypted).doesNotContain("1990");
+        assertThat(dateConverter.convertToEntityAttribute(encrypted)).isEqualTo(birthDate);
+        assertThat(dateConverter.convertToDatabaseColumn(null)).isNull();
+        assertThat(dateConverter.convertToEntityAttribute(null)).isNull();
     }
 }
