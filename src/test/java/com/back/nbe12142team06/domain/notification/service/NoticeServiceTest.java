@@ -135,7 +135,7 @@ class NoticeServiceTest {
         String content = escort.getName() + "님이 알림을 전송했습니다.";
 
         noticeService.connect(client.getId());
-        noticeService.send(client, content, null);
+        noticeService.send(client.getId(), content, null);
     }
 
     @Test

@@ -116,7 +116,7 @@ public class ApplicationService {
         log.info("[지원] applicationId={}, postId={}, escortId={}", savedApplication.getId(), postId, userId);
 
         // 알림
-        noticeService.send(post.getClient(),
+        noticeService.send(post.getClient().getId(),
                 C_APPLICATION_APPLY.of(escort.getName(), post.getTitle()),
                 U_APPLICATION_APPLY.of(post.getId()));
 
@@ -243,7 +243,7 @@ public class ApplicationService {
                 applicationId, post.getId(), escort.getId(), userId);
 
         // 알림
-        noticeService.send(escort,
+        noticeService.send(escort.getId(),
                 C_APPLICATION_ACCEPT.of(post.getTitle()),
                 U_APPLICATION_ACCEPT.of(applicationId));
 
@@ -279,7 +279,7 @@ public class ApplicationService {
         log.info("[지원 거절] applicationId={}, clientId={}", applicationId, userId);
 
         // 알림
-        noticeService.send(application.getEscort(),
+        noticeService.send(application.getEscort().getId(),
                 C_APPLICATION_REJECT.of(post.getTitle()),
                 U_APPLICATION_REJECT.of());
     }
@@ -361,7 +361,7 @@ public class ApplicationService {
             log.warn("[노쇼 취소] applicationId={}, postId={}, escortId={}", applicationId, post.getId(), userId);
 
             // 알림
-            noticeService.send(post.getClient(),
+            noticeService.send(post.getClient().getId(),
                     C_APPLICATION_CANCELED.of(application.getEscort().getName(), post.getTitle()),
                     U_APPLICATION_CANCELED.of(post.getId()));
 
@@ -513,21 +513,21 @@ public class ApplicationService {
 
         if (progress == EscortProgress.AT_HOSPITAL) {
             // 알림 - 동행 매니저
-            noticeService.send(application.getEscort(),
+            noticeService.send(application.getEscort().getId(),
                     C_APPLICATION_PROGRESS_AT_HOSPITAL.of(application.getPost().getHospitalName()),
                     U_APPLICATION_PROGRESS_AT_HOSPITAL.of(applicationId));
         } else if (progress == EscortProgress.ARRIVED_HOME) {
             // 알림 - 의뢰인
-            noticeService.send(application.getPost().getClient(),
+            noticeService.send(application.getPost().getClient().getId(),
                     C_APPLICATION_PROGRESS_ARRIVED_HOME.of(application.getPost().getHospitalName()),
                     U_APPLICATION_PROGRESS_ARRIVED_HOME.of(applicationId, application.getPost().getId()));
         } else {
             // 알림 - 의뢰인
-            noticeService.send(application.getPost().getClient(),
+            noticeService.send(application.getPost().getClient().getId(),
                     C_APPLICATION_UPDATED_PROGRESS.of(progress.getDescription()),
                     U_APPLICATION_UPDATED_PROGRESS_CLIENT.of(applicationId, application.getPost().getId()));
             // 알림 - 동행 매니저
-            noticeService.send(application.getEscort(),
+            noticeService.send(application.getEscort().getId(),
                     C_APPLICATION_UPDATED_PROGRESS.of(progress.getDescription()),
                     U_APPLICATION_UPDATED_PROGRESS_ESCORT.of(applicationId));
         }

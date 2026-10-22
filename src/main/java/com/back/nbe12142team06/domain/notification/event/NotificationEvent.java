@@ -6,7 +6,7 @@ import com.back.nbe12142team06.domain.user.entity.User;
 public record NotificationEvent(
         String content,
         String url,
-        User receiver,
+        Long receiverId,
         Notification notification
 ) {
 }

@@ -51,6 +51,7 @@ class ApplicationLocationServiceTest {
     private final Application application = mock(Application.class);
     private final Post post = mock(Post.class);
     private final User escort = mock(User.class);
+    private final User client = mock(User.class);
 
     private void prepareAcceptedApplication() {
         when(application.getEscort()).thenReturn(escort);
@@ -142,6 +143,8 @@ class ApplicationLocationServiceTest {
                         .progress(EscortProgress.TO_HOME)
                         .occurredAt(LocalDateTime.now().minusMinutes(10))
                         .build()));
+        when(application.getPost().getClient())
+                .thenReturn(client);
 
         applicationService.updateProgress(APPLICATION_ID, ESCORT_ID, EscortProgress.ARRIVED_HOME);
 
