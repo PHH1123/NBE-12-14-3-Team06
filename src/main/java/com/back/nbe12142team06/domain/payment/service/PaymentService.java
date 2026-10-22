@@ -80,7 +80,7 @@ public class PaymentService {
         log.info("결제 승인 성공 - paymentId: {}, userId: {}", paymentId, userId);
 
         // 알림
-        noticeService.send(payment.getPost().getClient(),
+        noticeService.send(userId,
                 C_PAYMENT_DONE.of(payment.getPost().getTitle(), String.valueOf(payment.getAmount())),
                 U_PAYMENT_DONE.of(payment.getPost().getId()));
 
@@ -150,7 +150,7 @@ public class PaymentService {
         paymentPersistenceService.rejectApplication(post);
 
         // 알림
-        noticeService.send(post.getClient(),
+        noticeService.send(userId,
                 C_PAYMENT_CANCELED.of(post.getTitle(), String.valueOf(payment.getAmount())),
                 U_PAYMENT_CANCELED.of(post.getId()));
 
@@ -208,7 +208,7 @@ public class PaymentService {
             paymentPersistenceService.createPayment(newPayment);
 
             // 알림
-            noticeService.send(post.getClient(),
+            noticeService.send(post.getClient().getId(),
                     C_PAYMENT_EXTRA_PAY.of(post.getTitle(), String.valueOf(newPayment.getAmount())),
                     U_PAYMENT_EXTRA_PAY.of(post.getId()));
         }
@@ -223,7 +223,7 @@ public class PaymentService {
             );
 
             // 알림
-            noticeService.send(post.getClient(),
+            noticeService.send(post.getClient().getId(),
                     C_PAYMENT_PARTIAL_CANCELED.of(post.getTitle(), String.valueOf(balanceAmount)),
                     U_PAYMENT_PARTIAL_CANCELED.of(post.getId()));
         }

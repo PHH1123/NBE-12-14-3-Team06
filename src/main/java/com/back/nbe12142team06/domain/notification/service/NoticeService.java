@@ -5,6 +5,7 @@ import com.back.nbe12142team06.domain.notification.event.NotificationEvent;
 import com.back.nbe12142team06.domain.notification.repository.EmitterRepository;
 import com.back.nbe12142team06.domain.notification.repository.NotificationRepository;
 import com.back.nbe12142team06.domain.user.entity.User;
+import com.back.nbe12142team06.domain.user.repository.UserRepository;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
@@ -29,6 +30,7 @@ public class NoticeService {
     private final NotificationRepository notificationRepository;
     private final EmitterRepository emitterRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final UserRepository userRepository;
 
     public SseEmitter connect(Long userId) {
         // 5분
@@ -50,7 +52,9 @@ public class NoticeService {
 
     @Async
     @Transactional
-    public void send(User receiver, String content, String url) {
+    public void send(Long receiverId, String content, String url) {
+        User receiver = userRepository.getReferenceById(receiverId);
+
         Notification notification = Notification.builder()
                 .content(content)
                 .url(url)
@@ -58,7 +62,7 @@ public class NoticeService {
                 .build();
         Notification savedNotification = notificationRepository.save(notification);
 
-        eventPublisher.publishEvent(new NotificationEvent(content, url, receiver, savedNotification));
+        eventPublisher.publishEvent(new NotificationEvent(content, url, receiverId, savedNotification));
     }
 
     private void sendToClient(SseEmitter sseEmitter, String emitterId, Object data) {

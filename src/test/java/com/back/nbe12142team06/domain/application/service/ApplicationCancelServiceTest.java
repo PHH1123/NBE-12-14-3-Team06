@@ -190,6 +190,8 @@ class ApplicationCancelServiceTest {
         when(post.getPostStatus()).thenReturn(PostStatus.MATCHED);
         when(post.getRecruitEndAt())
                 .thenReturn(LocalDateTime.now().plusDays(1));
+        when(post.getClient())
+                .thenReturn(User.builder().build());
 
         when(postRepository.findByIdWithLock(postId))
                 .thenReturn(Optional.of(post));
