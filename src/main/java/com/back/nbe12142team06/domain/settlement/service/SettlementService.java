@@ -69,29 +69,31 @@ public class SettlementService {
             throw new InvalidException(71, "이미 정산 중이거나 정산이 완료되었습니다.");
         }
 
-        Settlement settlement;
-
+        SettlementClientResponse response;
         try {
-            SettlementClientResponse response = settlementApi(accountDto.payoutAmount(), name, account);
+            response = settlementApi(accountDto.payoutAmount(), name, account);
             // 정산 완료 상태 변경
-            if (response.res_cnt() >= 1) {
-                try {
-                    settlement = settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.COMPLETED);
-                    log.info("정산 성공 - settlementId: {}", accountDto.id());
-                } catch (Exception e) {
-                    log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
-                    throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
-                }
-            } else {
-                settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.FAILED);
-                log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", settlementId);
-                throw new InternalServerErrorException(72, "정산에 실패했습니다.");
-            }
         } catch (RuntimeException e) {
             // 금융 결제원 API 요청 에러
             settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.FAILED);
             log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", settlementId, e);
             throw new InternalServerErrorException(72, "정산에 실패했습니다.");
+        }
+
+        if (response.res_cnt() < 1) {
+            settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.FAILED);
+            log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", settlementId);
+            throw new InternalServerErrorException(72, "정산에 실패했습니다.");
+
+        }
+
+        Settlement settlement;
+        try {
+            settlement = settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.COMPLETED);
+            log.info("정산 성공 - settlementId: {}", accountDto.id());
+        } catch (Exception e) {
+            log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
+            throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
         }
 
         // 알림
@@ -142,30 +144,34 @@ public class SettlementService {
                 continue;
             }
 
+            SettlementClientResponse response;
             try {
-                SettlementClientResponse response =
-                        settlementApi(accountDto.payoutAmount(), accountDto.name(), accountDto.accountNumber());
+                response = settlementApi(accountDto.payoutAmount(), accountDto.name(), accountDto.accountNumber());
                 // 정산 성공
-                if (response.res_cnt() >= 1) {
-                    try {
-                        settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.COMPLETED);
-                    } catch (Exception e) {
-                        log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
-                        throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
-                    }
-                    successCount++;
-                    log.info("정산 성공 - settlementId: {}", accountDto.id());
-                } else {
-                    // 정산 성공 0건
-                    settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.FAILED);
-                    failedCount++;
-                    log.error("정산 실패 - 금융 결제원 API 요청 성공 0건, settlementId: {}", accountDto.id());
-                }
             } catch (RuntimeException e) {
                 // 금융 결제원 API 요청 에러
                 settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.FAILED);
                 log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", accountDto.id(), e);
+                failedCount++;
+                continue;
             }
+
+            if (response.res_cnt() < 1) {
+                // 정산 성공 0건
+                settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.FAILED);
+                failedCount++;
+                log.error("정산 실패 - 금융 결제원 API 요청 성공 0건, settlementId: {}", accountDto.id());
+            }
+
+            try {
+                settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.COMPLETED);
+            } catch (Exception e) {
+                log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
+                throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
+            }
+
+            successCount++;
+            log.info("정산 성공 - settlementId: {}", accountDto.id());
         }
 
         return new int[]{successCount + failedCount, successCount, failedCount};
