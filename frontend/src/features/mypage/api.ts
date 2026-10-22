@@ -2,7 +2,7 @@ import type { CurrentUser } from '@/features/auth';
 import { api, apiDelete, apiPatch, apiPost, apiPut, type SpringPage } from '@/lib/api';
 import type { ClientProfileDto, EscortProfileDto, ReviewDto, SettlementDto, SettlementStatus } from './types';
 
-/** 기본 정보 수정 — PATCH /api/v1/users/profile. 백엔드가 수정할 때마다 비밀번호 재확인을 요구합니다. */
+/** 기본 정보 수정 — PATCH /api/v1/users/profile. 전달한 password는 새 비밀번호로 저장됩니다. */
 export type ProfileUpdateRequest = {
   password: string;
   email: string;

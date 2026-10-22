@@ -220,14 +220,17 @@ function BaseEditor({ user, onSaved, onCancel }: { user: CurrentUser; onSaved: (
   }
   return (
     <form onSubmit={submit} className="space-y-4">
-      <p className="text-xs text-[#67717C]">아이디와 성별은 변경할 수 없습니다. 수정하려면 현재 비밀번호를 입력해야 합니다.</p>
+      <div className="space-y-1 text-sm text-[#67717C]">
+        <p>아이디와 성별은 변경할 수 없습니다.</p>
+        <p>정보 수정 시 비밀번호 입력이 필요하며, 기존 비밀번호를 입력하면 그대로 유지됩니다.</p>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div><label className={FIELD_LABEL} htmlFor="mypage-email">이메일</label><input type="email" id="mypage-email" className={INPUT} required value={email} onChange={(event) => setEmail(event.target.value)} /></div>
         <div><label className={FIELD_LABEL} htmlFor="mypage-name">성명</label><input id="mypage-name" className={INPUT} required value={name} onChange={(event) => setName(event.target.value)} /></div>
         <div><label className={FIELD_LABEL} htmlFor="mypage-birth">생년월일</label><input type="date" id="mypage-birth" className={INPUT} required value={birthDate} onChange={(event) => setBirthDate(event.target.value)} /></div>
         <div><label className={FIELD_LABEL} htmlFor="mypage-phone">전화번호</label><input id="mypage-phone" className={INPUT} required value={phoneNum} onChange={(event) => setPhoneNum(event.target.value)} /></div>
         <div><label className={FIELD_LABEL} htmlFor="mypage-region">거주 지역</label><DropdownSelect id="mypage-region" name="region" required value={region} onValueChange={setRegion} placeholder="지역을 선택해주세요." options={[...(!REGIONS.includes(region as typeof REGIONS[number]) && region ? [{ value: region, label: region }] : []), ...REGIONS.map((value) => ({ value, label: value }))]} size="form" /></div>
-        <div><label className={FIELD_LABEL} htmlFor="mypage-password">현재 비밀번호</label><input type="password" id="mypage-password" className={INPUT} required value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" /></div>
+        <div><label className={FIELD_LABEL} htmlFor="mypage-password">비밀번호</label><input type="password" id="mypage-password" placeholder="비밀번호를 입력해 주세요." className={INPUT} required value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" /><p className="mt-1.5 text-xs text-[#67717C]">새 비밀번호를 입력하면 계정 비밀번호가 변경됩니다.</p></div>
       </div>
       {error && <p role="alert" className="text-xs font-medium text-[#B4413C]">{error}</p>}
       <div className="flex justify-end gap-2"><button type="button" className={SECONDARY} onClick={onCancel}>취소</button><button type="submit" className={PRIMARY} disabled={saving}>{saving ? '저장 중…' : '수정 완료'}</button></div>
