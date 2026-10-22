@@ -261,7 +261,7 @@ export default function MyApplicationsPage() {
           )}
 
           <div className="overflow-hidden rounded-2xl border border-[#E1E5E8] bg-white shadow-xs">
-            <div className="hidden grid-cols-[112px_minmax(0,1fr)_150px_72px_94px_125px] gap-4 border-b border-[#E1E5E8] bg-[#EDF0F2]/60 px-6 py-3.5 text-xs font-semibold text-[#67717C] min-[1100px]:grid" style={{ gridTemplateColumns: "88px minmax(0, 1fr) 150px 72px 94px 125px", columnGap: "12px" }}>
+            <div className="hidden grid-cols-[112px_minmax(0,1fr)_150px_72px_94px_125px] gap-4 border-b border-[#E1E5E8] bg-[#EDF0F2]/60 px-6 py-3.5 text-xs font-semibold text-[#67717C] min-[1100px]:grid" style={{ gridTemplateColumns: "88px minmax(0, 1fr) 150px 72px 94px 216px", columnGap: "12px" }}>
               <div>상태</div>
               <div>병원 및 공고</div>
               <div>동행 일시</div>
@@ -282,7 +282,7 @@ export default function MyApplicationsPage() {
               <div className="divide-y divide-[#E1E5E8]">
                 {visibleRows.map((row) => (
                   <div key={row.id} className="px-6 py-5 transition-colors hover:bg-[#F7F8F8]">
-                    <div className="hidden grid-cols-[112px_minmax(0,1fr)_150px_72px_94px_125px] items-center gap-4 text-sm min-[1100px]:grid" style={{ gridTemplateColumns: "88px minmax(0, 1fr) 150px 72px 94px 125px", columnGap: "12px" }}>
+                    <div className="hidden grid-cols-[112px_minmax(0,1fr)_150px_72px_94px_125px] items-center gap-4 text-sm min-[1100px]:grid" style={{ gridTemplateColumns: "88px minmax(0, 1fr) 150px 72px 94px 216px", columnGap: "12px" }}>
                       <div><StatusBadge status={row.status} /></div>
                       <div className="min-w-0 pr-2">
                         <Link href={`/posts/${row.postId}`} className="block truncate text-base font-semibold text-[#14243A] hover:text-[#426B93]">{row.title}</Link>

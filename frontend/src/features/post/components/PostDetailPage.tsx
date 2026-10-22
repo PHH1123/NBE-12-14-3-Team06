@@ -327,7 +327,6 @@ function PostDetailPageBody({ viewer }: Props) {
     setDeleting(true);
     setDeleteError(undefined);
     try {
-      // TODO: 삭제 API(DELETE /api/v1/posts/{postId})는 로그인 쿠키(작성자 본인)가 있어야 합니다.
       await deletePost(postId);
       router.push(listHref);
     } catch (error) {
@@ -389,7 +388,6 @@ function PostDetailPageBody({ viewer }: Props) {
       return;
     }
     if (!await confirm({ title: '이 공고에 지원하시겠습니까?', confirmLabel: '지원하기' })) return;
-    // TODO: 지원 API(POST /api/v1/applications/{postId})는 동행 매니저(ESCORT) 로그인 쿠키가 있어야 합니다.
     setApplyState('applying');
     setApplyError(undefined);
     setEducationRequired(false);

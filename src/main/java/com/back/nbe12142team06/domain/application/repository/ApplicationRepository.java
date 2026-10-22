@@ -94,7 +94,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     // 동행 매니저의 최근 위치 저장. 위치 컬럼만 바꾸는 조건부 UPDATE 다.
     // 엔티티를 불러와 고치면(더티체킹) 하이버네이트가 status 같은 안 바뀐 컬럼까지 함께 UPDATE 해서,
     // 같은 순간에 처리된 노쇼 취소·승인 등의 상태를 이전 값으로 되돌릴 수 있다. 그래서 위치 컬럼만 직접 바꾼다.
-    // 지원이 ACCEPTED 이고 공고가 IN_PROGRESS 일 때만 바뀌며, 바뀐 행 수를 돌려준다 (0 이면 조건이 안 맞은 것).
+    // 지원이 ACCEPTED, 공고가 IN_PROGRESS 이며 귀가 완료 전일 때만 바뀐다 (0 이면 저장 불가).
     @Modifying
     @Query("""
             update Application a
@@ -109,12 +109,37 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
                      where p = a.post
                        and p.postStatus = com.back.nbe12142team06.domain.post.entity.PostStatus.IN_PROGRESS
                )
+               and not exists (
+                    select 1 from EscortProgressLog progressEntry
+                     where progressEntry.application = a
+                       and progressEntry.progress = com.back.nbe12142team06.domain.application.enums.EscortProgress.ARRIVED_HOME
+               )
             """)
     int updateLocation(@Param("id") Long id,
                        @Param("lat") BigDecimal lat,
                        @Param("lng") BigDecimal lng,
                        @Param("accuracy") BigDecimal accuracy,
                        @Param("updatedAt") Instant updatedAt);
+
+    // 귀가 완료 시 최근 위치(위도·경도·정확도·갱신 시각)를 모두 삭제한다.
+    @Modifying(flushAutomatically = true)
+    @Query("""
+            update Application a
+               set a.lat = null, a.lng = null,
+                   a.accuracy = null, a.locationUpdatedAt = null
+             where a.id = :applicationId
+            """)
+    int clearLocation(@Param("applicationId") Long applicationId);
+
+    // 공고 완료·취소·삭제 시 혹시 남아 있는 위치도 삭제한다.
+    @Modifying(flushAutomatically = true)
+    @Query("""
+            update Application a
+               set a.lat = null, a.lng = null,
+                   a.accuracy = null, a.locationUpdatedAt = null
+             where a.post.id = :postId
+            """)
+    int clearLocationsByPostId(@Param("postId") Long postId);
 
     // 회원 탈퇴·정지 시 취소할 지원 목록 조회
     @Query("""
