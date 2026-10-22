@@ -232,7 +232,7 @@ public class ApplicationControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.statusCode").value("403-31"))
                 .andExpect(jsonPath("$.msg")
-                        .value("정지된 계정입니다."));
+                        .value("활성 상태의 회원만 지원할 수 있습니다."));
 
         // 실제 지원 내역도 생성되지 않아야 함
         assertEquals(
@@ -331,7 +331,7 @@ public class ApplicationControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.statusCode").value("403-31"))
                 .andExpect(jsonPath("$.msg")
-                        .value("정지된 계정입니다."));
+                        .value("활성 상태의 회원만 지원할 수 있습니다."));
 
         // 지원 데이터가 생성되지 않았는지 확인
         assertEquals(

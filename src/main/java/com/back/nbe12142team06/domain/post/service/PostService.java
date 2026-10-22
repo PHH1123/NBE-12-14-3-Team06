@@ -98,7 +98,7 @@ public class PostService {
     public PostWriteResponse write(Long userId, PostWriteRequest request) {
         User user = getUser(userId);
         if(user.getUserStatus() != UserStatus.ACTIVE){
-            throw new ForbiddenException(31, "정지된 계정입니다.");
+            throw new ForbiddenException(31, "공고 등록 권한이 없습니다.");
         }
         if (user.getRole() != Role.CLIENT && user.getRole() != Role.ADMIN) {
             throw new ForbiddenException(11, "공고 등록 권한이 없습니다. 의뢰인으로 로그인 해주세요.");
@@ -192,7 +192,8 @@ public class PostService {
     @CacheEvict(cacheNames = "postList", allEntries = true)
     public void delete(Long postId, Long userId) {
         User user = getUser(userId);
-        Post post = findById(postId);
+        Post post = postRepository.findByIdWithLock(postId)
+                .orElseThrow(() -> new NotFoundException(11, postId + "번 공고가 없습니다."));
 
         if (user.getRole() != Role.CLIENT && user.getRole() != Role.ADMIN) {
             throw new ForbiddenException(14, "공고 삭제 권한이 없습니다.");
@@ -270,7 +271,9 @@ public class PostService {
     @CacheEvict(cacheNames = "postList", allEntries = true)
     public void escortComplete(Long postId, Long userId) {
         User user = getUser(userId);
-        Post post = findById(postId);
+        // 실시간 위치 저장·진행 단계 변경과 같은 Post 락으로 종료 처리를 직렬화한다.
+        Post post = postRepository.findByIdWithLock(postId)
+                .orElseThrow(() -> new NotFoundException(11, postId + "번 공고가 없습니다."));
 
         if (user.getRole() != Role.CLIENT && user.getRole() != Role.ADMIN) {
             throw new ForbiddenException(18, "공고 동행완료 처리 권한이 없습니다.");
@@ -312,6 +315,8 @@ public class PostService {
 
         post.startProgress(departedAt);   // escortStartAt 실제값 반영
         post.complete(arrivedAt);       // escortEndAt 실제값 반영 + 상태 COMPLETED
+        // 정상 경로에서는 ARRIVED_HOME 때 삭제되지만, 완료 처리에서도 잔여 위치를 정리한다.
+        applicationRepository.clearLocationsByPostId(postId);
 
         // 재결제 로직
         paymentService.validPayment(post, application, post.getEscortEndAt().plusDays(1).toLocalDate());
@@ -384,6 +389,8 @@ public class PostService {
     // 공고가 취소·삭제될 때, 그 공고의 지원(대기중, 승인)을 패널티 없이 취소한다.
     // 같은 트랜잭션 안에서 가져온 지원이라 변경 감지로 저장된다.
     private void cancelApplicationsWithoutPenalty(Post post) {
+        // 공고 취소·매칭 취소·삭제 때 남은 위치정보가 있다면 함께 삭제한다.
+        applicationRepository.clearLocationsByPostId(post.getId());
         List<Application> acceptedApplications = applicationRepository.findAllByPostAndStatus(post, ACCEPTED);
         List<Application> pendingApplications = applicationRepository.findAllByPostAndStatus(post, PENDING);
 
