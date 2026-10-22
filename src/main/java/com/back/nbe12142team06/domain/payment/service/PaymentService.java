@@ -272,8 +272,7 @@ public class PaymentService {
 
             // 외부 API 요청
             try {
-                ResponseEntity<TossConfirmResponse> response =
-                        tossPaymentClient.callApiCancel(cancelReason, tossPaymentKey, String.valueOf(payment.getBalanceAmount()));
+                tossPaymentClient.callApiCancel(cancelReason, tossPaymentKey, String.valueOf(payment.getBalanceAmount()));
             } catch (RuntimeException e) {
                 failedCount++;
                 continue;
