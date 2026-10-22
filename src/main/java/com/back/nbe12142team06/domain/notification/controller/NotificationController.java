@@ -45,7 +45,7 @@ public class NotificationController {
     }
 
     @PatchMapping("/read")
-    public RsData<?> readList(@AuthenticationPrincipal SecurityUser user,
+    public RsData<Page<NotificationResponse>> readList(@AuthenticationPrincipal SecurityUser user,
                           @RequestParam(required = false, defaultValue = "0") int page,
                           @RequestParam(required = false, defaultValue = "10") int size) {
         Long userId = user.getId();
@@ -57,7 +57,7 @@ public class NotificationController {
     }
 
     @PatchMapping("/{notificationId}/read")
-    public RsData<?> read(@AuthenticationPrincipal SecurityUser user,
+    public RsData<NotificationResponse> read(@AuthenticationPrincipal SecurityUser user,
                           @PathVariable Long notificationId) {
         Long userId = user.getId();
         Notification notification = noticeService.read(userId, notificationId);

@@ -7,6 +7,7 @@ import com.back.nbe12142team06.domain.notification.repository.NotificationReposi
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
+import com.back.nbe12142team06.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,8 @@ class NoticeServiceSendUnitTest {
     private EmitterRepository emitterRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private NoticeService noticeService;
@@ -89,8 +92,9 @@ class NoticeServiceSendUnitTest {
         String content = "동행매니저님이 공고에 지원하셨습니다.";
         String url = "/client/posts/1";
         doReturn(savedNotification(client, content, url)).when(notificationRepository).save(any());
+        doReturn(client).when(userRepository).getReferenceById(any());
 
-        noticeService.send(client, content, url);
+        noticeService.send(client.getId(), content, url);
 
         verify(notificationRepository).save(notificationCaptor.capture());
         Notification saved = notificationCaptor.getValue();
@@ -105,7 +109,7 @@ class NoticeServiceSendUnitTest {
         User client = createClient();
         doReturn(savedNotification(client, "알림", null)).when(notificationRepository).save(any());
 
-        noticeService.send(client, "알림", null);
+        noticeService.send(client.getId(), "알림", null);
 
         verify(notificationRepository).save(notificationCaptor.capture());
         assertThat(notificationCaptor.getValue().isRead()).isFalse();
@@ -122,13 +126,13 @@ class NoticeServiceSendUnitTest {
         Notification saved = savedNotification(client, content, url);
         doReturn(saved).when(notificationRepository).save(any());
 
-        noticeService.send(client, content, url);
+        noticeService.send(client.getId(), content, url);
 
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         NotificationEvent event = eventCaptor.getValue();
         assertThat(event.notification()).isSameAs(saved);
         assertThat(event.notification().getId()).isEqualTo(1L);
-        assertThat(event.receiver()).isSameAs(client);
+        assertThat(event.receiverId()).isEqualTo(client.getId());
         assertThat(event.content()).isEqualTo(content);
         assertThat(event.url()).isEqualTo(url);
     }
@@ -141,7 +145,7 @@ class NoticeServiceSendUnitTest {
         // 지금 ApplicationService.apply() 가 url 로 null 을 넘깁니다.
         doReturn(savedNotification(client, content, null)).when(notificationRepository).save(any());
 
-        noticeService.send(client, content, null);
+        noticeService.send(client.getId(), content, null);
 
         verify(notificationRepository).save(notificationCaptor.capture());
         assertThat(notificationCaptor.getValue().getUrl()).isNull();
@@ -156,7 +160,7 @@ class NoticeServiceSendUnitTest {
         User client = createClient();
         doReturn(savedNotification(client, "알림", null)).when(notificationRepository).save(any());
 
-        noticeService.send(client, "알림", null);
+        noticeService.send(client.getId(), "알림", null);
 
         // 순서가 뒤집히면 리스너가 id 없는 알림을 받게 됩니다.
         InOrder order = inOrder(notificationRepository, eventPublisher);
@@ -170,7 +174,7 @@ class NoticeServiceSendUnitTest {
         User client = createClient();
         doReturn(savedNotification(client, "알림", null)).when(notificationRepository).save(any());
 
-        noticeService.send(client, "알림", null);
+        noticeService.send(client.getId(), "알림", null);
 
         // send() 가 직접 emitter 를 건드리면 커밋 전에 알림이 나가게 됩니다.
         verifyNoInteractions(emitterRepository);
