@@ -1,6 +1,7 @@
 package com.back.nbe12142team06.domain.chat.service;
 
 import com.back.nbe12142team06.domain.chat.dto.ChatMessageResponse;
+import com.back.nbe12142team06.domain.chat.dto.UnreadCountDto;
 import com.back.nbe12142team06.domain.chat.entity.ChatMessage;
 import com.back.nbe12142team06.domain.chat.entity.ChatPart;
 import com.back.nbe12142team06.domain.chat.entity.ChatRoom;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -66,8 +68,8 @@ public class ChatMessageService {
         return chatMessageRepository.save(chatMessage);
     }
 
-    public int getUnReadCounts(Long userId, Long chatRoomId, LocalDateTime lastReadAt) {
-        return chatMessageRepository.getUnReadCounts(userId, chatRoomId, lastReadAt);
+    public List<UnreadCountDto> getUnReadCounts(Long userId, List<Long> chatRoomIds) {
+        return chatMessageRepository.getUnreadCountsByChatRoomIds(userId, chatRoomIds);
     }
 
     @Transactional

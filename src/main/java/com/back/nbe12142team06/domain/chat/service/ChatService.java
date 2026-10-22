@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.chat.service;
 
+import com.back.nbe12142team06.domain.chat.dto.UnreadCountDto;
 import com.back.nbe12142team06.domain.chat.entity.ChatMessage;
 import com.back.nbe12142team06.domain.chat.entity.ChatPart;
 import com.back.nbe12142team06.domain.chat.entity.ChatRoom;
@@ -20,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -121,9 +124,13 @@ public class ChatService {
     }
 
     @Transactional(readOnly = true)
-    public int getUnReadCounts(Long userId, Long chatRoomId) {
-        ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-                .orElseThrow(() -> new ForbiddenException(121, "채팅방에 접속하실 권한이 없습니다."));
-        return chatMessageService.getUnReadCounts(userId, chatRoomId, chatPart.getLastReadAt());
+    public Map<Long, Integer> getUnReadCounts(Long userId, List<ChatRoom> chatRooms) {
+        if (chatRooms.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> chatRoomIds = chatRooms.stream().map(ChatRoom::getId).toList();
+
+        return chatMessageService.getUnReadCounts(userId, chatRoomIds).stream()
+                .collect(Collectors.toMap(UnreadCountDto::chatRoomId, UnreadCountDto::count));
     }
 }
