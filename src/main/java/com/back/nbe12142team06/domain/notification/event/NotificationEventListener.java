@@ -27,11 +27,11 @@ public class NotificationEventListener {
     @TransactionalEventListener
     public void sendEvent(NotificationEvent event) {
         Map<String, SseEmitter> emitterMap = emitterRepository.findAllEmitterStartWithByUserId(event.receiverId());
+        RsData<NotificationResponse> rsData = new RsData<>("200-132", "알림이 전송되었습니다.",
+                new NotificationResponse(event.notification()));
 
         emitterMap.forEach((key, emitter) ->
-                sendToClient(emitter, key,
-                        new RsData<>("200-132", "알림이 전송되었습니다.",
-                                new NotificationResponse(event.notification()))));
+                sendToClient(emitter, key, rsData));
     }
 
     private void sendToClient(SseEmitter sseEmitter, String emitterId, Object data) {
@@ -41,8 +41,8 @@ public class NotificationEventListener {
                     .data(data)
                     .reconnectTime(3000L));
         } catch (IOException e) {
-            log.error("SSE 전송 실패 emitterId: {}, data: {}", emitterId, data);
-            throw new InvalidException(131, "SSE 전송에 실패했습니다.");
+            sseEmitter.completeWithError(e);
+            log.warn("SSE 전송 실패 emitterId: {}, data: {}", emitterId, data);
         }
     }
 }
