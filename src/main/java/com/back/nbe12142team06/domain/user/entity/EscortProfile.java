@@ -1,6 +1,7 @@
 package com.back.nbe12142team06.domain.user.entity;
 
 import com.back.nbe12142team06.domain.user.enums.EscortGrade;
+import com.back.nbe12142team06.global.crypto.PiiConverter;
 import com.back.nbe12142team06.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -63,11 +64,13 @@ public class EscortProfile extends BaseTimeEntity {
     private String bankName;
 
     // 예금주명
-    @Column(nullable = false, length = 50)
+    @Convert(converter = PiiConverter.class)
+    @Column(nullable = false, length = 255)
     private String accountHolder;
 
     // 계좌번호
-    @Column(nullable = false, length = 30)
+    @Convert(converter = PiiConverter.class)
+    @Column(nullable = false, length = 255)
     private String accountNumber;
 
     @Version

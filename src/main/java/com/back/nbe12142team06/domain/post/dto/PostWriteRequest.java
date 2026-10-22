@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.ride.entity.RideSelect;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -45,6 +46,7 @@ public record PostWriteRequest(
         RideSelect rideSelectToHospital,
         @NotNull(message = "병원 -> 집 이동 수단은 필수 항목입니다.")
         RideSelect rideSelectToHome,
+        @Size(max = 500, message = "환자 특이사항은 500자 이하여야 합니다.")
         String patientNote,       // nullable - 선택 항목
         boolean reportRequired    // 기본값 true
 ) {

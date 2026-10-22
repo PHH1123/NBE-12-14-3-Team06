@@ -23,6 +23,7 @@ import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.enums.UserStatus;
 import com.back.nbe12142team06.domain.user.repository.*;
+import com.back.nbe12142team06.global.crypto.BlindIndexer;
 import com.back.nbe12142team06.global.exception.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +64,7 @@ public class UserService {
     private final PaymentService paymentService;
     private final SettlementService settlementService;
     private final EscortGradeHistoryRepository escortGradeHistoryRepository;
+    private final BlindIndexer blindIndexer;
 
 
 
@@ -78,12 +80,16 @@ public class UserService {
         if (this.userRepository.existsByUsername(request.username())) {
             throw new DuplicatedException(DUPLICATED_USERNAME, "이미 사용 중인 아이디입니다.");
         }
+
+        String emailHash = this.blindIndexer.hashEmail(request.email());
         // email 중복 검사
-        if (this.userRepository.existsByEmail(request.email())) {
+        if (this.userRepository.existsByEmailHash(emailHash)) {
             throw new DuplicatedException(DUPLICATED_EMAIL, "이미 사용 중인 이메일입니다.");
         }
+
+        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.phoneNum());
         // phoneNum 중복 검사
-        if (this.userRepository.existsByPhoneNum(request.phoneNum())) {
+        if (this.userRepository.existsByPhoneNumHash(phoneNumHash)) {
             throw new DuplicatedException(DUPLICATED_PHONE_NUM, "이미 사용 중인 전화번호입니다.");
         }
 
@@ -99,6 +105,8 @@ public class UserService {
                 request.phoneNum(),
                 request.region()
         );
+
+
         User savedUser;
         // 동시성 자체는 유니크로 막혀 있는데 그 때 500번이 나가버리기 때문에 이를 409로 감싸기만 했습니다.
         try {
@@ -158,7 +166,7 @@ public class UserService {
 
     // email 중복 검사
     public boolean isEmailAvailable(String email) {
-        return !this.userRepository.existsByEmail(email);
+        return !this.userRepository.existsByEmailHash(this.blindIndexer.hashEmail(email));
     }
 
     // access token 생성
@@ -184,7 +192,10 @@ public class UserService {
         User user = this.userRepository.findById(id)
                 .orElseThrow(() -> new UnauthorizedException(3, "회원 정보를 찾을 수 없습니다. 다시 로그인해주세요."));
 
-        validateDuplicatedEmailAndPhone(id, request.email(), request.phoneNum());
+        String emailHash = this.blindIndexer.hashEmail(request.email());
+        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.phoneNum());
+
+        validateDuplicatedEmailAndPhone(id, emailHash, phoneNumHash);
 
         user.updateUser(
                 passwordEncoder.encode(request.password()),
@@ -209,7 +220,10 @@ public class UserService {
             throw new InvalidException(2, "탈퇴한 회원의 정보는 수정할 수 없습니다.");
         }
 
-        validateDuplicatedEmailAndPhone(userId, request.email(), request.phoneNum());
+        String emailHash = this.blindIndexer.hashEmail(request.email());
+        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.phoneNum());
+
+        validateDuplicatedEmailAndPhone(userId, emailHash, phoneNumHash);
 
         user.updateUser(
                 user.getPassword(),   // 기존 비밀번호 해시 유지
@@ -223,11 +237,11 @@ public class UserService {
     }
 
     // 내 정보 수정·관리자 수정 공통 중복 검사
-    private void validateDuplicatedEmailAndPhone(Long id, String email, String phoneNum) {
-        if (this.userRepository.existsByEmailAndIdNot(email, id)) {
+    private void validateDuplicatedEmailAndPhone(Long id, String emailHash, String phoneNumHash) {
+        if (this.userRepository.existsByEmailHashAndIdNot(emailHash, id)) {
             throw new DuplicatedException(DUPLICATED_EMAIL, "이미 사용 중인 이메일입니다.");
         }
-        if (this.userRepository.existsByPhoneNumAndIdNot(phoneNum, id)) {
+        if (this.userRepository.existsByPhoneNumHashAndIdNot(phoneNumHash, id)) {
             throw new DuplicatedException(DUPLICATED_PHONE_NUM, "이미 사용 중인 전화번호입니다.");
         }
     }

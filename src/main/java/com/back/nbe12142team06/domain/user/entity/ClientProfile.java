@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.user.entity;
 
+import com.back.nbe12142team06.global.crypto.PiiConverter;
 import com.back.nbe12142team06.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -22,15 +23,18 @@ public class ClientProfile extends BaseTimeEntity {
     private User user;
 
     // 보호자 실명
-    @Column(nullable = false, length = 50)
+    @Convert(converter = PiiConverter.class)
+    @Column(nullable = false, length = 255)
     private String emergencyContactName;
 
     // 보호자 번호
-    @Column(nullable = false, length = 20)
+    @Convert(converter = PiiConverter.class)
+    @Column(nullable = false, length = 255)
     private String emergencyContactPhone;
 
     // 의뢰인 특이사항
-    @Column(length = 500)
+    @Convert(converter = PiiConverter.class)
+    @Column(columnDefinition = "TEXT")
     private String careNote;
 
 

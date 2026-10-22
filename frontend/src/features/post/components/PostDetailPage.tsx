@@ -181,7 +181,7 @@ function PostDetailPageBody({ viewer }: Props) {
   const searchParams = useSearchParams();
   const { user, unauthenticated } = useCurrentUser();
   const { openChatWith } = useChatWidget();
-  const { confirm, dialog } = useActionDialog();
+  const { confirm, notice, dialog } = useActionDialog();
   const postId = Number(params.postId);
 
   // result.postId 로 "지금 postId 의 결과인지"를 판단합니다. (postId 가 바뀐 직후에는 이전 결과를 버리고 loading 으로 봅니다)
@@ -270,7 +270,7 @@ function PostDetailPageBody({ viewer }: Props) {
   const post = loading ? undefined : result?.data;
   const loadError = loading ? undefined : result?.error;
 
-  const isClient = user?.role === 'CLIENT' && post?.clientId === user.username;
+  const isClient = user?.role === 'CLIENT' && post?.isOwner === true;
 
   /**
    * 작성자에게 "연락하기"를 보여 줄지.
@@ -280,7 +280,7 @@ function PostDetailPageBody({ viewer }: Props) {
   const canContactAuthor =
     !!post &&
     (user?.role === 'CLIENT' || user?.role === 'ESCORT') &&
-    user.username !== post.clientId;
+    !post.isOwner;
 
   const fromAdminPayments = viewer === 'common' && user?.role === 'ADMIN' && searchParams.get('from') === 'admin-payments';
   const listHref = fromAdminPayments ? '/admin/payments' :
@@ -397,10 +397,24 @@ function PostDetailPageBody({ viewer }: Props) {
       await applyToPost(postId);
       setApplyState('applied');
       setAlreadyApplied(true);
+      void notice({ title: '지원이 완료되었습니다.', description: '지원 내역에서 진행 상태를 확인할 수 있습니다.' });
     } catch (error) {
+      const message = error instanceof Error ? error.message : '지원에 실패했습니다.';
       setApplyState('idle');
-      setApplyError(error instanceof Error ? error.message : '지원에 실패했습니다.');
-      setEducationRequired(isEducationRequiredError(error));
+      setApplyError(message);
+      const needsEducation = isEducationRequiredError(error);
+      setEducationRequired(needsEducation);
+      if (needsEducation) {
+        if (await confirm({
+          title: '교육 영상 화면으로 이동할까요?',
+          description: message,
+          confirmLabel: '교육 영상 보기',
+        })) {
+          router.push('/mypage/education');
+        }
+        return;
+      }
+      void notice({ title: '지원에 실패했습니다.', description: message, tone: 'error' });
     }
   };
 
@@ -419,7 +433,7 @@ function PostDetailPageBody({ viewer }: Props) {
 
   // /client/posts/[postId] 는 CLIENT 로그인이면 누구든 들어올 수 있어서(useRequireAuth 는 역할만 봅니다),
   // 공고 작성자 본인이 아니면 여기서 막습니다. (GET /posts/{id} 는 로그인한 회원이면 볼 수 있고, 환자 특이사항만 서버가 가립니다)
-  if (viewer === 'client' && post.clientId !== user?.username) {
+  if (viewer === 'client' && !post.isOwner) {
     return (
       <PostDetailFeedback
         kind="forbidden"

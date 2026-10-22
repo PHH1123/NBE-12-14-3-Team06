@@ -21,17 +21,17 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // DB에 해당 username이 존재하는지 확인
     boolean existsByUsername(String username);
 
-    // DB에 해당 email이 존재하는지 확인
-    boolean existsByEmail(String email);
+    // 이메일 중복 확인 (블라인드 인덱스 비교)
+    boolean existsByEmailHash(String emailHash);
 
-    // DB에 해당 전화번호가 존재하는지 확인
-    boolean existsByPhoneNum(String phoneNum);
+    // 전화번호 중복 확인 (블라인드 인덱스 비교)
+    boolean existsByPhoneNumHash(String phoneNumHash);
 
-    // 회원정보 수정 시 이메일 중복 체크용
-    boolean existsByEmailAndIdNot(String email, Long id);
+    // 회원정보 수정 시 이메일 중복 체크용 (본인 제외)
+    boolean existsByEmailHashAndIdNot(String emailHash, Long id);
 
-    // 회원정보 수정 시 전화번호 중복 체크용
-    boolean existsByPhoneNumAndIdNot(String phoneNum, Long id);
+    // 회원정보 수정 시 전화번호 중복 체크용 (본인 제외)
+    boolean existsByPhoneNumHashAndIdNot(String phoneNumHash, Long id);
 
     // [ADMIN] 탈퇴 회원 포함 단건 조회
     @Query(value = "SELECT * FROM users WHERE id = :id", nativeQuery = true)

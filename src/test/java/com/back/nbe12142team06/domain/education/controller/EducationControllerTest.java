@@ -58,6 +58,8 @@ public class EducationControllerTest {
     @Autowired
     private WatchProgressLogRepository watchProgressLogRepository;
 
+    private int phoneSeq = 0;
+
     // 교육 영상 생성 (60초, 필수)
     private EducationVideo createVideo() {
         return educationVideoRepository.save(
@@ -67,6 +69,9 @@ public class EducationControllerTest {
 
     // 역할 지정 회원가입 후 accessToken 쿠키 반환
     private Cookie signUp(String username, String role) throws Exception {
+        // 전화번호 형식 검증(@Pattern)을 통과하면서 회원마다 겹치지 않는 번호
+        String phoneNum = "010-8080-%04d".formatted(++phoneSeq);
+
         String signUpBody = """
                 {
                     "username": "%s",
@@ -76,10 +81,10 @@ public class EducationControllerTest {
                     "role": "%s",
                     "gender": "MALE",
                     "birthDate": "1990-05-20",
-                    "phoneNum": "%s010-8080-0000",
+                    "phoneNum": "%s",
                     "region": "서울시"
                 }
-                """.formatted(username, username, role, username);
+                """.formatted(username, username, role, phoneNum);
 
         Cookie accessToken = mvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)

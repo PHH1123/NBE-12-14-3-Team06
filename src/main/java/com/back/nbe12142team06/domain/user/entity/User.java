@@ -3,6 +3,8 @@ package com.back.nbe12142team06.domain.user.entity;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.enums.UserStatus;
+import com.back.nbe12142team06.global.crypto.PiiConverter;
+import com.back.nbe12142team06.global.crypto.PiiLocalDateConverter;
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
@@ -21,6 +23,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users")
 @SQLRestriction("deleted_at IS NULL")
+@EntityListeners(UserBlindIndexListener.class)
 public class User extends BaseSoftDeleteTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,11 +38,13 @@ public class User extends BaseSoftDeleteTimeEntity {
     private String password;
 
     // 회원 이메일
-    @Column(nullable = false, unique = true)
+    @Convert(converter = PiiConverter.class)
+    @Column(nullable = false, length = 500)
     private String email;
 
     // 회원 실명
-    @Column(nullable = false, length = 50)
+    @Convert(converter = PiiConverter.class)
+    @Column(nullable = false, length = 255)
     private String name;
 
     // 회원 역할
@@ -53,11 +58,13 @@ public class User extends BaseSoftDeleteTimeEntity {
     private Gender gender;
 
     // 회원 생년월일
-    @Column(nullable = false)
+    @Convert(converter = PiiLocalDateConverter.class)
+    @Column(nullable = false, length = 255)
     private LocalDate birthDate;
 
     // 회원 전화번호
-    @Column(nullable = false, length = 20, unique = true)
+    @Convert(converter = PiiConverter.class)
+    @Column(nullable = false, length = 255)
     private String phoneNum;
 
     // 지역
@@ -69,6 +76,13 @@ public class User extends BaseSoftDeleteTimeEntity {
     @Column(nullable = false, length = 20)
     private UserStatus userStatus = UserStatus.ACTIVE;
 
+    // 이메일 블라인드 인덱스 (중복 검사용 HMAC 값, 복호화 불가)
+    @Column(unique = true, length = 64)
+    private String emailHash;
+
+    // 전화번호 블라인드 인덱스 (중복 검사용 HMAC 값, 복호화 불가)
+    @Column(unique = true, length = 64)
+    private String phoneNumHash;
 
     @Version
     @ColumnDefault("0")
@@ -98,12 +112,20 @@ public class User extends BaseSoftDeleteTimeEntity {
         this.region = region;
     }
 
+    // 블라인드 인덱스 설정
+    public void updateBlindIndex(String emailHash, String phoneNumHash) {
+        this.emailHash = emailHash;
+        this.phoneNumHash = phoneNumHash;
+    }
+
     // 회원 탈퇴 시
     public void deleteUser(){
         this.setDeletedAt(LocalDateTime.now());
         this.username = "deleted_%d".formatted(this.id);
         this.email = "deleted_%d".formatted(this.id);
         this.phoneNum = "deleted_%d".formatted(this.id);
+        this.emailHash = null;
+        this.phoneNumHash = null;
     }
 
     // 탈퇴 여부
