@@ -13,8 +13,8 @@ public record PaymentAnalyticsResponse(
         int paidAmount = 0;
         int canceledAmount = 0;
         for (Payment payment : payments) {
-            paidAmount += payment.getBalanceAmount();
-            canceledAmount += payment.getAmount() - payment.getBalanceAmount();
+            paidAmount += payment.getBalanceAmount().intValue();
+            canceledAmount += payment.getAmount().subtract(payment.getBalanceAmount()).intValue();
         }
         this((long) paidAmount, (long) canceledAmount, (long) payments.size());
     }

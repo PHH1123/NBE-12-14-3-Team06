@@ -59,7 +59,7 @@ public class PaymentConcurrencyTest {
     private Payment createPayment(Post post, PaymentStatus status, Long id) {
         int hourlyPaySnapshot = 15_000;
         BigDecimal hours = BigDecimal.TEN;
-        int amount = hourlyPaySnapshot * hours.intValue();
+        BigDecimal amount = hours.multiply(BigDecimal.valueOf(hourlyPaySnapshot));
         Payment payment = Payment.builder()
                 .id(id)
                 .post(post)

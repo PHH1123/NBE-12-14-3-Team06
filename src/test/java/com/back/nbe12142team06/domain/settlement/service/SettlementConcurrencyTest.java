@@ -45,8 +45,8 @@ import static org.mockito.Mockito.when;
 @ActiveProfiles("test")
 class SettlementConcurrencyTest {
 
-    private static final int PAYOUT_AMOUNT = 60_000;
-    private static final int SETTLEMENT_AMOUNT = (int) (PAYOUT_AMOUNT * 0.9);
+    private static final BigDecimal PAYOUT_AMOUNT = BigDecimal.valueOf(60_000);
+    private static final BigDecimal SETTLEMENT_AMOUNT = PAYOUT_AMOUNT.multiply(BigDecimal.valueOf(0.9));
 
     @Autowired
     private SettlementService settlementService;
@@ -122,12 +122,12 @@ class SettlementConcurrencyTest {
 
         Post post = savePost("정산 경합 공고", PostStatus.COMPLETED);
         Application application = saveApplication(post, ApplicationStatus.ACCEPTED, post.getId());
-        Settlement settlement = saveSettlement(application, 0);
+        Settlement settlement = saveSettlement(application, BigDecimal.ZERO);
 
         when(settlementClient.settlementRequest(any()))
                 .thenAnswer(invocation -> {
                     Thread.sleep(500);
-                    return new SettlementClientResponse("000-1234567-000", "동행매니저이름", SETTLEMENT_AMOUNT);
+                    return new SettlementClientResponse("000-1234567-000", "동행매니저이름", SETTLEMENT_AMOUNT.intValue());
                 });
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -145,6 +145,7 @@ class SettlementConcurrencyTest {
         start.countDown();
         executor.shutdown();
         executor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+        executor.close();
 
         Mockito.verify(settlementClient, times(1)).settlementRequest(any());
     }
@@ -180,10 +181,10 @@ class SettlementConcurrencyTest {
                 .build());
     }
 
-    private Settlement saveSettlement(Application application, int penaltyAmount) {
+    private Settlement saveSettlement(Application application, BigDecimal penaltyAmount) {
         return settlementRepository.save(Settlement.builder()
-                .payoutAmount(SETTLEMENT_AMOUNT - penaltyAmount)
-                .platformFee(PAYOUT_AMOUNT - SETTLEMENT_AMOUNT)
+                .payoutAmount(SETTLEMENT_AMOUNT.subtract(penaltyAmount))
+                .platformFee(PAYOUT_AMOUNT.subtract(SETTLEMENT_AMOUNT))
                 .penaltyAmount(penaltyAmount)
                 .settledDate(LocalDate.now())
                 .application(application)
