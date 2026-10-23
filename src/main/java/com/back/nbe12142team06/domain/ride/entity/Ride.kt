@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.ride.entity
 
+import com.back.nbe12142team06.domain.application.enums.EscortProgress
 import com.back.nbe12142team06.domain.post.entity.Post
 import com.back.nbe12142team06.global.entity.BaseTimeEntity
 import com.back.nbe12142team06.global.exception.InvalidException
@@ -16,7 +17,6 @@ class Ride(
     status: RideStatus = RideStatus.ACCEPTED,
     selected: RideSelect,
     post: Post,
-
     ) : BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,10 +49,6 @@ class Ride(
         get() = id ?: error("ID가 NULL입니다.")
 
     // 이동수단 선택 시 정보 업데이트
-    fun rideUpdate(selected: String) {
-        updateSelect(RideSelect.valueOf(selected))
-    }
-
     fun updateSelect(selected: RideSelect) {
         this.selected = selected
     }
@@ -70,5 +66,15 @@ class Ride(
     // 의뢰인 검증
     fun validClient(userId: Long): Boolean {
         return post.client.id == userId
+    }
+
+    fun nextStatus(progress: EscortProgress) {
+        when (this.direction to progress) {
+            RideDirection.TO_HOSPITAL to EscortProgress.TO_HOSPITAL -> this.updateStatus(RideStatus.IN_PROGRESS)
+            RideDirection.TO_HOSPITAL to EscortProgress.AT_HOSPITAL -> this.updateStatus(RideStatus.COMPLETED)
+            RideDirection.TO_HOME to EscortProgress.TO_HOME -> this.updateStatus(RideStatus.IN_PROGRESS)
+            RideDirection.TO_HOME to EscortProgress.ARRIVED_HOME -> this.updateStatus(RideStatus.COMPLETED)
+            else -> {}
+        }
     }
 }

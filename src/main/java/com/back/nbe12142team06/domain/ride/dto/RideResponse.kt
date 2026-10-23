@@ -23,7 +23,9 @@ data class RideResponse (
         val lng: BigDecimal,
         val address: String
     )
+
     companion object {
+        @JvmStatic
         fun from(ride: Ride): RideResponse {
             val post = ride.post
             val pickup = Location(post.pickupLat, post.pickupLng, post.pickupAddress)

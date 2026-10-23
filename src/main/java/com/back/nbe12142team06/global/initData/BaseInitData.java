@@ -12,6 +12,7 @@ import com.back.nbe12142team06.domain.post.repository.PostRepository;
 import com.back.nbe12142team06.domain.ride.entity.Ride;
 import com.back.nbe12142team06.domain.ride.entity.RideDirection;
 import com.back.nbe12142team06.domain.ride.entity.RideSelect;
+import com.back.nbe12142team06.domain.ride.entity.RideStatus;
 import com.back.nbe12142team06.domain.ride.repository.RideRepository;
 import com.back.nbe12142team06.domain.user.entity.ClientProfile;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
@@ -480,10 +481,6 @@ public class BaseInitData {
     }
 
     private Ride createRide(RideDirection direction, RideSelect select, Post post) {
-        return Ride.builder()
-                .direction(direction)
-                .selected(select)
-                .post(post)
-                .build();
+        return new Ride(null, direction, RideStatus.ACCEPTED, select, post);
     }
 }

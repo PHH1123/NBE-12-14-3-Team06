@@ -11,6 +11,7 @@ import com.back.nbe12142team06.domain.post.entity.PostStatus
 import com.back.nbe12142team06.domain.post.repository.PostRepository
 import com.back.nbe12142team06.domain.ride.entity.Ride
 import com.back.nbe12142team06.domain.ride.entity.RideDirection
+import com.back.nbe12142team06.domain.ride.entity.RideSelect
 import com.back.nbe12142team06.domain.ride.entity.RideStatus
 import com.back.nbe12142team06.domain.ride.repository.RideRepository
 import com.back.nbe12142team06.domain.user.entity.User
@@ -79,8 +80,8 @@ class ApplicationEscortAutoProgressServiceTest {
         application.accept()
         application = applicationRepository.save(application)
 
-        rideRepository.save(Ride.builder().post(post).build())
-        rideRepository.save(Ride.builder().post(post).direction(RideDirection.TO_HOME).build())
+        rideRepository.save(Ride(post = post, selected = RideSelect.TAXI))
+        rideRepository.save(Ride(post = post, selected = RideSelect.TAXI, direction = RideDirection.TO_HOME))
     }
 
     private fun saveUser(username: String, role: Role, phone: String): User {
@@ -152,7 +153,7 @@ class ApplicationEscortAutoProgressServiceTest {
         rideRepository.save(ride)
     }
 
-    private fun rideOf(direction: RideDirection): Ride = rideRepository.findAllByPostId(post.id).stream()
+    private fun rideOf(direction: RideDirection): Ride = rideRepository.findAllByPostId(post.id!!).stream()
         .filter { ride -> ride.direction == direction }
         .findFirst().orElseThrow()
 

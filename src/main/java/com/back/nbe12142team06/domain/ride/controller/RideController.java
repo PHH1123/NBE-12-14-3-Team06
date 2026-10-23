@@ -56,7 +56,7 @@ public class RideController {
         Ride ride = rideService.findById(userId, rideId);
 
         return new RsData<>("200-82", "이동 정보를 불러왔습니다.",
-                new RideResponse(ride));
+                RideResponse.from(ride));
     }
 
 

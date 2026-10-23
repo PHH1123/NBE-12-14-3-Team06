@@ -406,7 +406,7 @@ open class ApplicationService(
         escortProgressLogRepository.save(
             EscortProgressLog(application, progress, occurredAt, source),
         )
-        rideService.move(application.activePostId, progress)
+        rideService.move(application.activePostId!!, progress)
 
         // 의뢰인이 최종 완료 확인하기 전이라도 귀가 완료 시 위치 정보를 삭제한다.
         if (progress == EscortProgress.ARRIVED_HOME) {
