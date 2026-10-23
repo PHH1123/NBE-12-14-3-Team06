@@ -1,7 +1,6 @@
 package com.back.nbe12142team06.domain.payment.service
 
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository
-import com.back.nbe12142team06.domain.payment.dto.SaveAmountRequest
 import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse
 import com.back.nbe12142team06.domain.payment.entity.Payment
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus
@@ -11,9 +10,6 @@ import com.back.nbe12142team06.domain.post.entity.Post
 import com.back.nbe12142team06.global.exception.ForbiddenException
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.exception.NotFoundException
-import lombok.RequiredArgsConstructor
-import lombok.extern.slf4j.Slf4j
-import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
@@ -23,7 +19,6 @@ import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.util.function.Supplier
 
 @Service
 @Transactional(readOnly = true)
@@ -31,8 +26,6 @@ class PaymentPersistenceService(
     private val paymentRepository: PaymentRepository,
     private val applicationRepository: ApplicationRepository
 ) {
-
-    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     fun confirmUpdate(userId: Long, paymentId: Long, amount: String): Payment {
@@ -47,9 +40,9 @@ class PaymentPersistenceService(
         }
 
         // 1. 검증 로직
-        payment.verifyAmount(SaveAmountRequest(payment.id, null, amount), log)
+        payment.verifyAmount(amount)
 
-        if (confirmUpdateStatus(payment.id!!) <= 0) {
+        if (confirmUpdateStatus(payment.requiredId) <= 0) {
             throw InvalidException(44, "결제 대기 중인 데이터가 없습니다.")
         }
         payment.statusUpdate(PaymentStatus.IN_PROGRESS)
@@ -65,8 +58,8 @@ class PaymentPersistenceService(
         tossOrderId: String
     ): Payment {
         val body = response.getBody()
-        val payment: Payment = (paymentRepository.findByIdFetchJoin(paymentId)
-            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")) as Payment
+        val payment: Payment = paymentRepository.findByIdFetchJoin(paymentId)
+            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")
         // 승인 시 상태 변경, 더티 체킹으로 자동 변경
         payment.approvePayment(tossOrderId, tossPaymentKey, body?.method)
         return payment
@@ -74,34 +67,34 @@ class PaymentPersistenceService(
 
     @Transactional
     fun paymentCancelDb(paymentId: Long, cancelReason: String, createNewPayment: Boolean): Payment {
-        val payment: Payment = (paymentRepository.findByIdOrNull(paymentId)
-            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")) as Payment
+        val payment: Payment = paymentRepository.findByIdOrNull(paymentId)
+            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")
         val newPayment = payment.cancelPayment(cancelReason)
         if (createNewPayment) {
-            return paymentRepository.save<Payment>(newPayment)
+            return paymentRepository.save(newPayment)
         }
         return payment
     }
 
     @Transactional
     fun paymentPartialCancelDb(paymentId: Long, cancelReason: String, amount: BigDecimal): Payment {
-        val payment: Payment = (paymentRepository.findByIdOrNull(paymentId)
-            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")) as Payment
+        val payment: Payment = paymentRepository.findByIdOrNull(paymentId)
+            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")
         return payment.cancelPartialPayment(cancelReason, amount)
     }
 
     @Transactional
     fun createPayment(payment: Payment): Payment {
-        return paymentRepository.save<Payment>(payment)
+        return paymentRepository.save(payment)
     }
 
-    fun findByPostId(postId: Long): MutableList<Payment> {
+    fun findByPostId(postId: Long): List<Payment> {
         return paymentRepository.findSuccessPayByPostId(postId)
     }
 
     fun findById(userId: Long, paymentId: Long): Payment {
         val payment: Payment = (paymentRepository.findByIdFetchJoin(paymentId)
-            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")) as Payment
+            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다."))
 
         if (payment.post.client.id != userId) {
             throw ForbiddenException(41, "사용자의 결제 정보가 아닙니다.")
@@ -112,8 +105,8 @@ class PaymentPersistenceService(
 
     @Transactional
     fun updateAmount(paymentId: Long, amount: String): Payment {
-        val payment: Payment = (paymentRepository.findByIdOrNull(paymentId)
-            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")) as Payment
+        val payment: Payment = paymentRepository.findByIdOrNull(paymentId)
+            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")
         payment.updateAmount(amount.toInt())
         return payment
     }
@@ -121,18 +114,18 @@ class PaymentPersistenceService(
     // 공고 삭제 트랜잭션이랑 다른 트랜잭션으로 진행
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun updateDeleteStatus(postId: Long): Payment {
-        val payment: Payment = (paymentRepository.findByPostId(postId)
-            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")) as Payment
+        val payment: Payment = paymentRepository.findByPostId(postId)
+            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")
         payment.statusUpdate(PaymentStatus.DELETED)
         payment.updateCanceledAt()
         return payment
     }
 
-    fun findDeletedAll(): MutableList<Payment> {
+    fun findDeletedAll(): List<Payment> {
         return paymentRepository.findDeletedAll()
     }
 
-    fun getNotPaid(userId: Long): MutableList<Payment> {
+    fun getNotPaid(userId: Long): List<Payment> {
         return paymentRepository.findNotPaidByUserId(userId)
     }
 
@@ -152,11 +145,11 @@ class PaymentPersistenceService(
         payment.update(post.totalPay.toInt(), post.escortHours)
     }
 
-    fun getDailyAnalytics(startDate: LocalDateTime, endDate: LocalDateTime): MutableList<PaymentDailyAnalyticsDto> {
+    fun getDailyAnalytics(startDate: LocalDateTime, endDate: LocalDateTime): List<PaymentDailyAnalyticsDto> {
         return paymentRepository.findDailyAnalytics(startDate, endDate)
     }
 
-    fun getAnalyticsByPeriod(startDateTime: LocalDateTime, endDateTime: LocalDateTime): MutableList<Payment> {
+    fun getAnalyticsByPeriod(startDateTime: LocalDateTime, endDateTime: LocalDateTime): List<Payment> {
         return paymentRepository.findAnalyticsByPeriod(startDateTime, endDateTime)
     }
 
@@ -170,8 +163,8 @@ class PaymentPersistenceService(
 
     @Transactional
     fun updateStatusForAdmin(paymentId: Long, status: PaymentStatus) {
-        val payment :Payment = (paymentRepository.findByIdOrNull(paymentId)
-            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")) as Payment
+        val payment: Payment = paymentRepository.findByIdOrNull(paymentId)
+            ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")
 
         payment.statusUpdate(status)
     }

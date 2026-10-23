@@ -31,8 +31,8 @@ class AdminPaymentController(
     fun getDailyAnalytics(
         @RequestParam(required = false) startDate: LocalDate?,
         @RequestParam(required = false) endDate: LocalDate?
-    ): RsData<MutableList<PaymentDailyAnalyticsDto>> {
-        val result: MutableList<PaymentDailyAnalyticsDto> =
+    ): RsData<List<PaymentDailyAnalyticsDto>> {
+        val result: List<PaymentDailyAnalyticsDto> =
             paymentService.getDailyPaymentAnalytics(startDate, endDate)
 
         return RsData(
@@ -50,7 +50,7 @@ class AdminPaymentController(
         @RequestParam(required = false) startDate: LocalDate?,
         @RequestParam(required = false) endDate: LocalDate?
     ): RsData<PaymentAnalyticsResponse> {
-        val result: MutableList<Payment> =
+        val result: List<Payment> =
             paymentService.getPaymentAnalyticsByPeriod(startDate, endDate)
 
         return RsData(

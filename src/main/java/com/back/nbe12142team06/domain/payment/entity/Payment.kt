@@ -1,6 +1,5 @@
 package com.back.nbe12142team06.domain.payment.entity
 
-import com.back.nbe12142team06.domain.payment.dto.SaveAmountRequest
 import com.back.nbe12142team06.domain.post.entity.Post
 import com.back.nbe12142team06.domain.settlement.entity.Settlement
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity
@@ -8,9 +7,8 @@ import com.back.nbe12142team06.global.exception.InvalidException
 import jakarta.persistence.*
 import jakarta.validation.constraints.DecimalMax
 import jakarta.validation.constraints.DecimalMin
-import lombok.*
-import lombok.extern.slf4j.Slf4j
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -35,32 +33,32 @@ class Payment(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = id
-    protected set
+        protected set
 
-    @Column(precision = 15, scale = 0)
+    @Column(nullable = false, precision = 15, scale = 0)
     var amount: BigDecimal = amount
-    protected set
+        protected set
 
     // 시간 당 금액
     @Column(nullable = false)
-    var hourlyPaySnapshot : Int = hourlyPaySnapshot
-    protected set
+    var hourlyPaySnapshot: Int = hourlyPaySnapshot
+        protected set
 
     // 동행 시간
     @field:DecimalMin(value = "0.0")
     @field:DecimalMax(value = "24.0")
     @Column(nullable = false, precision = 3, scale = 1)
     var hours: BigDecimal = hours
-    protected set
+        protected set
 
     // 토스 주문 번호
     @Column(unique = true)
     var orderId: String? = orderId
-    protected set
+        protected set
 
     // 토스 결제 키
     @Column(unique = true)
-     var paymentKey: String? = paymentKey
+    var paymentKey: String? = paymentKey
         protected set
 
     // 결제 수단, 현재 서비스는 카드 또는 계좌이체
@@ -70,7 +68,6 @@ class Payment(
     // 결제 처리 상태, 기본값 준비 상태
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
     var paymentStatus = paymentStatus
         protected set
 
@@ -86,12 +83,6 @@ class Payment(
     var cancelReason: String? = null
         protected set
 
-    // id가 nullable로 처리되는데 실제 로직 중 대부분은 id가 null일 수 없습니다.
-    // 그래서 id가 null이면 IllegalStateException을 반환합니다.
-    // 커스텀 예외가 아닌 이유는 비즈니스 예외가 아닌 개발자의 실수로 발생하는 예외이기 때문입니다.
-    val requiredId : Long
-        get() = id ?: error("ID가 NULL입니다.")
-
     // 결제 취소 할 수 있는 금액, 최소 0원 이상이어야 함
     @Column(
         nullable = false,
@@ -99,7 +90,6 @@ class Payment(
         precision = 15,
         scale = 0
     )
-    @Builder.Default
     var balanceAmount: BigDecimal = balanceAmount
         protected set
 
@@ -114,6 +104,12 @@ class Payment(
     @JoinColumn(name = "settlement_id")
     var settlement: Settlement? = null
         protected set
+
+    // id가 nullable로 처리되는데 실제 로직 중 대부분은 id가 null일 수 없습니다.
+    // 그래서 id가 null이면 IllegalStateException을 반환합니다.
+    // 커스텀 예외가 아닌 이유는 비즈니스 예외가 아닌 개발자의 실수로 발생하는 예외이기 때문입니다.
+    val requiredId: Long
+        get() = id ?: error("ID가 NULL입니다.")
 
     fun statusUpdate(status: PaymentStatus) {
         if (!paymentStatus.canTransitionTo(status)) {
@@ -142,10 +138,7 @@ class Payment(
         updateCanceledAt()
         this.cancelReason = cancelReason
         return Payment(
-            amount = this.amount,
-            hourlyPaySnapshot = this.hourlyPaySnapshot,
-            hours = this.hours,
-            post = this.post
+            amount = this.amount, hourlyPaySnapshot = this.hourlyPaySnapshot, hours = this.hours, post = this.post
         )
     }
 
@@ -175,11 +168,15 @@ class Payment(
         this.hours = hours
     }
 
-    fun verifyAmount(request: SaveAmountRequest, log: Logger): Boolean {
-        if (this.amount.compareTo(BigDecimal.valueOf(request.amount.toInt().toLong())) != 0) {
-            log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 저장된 amount: {}", request.amount, this.amount)
+    fun verifyAmount(amount: String): Boolean {
+        if (this.amount.compareTo(BigDecimal(amount)) != 0) {
+            log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 저장된 amount: {}", amount, this.amount)
             throw InvalidException(42, "결제 금액 정보가 유효하지 않습니다.")
         }
         return true
+    }
+
+    companion object {
+        private val log: Logger = LoggerFactory.getLogger(Payment::class.java)
     }
 }

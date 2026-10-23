@@ -46,14 +46,14 @@ class PaymentController(
         description = "현재 로그인한 사용자의 결제 내역을 조회합니다."
     )
     @GetMapping
-    fun paymentList(@AuthenticationPrincipal actor: SecurityUser): RsData<*> {
+    fun paymentList(@AuthenticationPrincipal actor: SecurityUser): RsData<List<PaymentResponse>> {
         val userId = actor.id
 
-        val payments: MutableList<Payment> = paymentService.findAll(userId)
+        val payments: List<Payment> = paymentService.findAll(userId)
 
-        return RsData<Stream<PaymentResponse?>?>(
+        return RsData(
             "200-43", "결제 정보를 불러왔습니다.",
-            payments.stream().map<PaymentResponse?> { payment: Payment? -> PaymentResponse(payment!!) })
+            payments.stream().map { payment: Payment -> PaymentResponse(payment) }.toList())
     }
 
     @Operation(

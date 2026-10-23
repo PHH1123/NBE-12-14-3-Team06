@@ -2,8 +2,6 @@ package com.back.nbe12142team06.domain.payment.client
 
 import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse
 import com.back.nbe12142team06.global.exception.InternalServerErrorException
-import lombok.RequiredArgsConstructor
-import lombok.extern.slf4j.Slf4j
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.http.ResponseEntity

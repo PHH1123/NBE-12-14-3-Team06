@@ -1,8 +1,6 @@
 package com.back.nbe12142team06.domain.payment.scheduler
 
 import com.back.nbe12142team06.domain.payment.service.PaymentService
-import lombok.RequiredArgsConstructor
-import lombok.extern.slf4j.Slf4j
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component

@@ -18,8 +18,6 @@ import com.back.nbe12142team06.domain.settlement.service.SettlementService
 import com.back.nbe12142team06.global.exception.InternalServerErrorException
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.exception.NotFoundException
-import lombok.RequiredArgsConstructor
-import lombok.extern.slf4j.Slf4j
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.data.domain.Page
@@ -83,7 +81,7 @@ class PaymentService(
         return payment
     }
 
-    fun findAll(userId: Long): MutableList<Payment> {
+    fun findAll(userId: Long): List<Payment> {
         return paymentRepository.findAllByUserId(userId)
     }
 
@@ -186,7 +184,7 @@ class PaymentService(
 
     fun validPayment(post: Post): BigDecimal {
         // 결제 완료를 모두 가져옴
-        val payments : MutableList<Payment> = paymentPersistenceService.findByPostId(post.id!!)
+        val payments: List<Payment> = paymentPersistenceService.findByPostId(post.id!!)
 
         // 결제 완료된 결제가 없는 경우
         if (payments.isEmpty()) {
@@ -311,29 +309,29 @@ class PaymentService(
         return payments.isEmpty()
     }
 
-    fun getDailyPaymentAnalytics(startDate: LocalDate?, endDate: LocalDate?): MutableList<PaymentDailyAnalyticsDto> {
+    fun getDailyPaymentAnalytics(startDate: LocalDate?, endDate: LocalDate?): List<PaymentDailyAnalyticsDto> {
         val startDateTime =
-            (startDate ?: LocalDate.now().minusDays(7)).atStartOfDay() as LocalDateTime
+            (startDate ?: LocalDate.now().minusDays(7)).atStartOfDay()
         val endDateTime =
-            (endDate ?: LocalDate.now()).plusDays(1).atStartOfDay() as LocalDateTime
+            (endDate ?: LocalDate.now()).plusDays(1).atStartOfDay()
 
         return paymentPersistenceService.getDailyAnalytics(startDateTime, endDateTime)
     }
 
-    fun getPaymentAnalyticsByPeriod(startDate: LocalDate?, endDate: LocalDate?): MutableList<Payment> {
+    fun getPaymentAnalyticsByPeriod(startDate: LocalDate?, endDate: LocalDate?): List<Payment> {
         val startDateTime =
-            (startDate ?: LocalDate.now().minusDays(7)).atStartOfDay() as LocalDateTime
+            (startDate ?: LocalDate.now().minusDays(7)).atStartOfDay()
         val endDateTime =
-            (endDate ?: LocalDate.now()).plusDays(1).atStartOfDay() as LocalDateTime
+            (endDate ?: LocalDate.now()).plusDays(1).atStartOfDay()
 
         return paymentPersistenceService.getAnalyticsByPeriod(startDateTime, endDateTime)
     }
 
     fun getPaymentsForAdmin(startDate: LocalDate?, endDate: LocalDate?, pageable: Pageable): Page<Payment> {
         val startDateTime =
-            (startDate ?: LocalDate.now().minusDays(7)).atStartOfDay() as LocalDateTime
+            (startDate ?: LocalDate.now().minusDays(7)).atStartOfDay()
         val endDateTime =
-            (endDate ?: LocalDate.now()).plusDays(1).atStartOfDay() as LocalDateTime
+            (endDate ?: LocalDate.now()).plusDays(1).atStartOfDay()
 
         return paymentPersistenceService.getPaymentsForAdmin(startDateTime, endDateTime, pageable)
     }

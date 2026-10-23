@@ -33,7 +33,7 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
                 "join User u on post.client=u " +
                 "where u.id=:userId"
     )
-    fun findAllByUserId(@Param("userId") userId: Long): MutableList<Payment>
+    fun findAllByUserId(@Param("userId") userId: Long): List<Payment>
 
     @Query(
         "select pay " +
@@ -42,7 +42,7 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
                 "where post.id=:postId and pay.paymentStatus in ('DONE', 'PARTIAL_CANCELED') " +
                 "order by pay.balanceAmount desc"
     )
-    fun findSuccessPayByPostId(@Param("postId") postId: Long): MutableList<Payment>
+    fun findSuccessPayByPostId(@Param("postId") postId: Long): List<Payment>
 
     @Query(
         "select pay " +
@@ -62,14 +62,14 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
     fun findByPostId(postId: Long): Payment?
 
     @Query("select p from Payment p where p.paymentStatus=PaymentStatus.DELETED")
-    fun findDeletedAll(): MutableList<Payment>
+    fun findDeletedAll(): List<Payment>
 
     @Query(
         "select p from Payment p " +
                 "join p.post.client c on c.id=:userId " +
                 "where p.paymentStatus=PaymentStatus.READY"
     )
-    fun findNotPaidByUserId(@Param("userId") userId: Long): MutableList<Payment>
+    fun findNotPaidByUserId(@Param("userId") userId: Long): List<Payment>
 
     @Modifying
     @Query(
@@ -79,7 +79,7 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
     )
     fun paymentInProgress(@Param("paymentId") paymentId: Long): Int
 
-    fun findByPostIdAndPaymentStatus(postId: Long, paymentStatus: PaymentStatus): MutableList<Payment>
+    fun findByPostIdAndPaymentStatus(postId: Long, paymentStatus: PaymentStatus): List<Payment>
 
     @Query(
         "select cast(p.approvedAt as LocalDate), sum(p.amount) paidAmount, count(p) counts " +
@@ -92,7 +92,7 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
     fun findDailyAnalytics(
         @Param("startDate") startDate: LocalDateTime,
         @Param("endDate") endDate: LocalDateTime
-    ): MutableList<PaymentDailyAnalyticsDto>
+    ): List<PaymentDailyAnalyticsDto>
 
     @Query(
         "select p " +
@@ -103,7 +103,7 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
     fun findAnalyticsByPeriod(
         @Param("startDate") startDate: LocalDateTime,
         @Param("endDate") endDate: LocalDateTime
-    ): MutableList<Payment>
+    ): List<Payment>
 
     @Query(
         "select pay " +
