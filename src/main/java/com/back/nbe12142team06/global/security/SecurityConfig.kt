@@ -1,30 +1,28 @@
-package com.back.nbe12142team06.global.security;
+package com.back.nbe12142team06.global.security
 
-import jakarta.servlet.DispatcherType;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import jakarta.servlet.DispatcherType
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
+import org.springframework.security.config.annotation.web.builders.HttpSecurity
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
+import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
-public class SecurityConfig {
-
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-    private final CustomAccessDeniedHandler customAccessDeniedHandler;
-
+class SecurityConfig(
+    private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val jwtAuthenticationEntryPoint: JwtAuthenticationEntryPoint,
+    private val customAccessDeniedHandler: CustomAccessDeniedHandler,
+) {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    fun filterChain(http: HttpSecurity): SecurityFilterChain {
         http
-            .authorizeHttpRequests(auth -> auth
+            .authorizeHttpRequests { auth ->
+                auth
                     .requestMatchers("/api/dev/**").permitAll()   // dev 전용 실험 API (prod 에선 컨트롤러가 없어 404)
                     .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")   // 관리자
                     .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()  // 회원가입
@@ -43,25 +41,25 @@ public class SecurityConfig {
                     .requestMatchers("/api/v1/education-videos/**").hasRole("ESCORT")  // 교육 영상 목록, 단건, 시청 기록
                     // 공고
                     .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/**").authenticated() //공고
-                    .requestMatchers(HttpMethod.POST,"/api/v1/posts").hasAnyRole("CLIENT","ADMIN") //공고 생성
+                    .requestMatchers(HttpMethod.POST, "/api/v1/posts").hasAnyRole("CLIENT", "ADMIN") //공고 생성
                     .requestMatchers(HttpMethod.PUT, "/api/v1/posts/*").hasAnyRole("CLIENT", "ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/api/v1/posts/*").hasAnyRole("CLIENT", "ADMIN")
                     .requestMatchers(HttpMethod.PATCH, "/api/v1/posts/*/matchedCancel", "/api/v1/posts/*/escortComplete")
-                            .hasAnyRole("CLIENT", "ADMIN")
+                    .hasAnyRole("CLIENT", "ADMIN")
 
                     // 지원(동행인): 지원하기, 내 지원 목록, 지원 취소, 동행 진행상태 변경
                     .requestMatchers(HttpMethod.POST, "/api/v1/applications/*").hasRole("ESCORT")
                     .requestMatchers(HttpMethod.GET, "/api/v1/applications/me").hasRole("ESCORT")
                     .requestMatchers(HttpMethod.PATCH, "/api/v1/applications/*/cancel", "/api/v1/applications/*/progress")
-                            .hasRole("ESCORT")
+                    .hasRole("ESCORT")
 
                     // 지원(의뢰인): 내 공고의 지원자 목록, 지원 수락/거절, 지원자 프로필 , 실시간 위치 조회
                     .requestMatchers(HttpMethod.GET, "/api/v1/applications/posts/*").hasRole("CLIENT")
                     .requestMatchers(HttpMethod.PATCH, "/api/v1/applications/*/accept", "/api/v1/applications/*/reject")
-                            .hasRole("CLIENT")
+                    .hasRole("CLIENT")
                     .requestMatchers(HttpMethod.GET, "/api/v1/applications/*/escort-profile").hasRole("CLIENT")
                     .requestMatchers(HttpMethod.POST, "/api/v1/applications/*/location").hasRole("ESCORT")
-                    .requestMatchers(HttpMethod.GET,  "/api/v1/applications/*/location").hasAnyRole("CLIENT", "ESCORT")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/applications/*/location").hasAnyRole("CLIENT", "ESCORT")
 
                     // 보고서(작성: 동행인 / 조회: 해당 동행 건의 의뢰인·동행인), 리뷰 작성(의뢰인)
                     .requestMatchers(HttpMethod.POST, "/api/v1/applications/*/report").hasRole("ESCORT")
@@ -80,19 +78,15 @@ public class SecurityConfig {
                     .requestMatchers("/ws/**").authenticated()
 
                     .anyRequest().permitAll()
+            }
+            .csrf { it.disable() }
+            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .exceptionHandling {
+                it.authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                    .accessDeniedHandler(customAccessDeniedHandler)
+            }
 
-
-            )
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .exceptionHandling(e -> e
-                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                .accessDeniedHandler(customAccessDeniedHandler)
-            );
-
-
-
-        return http.build();
+        return http.build()
     }
 }
