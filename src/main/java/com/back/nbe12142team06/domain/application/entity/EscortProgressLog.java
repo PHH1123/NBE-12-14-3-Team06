@@ -36,4 +36,14 @@ public class EscortProgressLog {
     // 해당 단계 진입 시각
     @Column(name = "occurred_at", nullable = false)
     private LocalDateTime occurredAt;
+
+    // 상태 변경 방식 GPS 혹은 Button(null)
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private ProgressSource source;
+
+    public enum ProgressSource {
+        BUTTON,     // 동행인이 버튼으로 변경
+        AUTO_GPS    // 위치(반경 판정)로 자동 변경
+    }
 }

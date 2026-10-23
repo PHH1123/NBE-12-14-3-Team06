@@ -28,14 +28,19 @@ import com.back.nbe12142team06.global.exception.DuplicatedException;
 import com.back.nbe12142team06.global.exception.ForbiddenException;
 import com.back.nbe12142team06.global.exception.InvalidException;
 import com.back.nbe12142team06.global.exception.NotFoundException;
+import com.back.nbe12142team06.global.geo.GeoUtils;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -61,6 +66,17 @@ public class ApplicationService {
     private final RideService rideService;
     private final EscortService escortService;
     private final NoticeService noticeService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    // 위치 기반 자동 상태 변경 기준 (application.yaml 의 escort.geofence)
+    @Value("${escort.geofence.hospital-radius-meters:200}")
+    private double hospitalRadiusMeters;
+    @Value("${escort.geofence.home-radius-meters:100}")
+    private double homeRadiusMeters;
+    @Value("${escort.geofence.max-accuracy-meters:50}")
+    private double maxAccuracyMeters;
 
     @Transactional
     public ApplicationApplyResponse apply(Long postId, Long userId) {
@@ -440,8 +456,35 @@ public class ApplicationService {
         );
     }
 
+    // 가장 최근 로그의 동행 진행 단계. 기록이 없으면 시작 전
+    private EscortProgress currentProgressOf(Application application) {
+        return escortProgressLogRepository
+                .findTopByApplicationOrderByOccurredAtDescIdDesc(application)
+                .map(EscortProgressLog::getProgress)
+                .orElse(EscortProgress.NOT_STARTED);
+    }
+
+    // 다음에 가야 할 진행 단계. 이미 끝났으면 null
+    private EscortProgress nextProgressOf(EscortProgress current) {
+        return switch (current) {
+            case NOT_STARTED -> EscortProgress.DEPARTED;
+            case DEPARTED -> EscortProgress.TO_HOSPITAL;
+            case TO_HOSPITAL -> EscortProgress.AT_HOSPITAL;
+            case AT_HOSPITAL -> EscortProgress.TO_HOME;
+            case TO_HOME -> EscortProgress.ARRIVED_HOME;
+            case ARRIVED_HOME -> null;
+        };
+    }
+
+    // 버튼으로 동행 진행 상태를 변경한다
     @Transactional
     public void updateProgress(Long applicationId, Long userId, EscortProgress progress) {
+        updateProgress(applicationId, userId, progress, EscortProgressLog.ProgressSource.BUTTON);
+    }
+
+    // 버튼, 위치(자동) 가 함께 쓰는 변경 로직. 변경 방식(source)은 로그에 남긴다
+    private void updateProgress(Long applicationId, Long userId, EscortProgress progress,
+                                EscortProgressLog.ProgressSource source) {
 
         // 1. 공고 ID만 조회
         Long postId = applicationRepository.findPostIdById(applicationId)
@@ -465,19 +508,7 @@ public class ApplicationService {
             throw new InvalidException(29, "승인된 지원만 동행 진행 상태를 변경할 수 있습니다.");
         }
 
-        EscortProgress currentProgress = escortProgressLogRepository
-                .findTopByApplicationOrderByOccurredAtDescIdDesc(application)
-                .map(log -> log.getProgress())
-                .orElse(EscortProgress.NOT_STARTED);
-
-        EscortProgress nextProgress = switch (currentProgress) {
-            case NOT_STARTED -> EscortProgress.DEPARTED;
-            case DEPARTED -> EscortProgress.TO_HOSPITAL;
-            case TO_HOSPITAL -> EscortProgress.AT_HOSPITAL;
-            case AT_HOSPITAL -> EscortProgress.TO_HOME;
-            case TO_HOME -> EscortProgress.ARRIVED_HOME;
-            case ARRIVED_HOME -> null;
-        };
+        EscortProgress nextProgress = nextProgressOf(currentProgressOf(application));
 
         if (nextProgress == null) {
             throw new InvalidException(30, "이미 동행이 완료되었습니다.");
@@ -493,6 +524,7 @@ public class ApplicationService {
                 .application(application)
                 .progress(progress)
                 .occurredAt(occurredAt)
+                .source(source)
                 .build();
 
         escortProgressLogRepository.save(progressLog);
@@ -504,7 +536,7 @@ public class ApplicationService {
             post.startProgress(occurredAt);
         }
 
-        log.info("[동행 진행상태 변경] applicationId={}, progress={}, escortId={}", applicationId, progress, userId);
+        log.info("[동행 진행상태 변경] applicationId={}, progress={}, escortId={}, source={}", applicationId, progress, userId, source);
 
         if (progress == EscortProgress.AT_HOSPITAL) {
             // 알림 - 동행 매니저
@@ -541,12 +573,7 @@ public class ApplicationService {
             throw new ForbiddenException(27, "본인의 동행 건만 진행 상태를 조회할 수 있습니다.");
         }
 
-        EscortProgress current = escortProgressLogRepository
-                .findTopByApplicationOrderByOccurredAtDescIdDesc(application)
-                .map(EscortProgressLog::getProgress)
-                .orElse(EscortProgress.NOT_STARTED);
-
-        return new ApplicationProgressResponse(applicationId, current);
+        return new ApplicationProgressResponse(applicationId, currentProgressOf(application));
     }
 
     @Transactional(readOnly = true)
@@ -662,6 +689,10 @@ public class ApplicationService {
             throw new InvalidException(34, "동행이 진행 중일 때만 실시간 위치를 보낼 수 있습니다.");
         }
 
+        // 위치를 덮어쓰기 전의 직전 위치 (집에서 출발했는지 판단할 때 쓴다)
+        BigDecimal prevLat = application.getLat();
+        BigDecimal prevLng = application.getLng();
+
         int updated = applicationRepository.updateLocation(
                 applicationId, request.lat(), request.lng(), request.accuracy(), Instant.now());
 
@@ -670,6 +701,61 @@ public class ApplicationService {
             throw new InvalidException(34, "동행이 진행 중일 때만 실시간 위치를 보낼 수 있습니다.");
         }
       //  log.info("[실시간 위치 저장] applicationId={}, escortId={}", applicationId, userId);
+
+        autoAdvanceByLocation(application, prevLat, prevLng, request);
+    }
+
+    /**
+     * 위치가 다음 단계로 넘어갈 조건에 맞으면 버튼과 같은 변경 로직(updateProgress)으로 단계를 자동 변경한다.
+     *  - 출발(DEPARTED)      : 직전 위치는 집 반경 안, 지금 위치는 집 반경 밖 → 병원 이동 중(TO_HOSPITAL)
+     *  - 병원 이동 중        : 병원 반경 안 → 병원 도착(AT_HOSPITAL)
+     *  - 귀가 중(TO_HOME)    : 집 반경 안 → 귀가 완료(ARRIVED_HOME)
+     * 5초마다 호출되므로 조건이 맞을 때만 updateProgress(잠금 포함)를 부른다.
+     */
+    private void autoAdvanceByLocation(Application application, BigDecimal prevLat, BigDecimal prevLng,
+                                       ApplicationLocationRequest request) {
+
+        // 위치 정확도가 나쁘면 판단하지 않는다 (정확도 값이 없으면 그대로 판단)
+        if (request.accuracy() != null && request.accuracy().doubleValue() > maxAccuracyMeters) {
+            return;
+        }
+
+        Long applicationId = application.getId();
+        Long escortId = application.getEscort().getId();
+        Post post = application.getPost();
+
+        EscortProgress target = switch (currentProgressOf(application)) {
+            case DEPARTED -> isWithin(post.getPickupLat(), post.getPickupLng(), prevLat, prevLng, homeRadiusMeters)
+                    && !isWithin(post.getPickupLat(), post.getPickupLng(), request.lat(), request.lng(), homeRadiusMeters)
+                    ? EscortProgress.TO_HOSPITAL : null;
+            case TO_HOSPITAL -> isWithin(post.getHospitalLat(), post.getHospitalLng(), request.lat(), request.lng(), hospitalRadiusMeters)
+                    ? EscortProgress.AT_HOSPITAL : null;
+            case TO_HOME -> isWithin(post.getPickupLat(), post.getPickupLng(), request.lat(), request.lng(), homeRadiusMeters)
+                    ? EscortProgress.ARRIVED_HOME : null;
+            default -> null;
+        };
+        if (target == null) {
+            return;
+        }
+
+        // 위에서 읽어 둔 지원·공고는 잠금을 잡아도 최신 값으로 갱신되지 않는다.
+        // 그 사이 취소·완료된 경우를 놓치지 않도록 비우고 updateProgress 가 새로 읽게 한다.
+        entityManager.clear();
+
+        try {
+            updateProgress(applicationId, escortId, target, EscortProgressLog.ProgressSource.AUTO_GPS);
+        } catch (InvalidException e) {
+            // 그 사이 버튼으로 먼저 변경됐거나 순서가 맞지 않는 경우. 위치 저장은 성공해야 하므로 무시한다
+            log.debug("[동행 진행 자동 변경 건너뜀] applicationId={}, target={}, reason={}", applicationId, target, e.getMessage());
+        }
+    }
+
+    // 기준 좌표에서 반경(미터) 안에 있는지. 좌표가 비어 있으면 false
+    private boolean isWithin(BigDecimal baseLat, BigDecimal baseLng, BigDecimal lat, BigDecimal lng, double radiusMeters) {
+        if (baseLat == null || baseLng == null || lat == null || lng == null) {
+            return false;
+        }
+        return GeoUtils.distanceMeters(baseLat, baseLng, lat, lng) <= radiusMeters;
     }
     @Transactional(readOnly = true)
     public ApplicationLocationResponse getLocation(Long applicationId, Long userId) {
