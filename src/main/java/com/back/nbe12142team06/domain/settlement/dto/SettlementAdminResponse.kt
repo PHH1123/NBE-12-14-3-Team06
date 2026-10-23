@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.settlement.entity.Settlement
 import com.back.nbe12142team06.domain.settlement.entity.SettlementStatus
 import java.time.LocalDate
 
+@JvmRecord
 data class SettlementAdminResponse(
     val id: Long,
     val payoutAmount: Int,
@@ -16,7 +17,7 @@ data class SettlementAdminResponse(
     val name: String,
 ) {
     constructor(settlement: Settlement) : this(
-        id = settlement.id,
+        id = settlement.id!!,
         payoutAmount = settlement.payoutAmount.toInt(),
         platformFee = settlement.platformFee.toInt(),
         penaltyAmount = settlement.penaltyAmount.toInt(),

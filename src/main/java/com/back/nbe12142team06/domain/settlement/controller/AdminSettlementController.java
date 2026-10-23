@@ -38,7 +38,7 @@ public class AdminSettlementController {
 
         return new RsData<>("200-161",
                 "관리자 정산 통계 조회가 완료되었습니다.",
-                new SettlementAnalyticsResponse(settlementList));
+                SettlementAnalyticsResponse.from(settlementList));
     }
 
     @Operation(

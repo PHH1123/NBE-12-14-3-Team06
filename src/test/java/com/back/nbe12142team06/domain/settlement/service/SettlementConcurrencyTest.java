@@ -11,6 +11,7 @@ import com.back.nbe12142team06.domain.post.repository.PostRepository;
 import com.back.nbe12142team06.domain.settlement.client.SettlementClient;
 import com.back.nbe12142team06.domain.settlement.client.SettlementClientResponse;
 import com.back.nbe12142team06.domain.settlement.entity.Settlement;
+import com.back.nbe12142team06.domain.settlement.entity.SettlementStatus;
 import com.back.nbe12142team06.domain.settlement.repository.SettlementRepository;
 import com.back.nbe12142team06.domain.user.entity.EscortProfile;
 import com.back.nbe12142team06.domain.user.entity.User;
@@ -182,13 +183,15 @@ class SettlementConcurrencyTest {
     }
 
     private Settlement saveSettlement(Application application, BigDecimal penaltyAmount) {
-        return settlementRepository.save(Settlement.builder()
-                .payoutAmount(SETTLEMENT_AMOUNT.subtract(penaltyAmount))
-                .platformFee(PAYOUT_AMOUNT.subtract(SETTLEMENT_AMOUNT))
-                .penaltyAmount(penaltyAmount)
-                .settledDate(LocalDate.now())
-                .application(application)
-                .escort(escort)
-                .build());
+        return settlementRepository.save(new Settlement(
+                null,
+                SETTLEMENT_AMOUNT.subtract(penaltyAmount),
+                PAYOUT_AMOUNT.subtract(SETTLEMENT_AMOUNT),
+                penaltyAmount,
+                SettlementStatus.PENDING,
+                LocalDate.now(),
+                application,
+                escort)
+        );
     }
 }

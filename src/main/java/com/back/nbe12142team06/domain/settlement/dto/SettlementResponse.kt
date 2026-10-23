@@ -16,12 +16,12 @@ data class SettlementResponse(
     val post: PostDto
 ) {
     constructor(settlement: Settlement) : this(
-        id = settlement.id,
+        id = settlement.requiredId,
         payoutAmount = settlement.payoutAmount.toInt(),
         platformFee = settlement.platformFee.toInt(),
         penaltyAmount = settlement.penaltyAmount.toInt(),
         status = settlement.settlementStatus,
-        settledAt = settlement.settledDate,
+        settledAt = settlement.settledDate!!,
         post = PostDto(settlement.application.post!!)
     )
 }

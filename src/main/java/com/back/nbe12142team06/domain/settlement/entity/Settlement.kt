@@ -21,7 +21,7 @@ class Settlement(
     platformFee: BigDecimal = BigDecimal.ZERO,
     penaltyAmount: BigDecimal = BigDecimal.ZERO,
     settlementStatus: SettlementStatus = SettlementStatus.PENDING,
-    settledDate: LocalDate? = null,
+    settledDate: LocalDate,
     application: Application,
     escort: User
 ) : BaseSoftDeleteTimeEntity() {
@@ -67,7 +67,8 @@ class Settlement(
         protected set
 
     // 정산 일자
-    var settledDate: LocalDate? = settledDate
+    @Column(nullable = false)
+    var settledDate: LocalDate = settledDate
         protected set
 
     // 의뢰 지원

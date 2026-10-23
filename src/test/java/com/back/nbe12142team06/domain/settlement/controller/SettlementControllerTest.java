@@ -3,6 +3,7 @@ package com.back.nbe12142team06.domain.settlement.controller;
 import com.back.nbe12142team06.domain.application.dto.ApplicationAcceptResponse;
 import com.back.nbe12142team06.domain.application.dto.ApplicationApplyResponse;
 import com.back.nbe12142team06.domain.application.entity.Application;
+import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.application.service.ApplicationService;
 import com.back.nbe12142team06.domain.notification.service.NoticeService;
@@ -313,13 +314,24 @@ class SettlementControllerTest {
     @DisplayName("[SettlementService] 자동 정산 - 성공")
     void settlementScheduler() {
 
-        Settlement settlement = Settlement.builder()
-                .payoutAmount(BigDecimal.valueOf(1000))
-                .settlementStatus(SettlementStatus.PENDING)
-                .settledDate(LocalDate.now())
-                .application(null)
-                .escort(savedUser2)
-                .build();
+        Application application = applicationRepository.save(
+                Application.builder()
+                        .post(savedPost1)
+                        .escort(savedUser3)
+                        .status(ApplicationStatus.REJECTED)
+                        .build()
+        );
+
+        Settlement settlement = new Settlement(
+                null,
+                BigDecimal.valueOf(1000),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                SettlementStatus.PENDING,
+                LocalDate.now(),
+                application,
+                savedUser2
+        );
 
         Settlement save = settlementRepository.save(settlement);
 
