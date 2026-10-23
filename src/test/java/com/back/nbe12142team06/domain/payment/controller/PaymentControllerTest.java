@@ -365,7 +365,7 @@ class PaymentControllerTest {
         assertEquals("결제 취소 사유", canceledPayment.getCancelReason());
         assertEquals(LocalDateTime.now().getHour(), canceledPayment.getDeletedAt().getHour());
         assertEquals(LocalDateTime.now().getMinute(), canceledPayment.getDeletedAt().getMinute());
-        assertEquals(0, canceledPayment.getBalanceAmount());
+        assertEquals(BigDecimal.ZERO, canceledPayment.getBalanceAmount());
     }
 
     @Test

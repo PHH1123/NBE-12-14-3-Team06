@@ -337,7 +337,7 @@ public class BaseInitData {
             PaymentStatus paymentStatus = isReady ? PaymentStatus.READY : PaymentStatus.DONE;
 
             Payment.PaymentBuilder paymentBuilder = Payment.builder()
-                    .amount(post.getTotalPay().intValue())
+                    .amount(post.getTotalPay())
                     .hourlyPaySnapshot(post.getHourlyPay())
                     .hours(post.getEscortHours())
                     .method("카드")
@@ -350,7 +350,7 @@ public class BaseInitData {
                         .orderId("INIT-ORDER-%02d".formatted(i + 1))
                         .paymentKey("INIT-PAYKEY-%02d".formatted(i + 1))
                         .approvedAt(LocalDateTime.now())
-                        .balanceAmount(post.getTotalPay().intValue());
+                        .balanceAmount(post.getTotalPay());
             }
 
             paymentRepository.save(paymentBuilder.build());

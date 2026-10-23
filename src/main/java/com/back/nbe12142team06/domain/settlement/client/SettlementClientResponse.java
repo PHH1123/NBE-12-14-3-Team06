@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.settlement.client;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public record SettlementClientResponse(

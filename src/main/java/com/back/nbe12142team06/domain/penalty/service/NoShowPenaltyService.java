@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -34,7 +35,7 @@ public class NoShowPenaltyService {
     }
 
     @Transactional
-    public void applyPenalty(Long escortId, int penaltyAmount, int baseAmount, Settlement settlement, NoShowPenalty noShowPenalty) {
+    public void applyPenalty(Long escortId, BigDecimal penaltyAmount, BigDecimal baseAmount, Settlement settlement, NoShowPenalty noShowPenalty) {
         noShowPenalty.updateNoShow(penaltyAmount, baseAmount, settlement);
         log.info("노쇼 패널티 적용 완료 - escortId: %s, settlementId: %s".formatted(escortId, settlement.getId()));
     }
