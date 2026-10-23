@@ -50,9 +50,10 @@ class StompAuthInterceptor(
             accessor.setUser(principal)
         }
 
-        if (StompCommand.SUBSCRIBE == accessor.command && accessor.destination?.startsWith("/topic/chat/") == true
+        val destination = accessor.destination ?: return message
+
+        if (StompCommand.SUBSCRIBE == accessor.command && destination.startsWith("/topic/chat/")
         ) {
-            val destination = accessor.destination ?: return message
             val roomId = destination.removePrefix("/topic/chat/").toLongOrNull()
                 ?: throw InvalidException(121, "잘못된 채팅방에 접속하셨습니다.")
             val authToken = accessor.user as UsernamePasswordAuthenticationToken
