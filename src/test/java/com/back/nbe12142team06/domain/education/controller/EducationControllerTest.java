@@ -165,7 +165,7 @@ public class EducationControllerTest {
 
         List<WatchProgressLog> logs = watchProgressLogRepository.findAll();
         assertThat(logs).hasSize(1);
-        assertThat(logs.get(0).isAccepted()).isTrue();
+        assertThat(logs.get(0).getAccepted()).isTrue();
     }
 
     @Test
@@ -191,7 +191,7 @@ public class EducationControllerTest {
 
         List<WatchProgressLog> logs = watchProgressLogRepository.findAll();
         assertThat(logs).hasSize(2);
-        assertThat(logs.get(1).isAccepted()).isFalse();
+        assertThat(logs.get(1).getAccepted()).isFalse();
     }
 
     @Test
