@@ -18,7 +18,7 @@ enum class NotificationContent(
     C_PAYMENT_EXTRA_PAY("%s 동행의 추가 결제요청드립니다. 추가 결제 금액: %s"),
     C_SETTLEMENT_DONE("정산이 완료되었습니다. 정산 금액: %s");
 
-    fun of(vararg args: Any): String {
+    fun of(vararg args: Any?): String {
         return format.format(*args)
     }
 }

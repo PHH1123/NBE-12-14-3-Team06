@@ -178,7 +178,7 @@ class ApplyConcurrencyTest {
         executorService.shutdown()
 
         val applications = applicationRepository.findAll()
-            .filter { it.post.id == postId && it.escort.id == escortId }
+            .filter { it.post!!.id == postId && it.escort!!.id == escortId }
 
         // ApplicationService.apply() 의 existsByPostAndEscortAndStatusNot() 검사는
         // check-then-act 라 여러 스레드가 동시에 통과할 수 있지만, Application 의
