@@ -137,7 +137,6 @@ public class Post extends BaseSoftDeleteTimeEntity {  // createdAt, updatedAt, d
     public BigDecimal getEscortHours() {
         //2시간30분인경우 2.5시간 * 10,000 = 25,000
         //2시간35분인경우 2.6시간 * 10,000 = 26,000
-        // TODO : 30분단위로만 가능하게 할지 확인 필요
         long minutes = Duration.between(escortStartAt, escortEndAt).toMinutes();
         return BigDecimal.valueOf(minutes)
                 .divide(BigDecimal.valueOf(60), 1, RoundingMode.HALF_UP);

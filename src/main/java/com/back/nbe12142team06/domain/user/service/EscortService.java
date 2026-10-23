@@ -44,7 +44,7 @@ public class EscortService {
     }
 
     // [관리자] 동행인 한 명의 등급을 수동으로 다시 계산한다.
-    // 관리자만 실행 가능 // TODO : CONFIG에 추가 관리자 경로를 막는 방식
+    // 관리자만 실행 가능
     @Transactional
     public boolean escortGradeCal(Long adminId, Long userId) {
 

@@ -83,6 +83,28 @@ export default function TrackingPage() {
     return () => window.clearTimeout(timer);
   }, [toastMsg]);
 
+  // 위치가 병원·집 반경에 들어오면 서버가 진행 단계를 자동으로 바꿉니다. 화면이 알 수 있도록 주기적으로 다시 읽습니다.
+  // 버튼으로 바꾸는 중이거나 새로고침 중일 때, 화면이 가려져 있을 때는 건너뜁니다.
+  useEffect(() => {
+    if (!authorized || doneCount === undefined || doneCount >= PROGRESS_ORDER.length) return;
+    if (advancing || refreshing) return;
+    let cancelled = false;
+    let requesting = false;
+    const poll = async () => {
+      if (cancelled || requesting || document.visibilityState === 'hidden') return;
+      requesting = true;
+      try {
+        const latest = await fetchProgress(applicationId);
+        const index = PROGRESS_ORDER.indexOf(latest.progress);
+        if (!cancelled && index >= 0) setDoneCount((prev) => (prev === index + 1 ? prev : index + 1));
+      } catch {
+        // 일시적인 조회 실패는 현재 화면을 유지합니다. 다음 주기에 다시 시도합니다.
+      } finally { requesting = false; }
+    };
+    const timer = window.setInterval(poll, 10000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [applicationId, authorized, doneCount, advancing, refreshing]);
+
   const state = result.key === applicationId ? result.data : undefined;
   const sharingLocation =
     state?.status === 'ready' &&

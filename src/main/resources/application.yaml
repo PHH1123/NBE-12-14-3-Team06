@@ -29,3 +29,10 @@ management:
   endpoint:
     health:
       show-details: never    # DB 주소 같은 내부 정보는 숨김
+
+# 동행 위치 기반 자동 상태 전이 기준
+escort:
+  geofence:
+    hospital-radius-meters: 200
+    home-radius-meters: 100
+    max-accuracy-meters: 50
