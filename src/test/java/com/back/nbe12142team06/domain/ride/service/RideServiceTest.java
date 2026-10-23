@@ -47,7 +47,7 @@ public class RideServiceTest {
         Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.ACCEPTED, null);
 
         doReturn(List.of(rideToHospital, rideToHome))
-                .when(rideRepository).findByPostId(any());
+                .when(rideRepository).findAllByPostId(any());
 
         List<Ride> rides = rideService.move(1L, EscortProgress.TO_HOSPITAL);
         Ride updatedRide = null;
@@ -67,7 +67,7 @@ public class RideServiceTest {
         Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.ACCEPTED, null);
 
         doReturn(List.of(rideToHospital, rideToHome))
-                .when(rideRepository).findByPostId(any());
+                .when(rideRepository).findAllByPostId(any());
 
         List<Ride> rides = rideService.move(1L, EscortProgress.TO_HOME);
         Ride updatedRide = null;
@@ -87,7 +87,7 @@ public class RideServiceTest {
         Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.ACCEPTED, null);
 
         doReturn(List.of(rideToHospital, rideToHome))
-                .when(rideRepository).findByPostId(any());
+                .when(rideRepository).findAllByPostId(any());
 
         List<Ride> rides = rideService.move(1L, EscortProgress.AT_HOSPITAL);
         Ride updatedRide = null;
@@ -107,7 +107,7 @@ public class RideServiceTest {
         Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.IN_PROGRESS, null);
 
         doReturn(List.of(rideToHospital, rideToHome))
-                .when(rideRepository).findByPostId(any());
+                .when(rideRepository).findAllByPostId(any());
 
         List<Ride> rides = rideService.move(1L, EscortProgress.ARRIVED_HOME);
         Ride updatedRide = null;
@@ -127,7 +127,7 @@ public class RideServiceTest {
         Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.COMPLETED, null);
 
         doReturn(List.of(rideToHospital, rideToHome))
-                .when(rideRepository).findByPostId(any());
+                .when(rideRepository).findAllByPostId(any());
 
         List<Ride> rides = rideService.move(1L, EscortProgress.ARRIVED_HOME);
 

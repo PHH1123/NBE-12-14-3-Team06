@@ -52,7 +52,7 @@ public class RideService {
 
     // 공고로 상세 정보 찾기
     public List<Ride> findByPostId(Long postId) {
-        List<Ride> rides = rideRepository.findByPostId(postId);
+        List<Ride> rides = rideRepository.findAllByPostId(postId);
         if (rides.isEmpty()) {
             throw new NotFoundException(81, "해당 공고의 이동 정보를 찾을 수 없습니다.");
         }
@@ -97,7 +97,7 @@ public class RideService {
 
     @Transactional
     public List<Ride> move(Long postId, EscortProgress progress) {
-        List<Ride> rides = rideRepository.findByPostId(postId);
+        List<Ride> rides = rideRepository.findAllByPostId(postId);
 
         for (Ride ride : rides) {
             if (ride.getRideStatus().equals(RideStatus.COMPLETED)) continue;

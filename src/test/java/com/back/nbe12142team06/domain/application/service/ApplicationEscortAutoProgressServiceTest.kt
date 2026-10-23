@@ -152,7 +152,7 @@ class ApplicationEscortAutoProgressServiceTest {
         rideRepository.save(ride)
     }
 
-    private fun rideOf(direction: RideDirection): Ride = rideRepository.findByPostId(post.id).stream()
+    private fun rideOf(direction: RideDirection): Ride = rideRepository.findAllByPostId(post.id).stream()
         .filter { ride -> ride.direction == direction }
         .findFirst().orElseThrow()
 
