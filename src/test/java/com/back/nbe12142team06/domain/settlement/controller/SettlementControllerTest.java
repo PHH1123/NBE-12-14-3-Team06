@@ -5,6 +5,7 @@ import com.back.nbe12142team06.domain.application.dto.ApplicationApplyResponse;
 import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
 import com.back.nbe12142team06.domain.application.service.ApplicationService;
+import com.back.nbe12142team06.domain.notification.service.NoticeService;
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient;
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository;
 import com.back.nbe12142team06.domain.post.dto.PostWriteRequest;
@@ -75,6 +76,8 @@ class SettlementControllerTest {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    @MockitoBean
+    private NoticeService noticeService;
     @MockitoBean
     private TossPaymentClient tossPaymentClient;
 

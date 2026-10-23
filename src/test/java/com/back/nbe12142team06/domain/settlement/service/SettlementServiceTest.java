@@ -3,6 +3,7 @@ package com.back.nbe12142team06.domain.settlement.service;
 import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus;
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository;
+import com.back.nbe12142team06.domain.notification.service.NoticeService;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
 import com.back.nbe12142team06.domain.post.entity.Post;
@@ -69,6 +70,8 @@ public class SettlementServiceTest {
     private SettlementPersistenceService settlementPersistenceService;
     @MockitoBean
     private SettlementClient settlementClient;
+    @MockitoBean
+    private NoticeService noticeService;
 
     private Payment createPayment(Post post, PaymentStatus status, Long id) {
         int hourlyPaySnapshot = 15_000;
