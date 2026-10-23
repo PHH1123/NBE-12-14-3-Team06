@@ -221,9 +221,9 @@ class ChatServiceTest {
         ChatPart clientChatPart = createChatPart(client, chatRoom);
 
         doReturn(Optional.of(escortChatPart))
-                .when(chatPartRepository).findByUserIdAndChatRoomId(eq(escort.getId()), any());
+                .when(chatPartRepository).fetchJoinByUserIdAndChatRoomId(eq(escort.getId()), any());
         doReturn(Optional.of(clientChatPart))
-                .when(chatPartRepository).findByUserIdAndChatRoomId(eq(client.getId()), any());
+                .when(chatPartRepository).fetchJoinByUserIdAndChatRoomId(eq(client.getId()), any());
         doReturn(List.of(clientChatPart))
                 .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(escort.getId()), any());
         doReturn(List.of(escortChatPart))
