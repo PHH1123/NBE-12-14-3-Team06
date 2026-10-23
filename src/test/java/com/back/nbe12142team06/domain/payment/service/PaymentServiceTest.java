@@ -340,7 +340,11 @@ class PaymentServiceTest {
         doReturn(null)
                 .when(paymentPersistenceService).paymentPartialCancelDb(anyLong(), any(), any(BigDecimal.class));
 
-        paymentService.validPayment(post, Application.builder().build(), LocalDate.now());
+        paymentService.validPayment(
+                post,
+                Application.builder().build(),
+                LocalDate.now()
+        );
 
         verify(paymentPersistenceService, times(1)).paymentPartialCancelDb(anyLong(), any(), any(BigDecimal.class));
     }
@@ -357,7 +361,11 @@ class PaymentServiceTest {
         doReturn(null)
                 .when(paymentPersistenceService).createPayment(any());
 
-        paymentService.validPayment(post, Application.builder().build(), LocalDate.now());
+        paymentService.validPayment(
+                post,
+                Application.builder().build(),
+                LocalDate.now()
+        );
 
         verify(paymentPersistenceService, times(1)).createPayment(any());
     }
