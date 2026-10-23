@@ -54,8 +54,8 @@ public class SettlementService {
 
         AccountDto accountDto = settlementPersistenceService.findAccountDto(userId, settlementId);
 
-        String name = accountDto.name();
-        String account = accountDto.accountNumber();
+        String name = accountDto.name;
+        String account = accountDto.accountNumber;
 
         // 정산 중 상태 변경
         int row = settlementPersistenceService.processingSettlement(settlementId);
@@ -72,7 +72,7 @@ public class SettlementService {
 
         SettlementClientResponse response;
         try {
-            response = settlementApi(accountDto.payoutAmount(), name, account);
+            response = settlementApi(accountDto.payoutAmount, name, account);
         } catch (RuntimeException e) {
             // 금융 결제원 API 요청 에러
             settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.FAILED);
@@ -91,7 +91,7 @@ public class SettlementService {
             settlement = settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.COMPLETED);
             log.info("정산 성공 - settlementId: {}", settlementId);
         } catch (RuntimeException e) {
-            log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
+            log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id);
             throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
         }
 
@@ -136,7 +136,7 @@ public class SettlementService {
 
         for (AccountDto accountDto : accountDtoList) {
             // 정산 중 상태 변경
-            int row = settlementPersistenceService.processingSettlement(accountDto.id());
+            int row = settlementPersistenceService.processingSettlement(accountDto.id);
 
             // 변경 된 행이 0개라면 정산 중이거나 정산이 완료 된 경우
             if (row == 0) {
@@ -145,31 +145,31 @@ public class SettlementService {
 
             SettlementClientResponse response;
             try {
-                response = settlementApi(accountDto.payoutAmount(), accountDto.name(), accountDto.accountNumber());
+                response = settlementApi(accountDto.payoutAmount, accountDto.name, accountDto.accountNumber);
             } catch (RuntimeException e) {
                 // 금융 결제원 API 요청 에러
-                settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.FAILED);
-                log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", accountDto.id(), e);
+                settlementPersistenceService.updateSettlement(accountDto.id, SettlementStatus.FAILED);
+                log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", accountDto.id, e);
                 failedCount++;
                 continue;
             }
 
             if (response.res_cnt() < 1) {
                 // 정산 성공 0건
-                settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.FAILED);
+                settlementPersistenceService.updateSettlement(accountDto.id, SettlementStatus.FAILED);
                 failedCount++;
-                log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", accountDto.id());
+                log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", accountDto.id);
             }
 
             try {
-                settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.COMPLETED);
+                settlementPersistenceService.updateSettlement(accountDto.id, SettlementStatus.COMPLETED);
             } catch (RuntimeException e) {
-                log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
+                log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id);
                 throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
             }
 
             successCount++;
-            log.info("정산 성공 - settlementId: {}", accountDto.id());
+            log.info("정산 성공 - settlementId: {}", accountDto.id);
         }
 
         return new int[]{successCount + failedCount, successCount, failedCount};
@@ -257,8 +257,8 @@ public class SettlementService {
     public void requestForAdmin(Long settlementId) {
         AccountDto accountDto = settlementPersistenceService.findAccountDto(settlementId);
 
-        String name = accountDto.name();
-        String account = accountDto.accountNumber();
+        String name = accountDto.name;
+        String account = accountDto.accountNumber;
 
         int row = settlementPersistenceService.processingSettlementForAdmin(settlementId);
 
