@@ -127,7 +127,7 @@ class PaymentControllerTest {
         );
 
         PostWriteResponse post1 = postService.write(user1.getId(), postWriteRequest1);
-        paymentRepository.testStatusDone(post1.id());
+        paymentRepository.testStatusDoneAndPutPaymentKey(post1.id(), UUID.randomUUID().toString());
 
         PostWriteRequest postWriteRequest2 = new PostWriteRequest(
                 title + "2", content + "2", postRegion + "2", hospitalName + "2", hospitalAddress + "2",

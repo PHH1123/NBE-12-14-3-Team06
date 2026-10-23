@@ -2564,7 +2564,7 @@ public class ApplicationControllerTest {
         Payment payment = new Payment(
                 null, post.getTotalPay(), post.getHourlyPay(), post.getEscortHours(), post,
                 null, paymentStatus, null,
-                null, null, post.getTotalPay()
+                UUID.randomUUID().toString(), null, post.getTotalPay()
         );
 
         return paymentRepository.save(payment);

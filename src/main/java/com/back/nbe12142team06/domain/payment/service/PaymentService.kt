@@ -109,6 +109,7 @@ class PaymentService(
         }
 
         val tossPaymentKey = payment.paymentKey
+            ?: throw InvalidException(48, "토스 페이먼트 키가 등록되지 않았습니다.")
         val cancelReason = request.cancelReason
 
         // 외부 API 요청
@@ -277,6 +278,7 @@ class PaymentService(
             }
 
             val tossPaymentKey = payment.paymentKey
+                ?: throw InvalidException(48, "토스 페이먼트 키가 등록되지 않았습니다.")
             val cancelReason = "공고 삭제로 인한 결제 취소"
 
             // 외부 API 요청

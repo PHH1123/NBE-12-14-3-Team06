@@ -55,8 +55,9 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
     fun findByIdFetchJoin(@Param("paymentId") paymentId: Long): Payment?
 
     @Modifying(clearAutomatically = true)
-    @Query("update Payment p set p.paymentStatus='DONE' where p.post.id=:postId")
-    fun testStatusDone(@Param("postId") postId: Long): Int
+    @Query("update Payment p set p.paymentStatus='DONE', p.paymentKey=:paymentKey where p.post.id=:postId")
+    fun testStatusDoneAndPutPaymentKey(@Param("postId") postId: Long,
+                                       @Param("paymentKey") paymentKey: String): Int
 
     fun findByPostId(postId: Long): Payment?
 

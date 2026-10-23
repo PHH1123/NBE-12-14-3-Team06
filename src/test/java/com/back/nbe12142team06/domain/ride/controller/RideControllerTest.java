@@ -32,6 +32,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -114,7 +115,7 @@ class RideControllerTest {
         );
 
         PostWriteResponse post1 = postService.write(user1.getId(), postWriteRequest1);
-        paymentRepository.testStatusDone(post1.id());
+        paymentRepository.testStatusDoneAndPutPaymentKey(post1.id(), UUID.randomUUID().toString());
 
         PostWriteRequest postWriteRequest2 = new PostWriteRequest(
                 title + "2", content + "2", postRegion + "2", hospitalName + "2", hospitalAddress + "2",
@@ -123,7 +124,7 @@ class RideControllerTest {
         );
 
         PostWriteResponse post2 = postService.write(user1.getId(), postWriteRequest2);
-        paymentRepository.testStatusDone(post2.id());
+        paymentRepository.testStatusDoneAndPutPaymentKey(post2.id(), UUID.randomUUID().toString());
 
         Application application = Application.builder()
                 .post(postRepository.findById(post1.id()).get())

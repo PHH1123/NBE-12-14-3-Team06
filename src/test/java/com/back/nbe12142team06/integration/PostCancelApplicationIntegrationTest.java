@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -97,7 +98,7 @@ class PostCancelApplicationIntegrationTest {
                 RideSelect.TAXI, RideSelect.TAXI, "", true);
 
         Post post = postService.findById(postService.write(client.getId(), request).id());
-        paymentRepository.testStatusDone(post.getId());
+        paymentRepository.testStatusDoneAndPutPaymentKey(post.getId(), UUID.randomUUID().toString());
         // 공고 다시 조회
         post = postService.findById(post.getId());
         ReflectionTestUtils.setField(post, "recruitStartAt", LocalDateTime.now().minusMinutes(1));
