@@ -200,12 +200,13 @@ public class PaymentService {
         // 추가 결제 플로우
         if (balanceAmount.compareTo(BigDecimal.ZERO) < 0) {
             // 결제 데이터 생성
-            Payment newPayment = Payment.builder()
-                    .post(post)
-                    .hourlyPaySnapshot(post.getHourlyPay())
-                    .hours(post.getEscortHours())
-                    .amount(balanceAmount.abs())
-                    .build();
+            Payment newPayment = new Payment(
+                    null,
+                    balanceAmount.abs(),
+                    post.getHourlyPay(),
+                    post.getEscortHours(),
+                    post, null, PaymentStatus.READY, null, null, null, BigDecimal.ZERO
+                    );
             paymentPersistenceService.createPayment(newPayment);
 
             // 알림
@@ -233,12 +234,13 @@ public class PaymentService {
     }
 
     public Payment createPayment(Post post) {
-        Payment payment = Payment.builder()
-                .post(post)
-                .hourlyPaySnapshot(post.getHourlyPay())
-                .hours(post.getEscortHours())
-                .amount(post.getTotalPay())
-                .build();
+        Payment payment = new Payment(
+                null,
+                post.getTotalPay(),
+                post.getHourlyPay(),
+                post.getEscortHours(),
+                post, null, PaymentStatus.READY, null, null, null, BigDecimal.ZERO
+        );
         return paymentPersistenceService.createPayment(payment);
     }
 

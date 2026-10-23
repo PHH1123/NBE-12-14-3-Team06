@@ -7,15 +7,15 @@ import java.time.LocalDateTime
 
 @JvmRecord
 data class PaymentResponse(
-    val id: Long,
+    val id: Long?,
     val amount: Int,
     val hourlyPaySnapshot: Int,
     val hours: BigDecimal,
-    val orderId: String,
+    val orderId: String?,
     val paymentStatus: PaymentStatus,
-    val approvedAt: LocalDateTime,
-    val canceledAt: LocalDateTime,
-    val cancelReason: String,
+    val approvedAt: LocalDateTime?,
+    val canceledAt: LocalDateTime?,
+    val cancelReason: String?,
     val postId: Long?
 ) {
     constructor(payment: Payment) : this(

@@ -336,24 +336,25 @@ public class BaseInitData {
             boolean isReady = readyPaymentIndexes.contains(i);
             PaymentStatus paymentStatus = isReady ? PaymentStatus.READY : PaymentStatus.DONE;
 
-            Payment.PaymentBuilder paymentBuilder = Payment.builder()
-                    .amount(post.getTotalPay())
-                    .hourlyPaySnapshot(post.getHourlyPay())
-                    .hours(post.getEscortHours())
-                    .method("카드")
-                    .paymentStatus(paymentStatus)
-                    .post(post);
-
+            Payment payment;
             if (!isReady) {
                 // 결제 승인 완료 시 채워지는 값들 (READY 상태에서는 아직 없어야 자연스러움)
-                paymentBuilder
-                        .orderId("INIT-ORDER-%02d".formatted(i + 1))
-                        .paymentKey("INIT-PAYKEY-%02d".formatted(i + 1))
-                        .approvedAt(LocalDateTime.now())
-                        .balanceAmount(post.getTotalPay());
+                 payment = new Payment(
+                         null,
+                        post.getTotalPay(), post.getHourlyPay(), post.getEscortHours(), post, "카드", paymentStatus,
+                        "INIT-ORDER-%02d".formatted(i + 1),
+                        "INIT-PAYKEY-%02d".formatted(i + 1),
+                        now(), post.getTotalPay()
+                );
+            } else {
+                payment = new Payment(
+                        null,
+                        post.getTotalPay(), post.getHourlyPay(), post.getEscortHours(), post, "카드", paymentStatus,
+                        null, null, null, BigDecimal.ZERO
+                );
             }
 
-            paymentRepository.save(paymentBuilder.build());
+            paymentRepository.save(payment);
 
             // createdAt 은 @CreatedDate(updatable = false) 라 엔티티/빌더로는 수정이 안 되므로,
             // 등록일을 다양하게 보여주기 위해 저장 직후 네이티브 쿼리로 직접 보정합니다.

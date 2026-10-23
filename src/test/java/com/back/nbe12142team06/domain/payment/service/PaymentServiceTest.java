@@ -65,19 +65,13 @@ class PaymentServiceTest {
         int hourlyPaySnapshot = 15_000;
         BigDecimal hours = BigDecimal.TEN;
         BigDecimal amount = hours.multiply(BigDecimal.valueOf(hourlyPaySnapshot));
-        Payment payment = Payment.builder()
-                .id(id)
-                .post(post)
-                .amount(amount)
-                .hourlyPaySnapshot(hourlyPaySnapshot)
-                .hours(hours)
-                .orderId(UUID.randomUUID().toString())
-                .paymentKey(UUID.randomUUID().toString())
-                .method("CARD")
-                .paymentStatus(status)
-                .approvedAt(LocalDateTime.now().minusDays(2))
-                .balanceAmount(amount)
-                .build();
+        Payment payment = new Payment(
+                id, amount, hourlyPaySnapshot, hours, post,
+                "CARD", status, UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(), LocalDateTime.now().minusDays(2),
+                amount
+        );
+
         return payment;
     }
 
@@ -263,7 +257,7 @@ class PaymentServiceTest {
         User client = createClient();
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.DONE);
-        PaymentConfirmRequest request = new PaymentConfirmRequest(null, null, String.valueOf(payment.getAmount()));
+        PaymentConfirmRequest request = new PaymentConfirmRequest(UUID.randomUUID().toString(), UUID.randomUUID().toString(), String.valueOf(payment.getAmount()));
 
         doReturn(payment)
                 .when(paymentPersistenceService).findById(any(Long.class), any(Long.class));
@@ -279,7 +273,7 @@ class PaymentServiceTest {
         User client = createClient();
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.CANCELED);
-        PaymentConfirmRequest request = new PaymentConfirmRequest(null, null, String.valueOf(payment.getAmount()));
+        PaymentConfirmRequest request = new PaymentConfirmRequest(UUID.randomUUID().toString(), UUID.randomUUID().toString(), String.valueOf(payment.getAmount()));
 
         doReturn(payment)
                 .when(paymentPersistenceService).findById(any(Long.class), any(Long.class));

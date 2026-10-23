@@ -77,19 +77,11 @@ public class SettlementServiceTest {
         int hourlyPaySnapshot = 15_000;
         BigDecimal hours = BigDecimal.TEN;
         BigDecimal amount = BigDecimal.valueOf(hourlyPaySnapshot).multiply(hours);
-        Payment payment = Payment.builder()
-                .id(id)
-                .post(post)
-                .amount(amount)
-                .hourlyPaySnapshot(hourlyPaySnapshot)
-                .hours(hours)
-                .orderId(UUID.randomUUID().toString())
-                .paymentKey(UUID.randomUUID().toString())
-                .method("CARD")
-                .paymentStatus(status)
-                .approvedAt(LocalDateTime.now().minusDays(2))
-                .balanceAmount(amount)
-                .build();
+        Payment payment = new Payment(
+                id, amount, hourlyPaySnapshot, hours, post,
+                "CARD", status, UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(), LocalDateTime.now().minusDays(2), amount
+        );
         return payment;
     }
 

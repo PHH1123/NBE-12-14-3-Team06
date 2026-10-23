@@ -46,7 +46,7 @@ public class PaymentPersistenceService {
         }
 
         // 1. 검증 로직
-        payment.verifyAmount(new SaveAmountRequest(payment.getId(), null, amount));
+        payment.verifyAmount(new SaveAmountRequest(payment.getId(), null, amount), null);
 
         if (confirmUpdateStatus(payment.getId()) <= 0) {
             throw new InvalidException(44, "결제 대기 중인 데이터가 없습니다.");
@@ -63,9 +63,9 @@ public class PaymentPersistenceService {
                 .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
         if (body != null) {
             // 승인 시 상태 변경, 더티 체킹으로 자동 변경
-            payment.ApprovePayment(tossOrderId, tossPaymentKey, body.method());
+            payment.approvePayment(tossOrderId, tossPaymentKey, body.method());
         } else {
-            payment.ApprovePayment(tossOrderId, tossPaymentKey, null);
+            payment.approvePayment(tossOrderId, tossPaymentKey, null);
         }
         return payment;
     }

@@ -36,6 +36,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -178,15 +179,13 @@ class ApplicationConcurrencyTest {
      * 환불 금액은 balanceAmount 에서 가져가므로 결제 금액과 같은 값으로 채워둔다.
      */
     private void saveDonePayment(Post post) {
-        paymentRepository.saveAndFlush(Payment.builder()
-                .amount(post.getTotalPay())
-                .hourlyPaySnapshot(post.getHourlyPay())
-                .hours(post.getEscortHours())
-                .post(post)
-                .paymentKey("INIT-PAYKEY-concurrency-" + post.getId())
-                .balanceAmount(post.getTotalPay())
-                .paymentStatus(PaymentStatus.DONE)
-                .build());
+        paymentRepository.saveAndFlush(
+                new Payment(
+                        null, post.getTotalPay(), post.getHourlyPay(), post.getEscortHours(), post,
+                        "CARD", PaymentStatus.DONE, null,
+                        "INIT-PAYKEY-concurrency-" + post.getId(), null,
+                        post.getTotalPay()
+                ));
     }
 
 

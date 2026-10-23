@@ -38,6 +38,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -148,14 +149,11 @@ public class ApplicationControllerTest {
         testPostId = postRepository.save(post).getId();
 
         // 테스트 과정에 결제 데이터가 필요해서 추가
-        Payment payment = Payment.builder()
-                .amount(post.getTotalPay())
-                .hourlyPaySnapshot(post.getHourlyPay())
-                .hours(post.getEscortHours())
-                .post(post)
-                .paymentStatus(PaymentStatus.DONE)
-                .build();
-
+        Payment payment = new Payment(
+                null, post.getTotalPay(), post.getHourlyPay(), post.getEscortHours(),
+                post, null, PaymentStatus.DONE, null,
+                null, null, post.getTotalPay()
+        );
         paymentRepository.save(payment);
 
         // 의뢰인 로그인
@@ -1454,13 +1452,12 @@ public class ApplicationControllerTest {
         Long overlappingPostId =
                 postRepository.save(overlappingPost).getId();
 
-        Payment payment = Payment.builder()
-                .amount(overlappingPost.getTotalPay())
-                .hourlyPaySnapshot(overlappingPost.getHourlyPay())
-                .hours(overlappingPost.getEscortHours())
-                .post(overlappingPost)
-                .paymentStatus(PaymentStatus.DONE)
-                .build();
+        Payment payment = new Payment(
+                null, overlappingPost.getTotalPay(), overlappingPost.getHourlyPay(),
+                overlappingPost.getEscortHours(), overlappingPost,
+                null, PaymentStatus.DONE, null,
+                null, null, overlappingPost.getTotalPay()
+        );
         paymentRepository.save(payment);
 
         // 이미 다른 공고에서 ACCEPTED된 동행인이
@@ -2564,13 +2561,11 @@ public class ApplicationControllerTest {
 
     private Payment savePayment(Post post, PaymentStatus paymentStatus) {
 
-        Payment payment = Payment.builder()
-                .amount(post.getTotalPay())
-                .hourlyPaySnapshot(post.getHourlyPay())
-                .hours(post.getEscortHours())
-                .post(post)
-                .paymentStatus(paymentStatus)
-                .build();
+        Payment payment = new Payment(
+                null, post.getTotalPay(), post.getHourlyPay(), post.getEscortHours(), post,
+                null, paymentStatus, null,
+                null, null, post.getTotalPay()
+        );
 
         return paymentRepository.save(payment);
     }

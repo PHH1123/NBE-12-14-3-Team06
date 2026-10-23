@@ -7,16 +7,16 @@ import java.time.LocalDateTime
 
 @JvmRecord
 data class PaymentAdminResponse(
-    val id: Long,
+    val id: Long?,
     val amount: Int,
     val balanceAmount: Int,
     val hourlyPaySnapshot: Int,
     val hours: BigDecimal,
-    val orderId: String,
+    val orderId: String?,
     val paymentStatus: PaymentStatus,
-    val approvedAt: LocalDateTime,
-    val canceledAt: LocalDateTime,
-    val cancelReason: String,
+    val approvedAt: LocalDateTime?,
+    val canceledAt: LocalDateTime?,
+    val cancelReason: String?,
     val postId: Long?,
     val postTitle: String,
     val userId: Long,
