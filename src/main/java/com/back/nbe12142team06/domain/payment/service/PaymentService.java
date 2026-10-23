@@ -331,7 +331,7 @@ public class PaymentService {
         }
 
         if (endDate != null) {
-            endDateTime = endDate.atStartOfDay();
+            endDateTime = endDate.plusDays(1).atStartOfDay();
         } else {
             endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
         }
@@ -350,7 +350,7 @@ public class PaymentService {
         }
 
         if (endDate != null) {
-            endDateTime = endDate.atStartOfDay();
+            endDateTime = endDate.plusDays(1).atStartOfDay();
         } else {
             endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
         }
