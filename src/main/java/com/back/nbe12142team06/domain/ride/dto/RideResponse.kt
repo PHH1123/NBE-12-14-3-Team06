@@ -7,7 +7,7 @@ import com.back.nbe12142team06.domain.ride.entity.RideStatus
 import java.math.BigDecimal
 
 data class RideResponse (
-    val id: Long?,
+    val id: Long,
     val direction: RideDirection,
     val status: RideStatus,
     val selected: RideSelect,
@@ -37,7 +37,7 @@ data class RideResponse (
             }
 
             return RideResponse(
-                id = ride.id,
+                id = ride.requiredId,
                 direction = ride.direction,
                 status = ride.rideStatus,
                 selected = ride.selected,

@@ -4,7 +4,7 @@ import type { RideDirection, RideDto, RideSelect } from '../types';
 const RIDE_SELECT_LABELS: Record<string, string> = { WALK: '도보', BUS: '대중교통', TAXI: '택시', OWN_CAR: '자가용' };
 
 /**
- * 방향별로 고른 이동수단. 아직 고르기 전이거나 그 방향 이동이 없으면 null 입니다.
+ * 방향별로 고른 이동수단. 그 방향 이동 정보가 없으면 null 입니다.
  * 표시용 문구(formatTransport)와 달리 ENUM 값을 그대로 넘겨, 화면이 "택시인지"로 분기할 수 있게 합니다.
  */
 export function selectedByDirection(rides: RideDto[]): Record<RideDirection, RideSelect | null> {
@@ -12,7 +12,7 @@ export function selectedByDirection(rides: RideDto[]): Record<RideDirection, Rid
   return { TO_HOSPITAL: selected('TO_HOSPITAL'), TO_HOME: selected('TO_HOME') };
 }
 
-/** 갈 때(TO_HOSPITAL)·올 때(TO_HOME) 이동수단을 한 줄로 합칩니다. 아직 선택 전이면 "미정"으로 표시합니다. */
+/** 갈 때(TO_HOSPITAL)·올 때(TO_HOME) 이동수단을 한 줄로 합칩니다. 그 방향 이동 정보가 없으면 "미정"으로 표시합니다. */
 export function formatTransport(rides: RideDto[]): string {
   const selected = selectedByDirection(rides);
   const label = (direction: RideDirection) => {
