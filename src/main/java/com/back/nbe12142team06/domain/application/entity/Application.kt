@@ -36,17 +36,17 @@ class Application protected constructor() : BaseTimeEntity() {
 
     @field:ManyToOne(fetch = FetchType.LAZY)
     @field:JoinColumn(name = "post_id", nullable = false)
-    lateinit var post: Post
+    var post: Post? = null
         protected set
 
     @field:ManyToOne(fetch = FetchType.LAZY)
     @field:JoinColumn(name = "escort_id", nullable = false)
-    lateinit var escort: User
+    var escort: User? = null
         protected set
 
     @field:Enumerated(EnumType.STRING)
     @field:Column(nullable = false)
-    var status: ApplicationStatus = ApplicationStatus.PENDING
+    var status: ApplicationStatus? = ApplicationStatus.PENDING
         protected set
 
     // 동행 중 매니저의 마지막 위치. 첫 위치 수신 전에는 null이다.
@@ -80,7 +80,7 @@ class Application protected constructor() : BaseTimeEntity() {
     constructor(
         post: Post,
         escort: User,
-        status: ApplicationStatus = ApplicationStatus.PENDING,
+        status: ApplicationStatus? = ApplicationStatus.PENDING,
     ) : this() {
         this.post = post
         this.escort = escort
@@ -89,7 +89,7 @@ class Application protected constructor() : BaseTimeEntity() {
 
     private fun syncActivePostId() {
         activePostId = if (status == ApplicationStatus.PENDING || status == ApplicationStatus.ACCEPTED) {
-            post.id
+            post!!.id
         } else {
             null
         }
@@ -101,7 +101,7 @@ class Application protected constructor() : BaseTimeEntity() {
     }
 
     private fun changeStatus(next: ApplicationStatus) {
-        if (!status.canTransitionTo(next)) {
+        if (!status!!.canTransitionTo(next)) {
             throw InvalidException(37, "변경할 수 없는 지원 상태입니다.")
         }
         status = next
@@ -110,7 +110,7 @@ class Application protected constructor() : BaseTimeEntity() {
 
     fun accept() {
         changeStatus(ApplicationStatus.ACCEPTED)
-        acceptedPostId = post.id
+        acceptedPostId = post!!.id
     }
 
     fun reject() {
@@ -144,7 +144,7 @@ class Application protected constructor() : BaseTimeEntity() {
         private var id: Long? = null
         private var post: Post? = null
         private var escort: User? = null
-        private var status: ApplicationStatus = ApplicationStatus.PENDING
+        private var status: ApplicationStatus? = ApplicationStatus.PENDING
         private var lat: BigDecimal? = null
         private var lng: BigDecimal? = null
         private var accuracy: BigDecimal? = null
@@ -155,7 +155,7 @@ class Application protected constructor() : BaseTimeEntity() {
         fun id(value: Long?) = apply { id = value }
         fun post(value: Post?) = apply { post = value }
         fun escort(value: User?) = apply { escort = value }
-        fun status(value: ApplicationStatus) = apply { status = value }
+        fun status(value: ApplicationStatus?) = apply { status = value }
         fun lat(value: BigDecimal?) = apply { lat = value }
         fun lng(value: BigDecimal?) = apply { lng = value }
         fun accuracy(value: BigDecimal?) = apply { accuracy = value }

@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 data class MyApplicationResponse(
     val applicationId: Long?,
     val postId: Long?,
-    val applicationStatus: ApplicationStatus,
+    val applicationStatus: ApplicationStatus?,
     val postStatus: PostStatus,
     val title: String,
     val hospitalName: String,
@@ -24,17 +24,17 @@ data class MyApplicationResponse(
 ) {
     constructor(application: Application) : this(
         application.id,
-        application.post.id,
+        application.post!!.id,
         application.status,
-        application.post.postStatus,
-        application.post.title,
-        application.post.hospitalName,
-        application.post.region,
-        application.post.hospitalAddress,
-        application.post.escortStartAt,
-        application.post.escortEndAt,
-        application.post.hourlyPay,
-        application.post.escortHours,
-        application.post.content,
+        application.post!!.postStatus,
+        application.post!!.title,
+        application.post!!.hospitalName,
+        application.post!!.region,
+        application.post!!.hospitalAddress,
+        application.post!!.escortStartAt,
+        application.post!!.escortEndAt,
+        application.post!!.hourlyPay,
+        application.post!!.escortHours,
+        application.post!!.content,
     )
 }

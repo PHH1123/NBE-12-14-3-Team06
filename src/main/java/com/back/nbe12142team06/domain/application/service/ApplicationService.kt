@@ -217,7 +217,7 @@ open class ApplicationService(
         }
 
         val acceptedApplications = applicationRepository.findAllByEscortAndStatus(escort, ApplicationStatus.ACCEPTED)
-        if (acceptedApplications.any { isTimeOverlapping(post, it.post) }) {
+        if (acceptedApplications.any { isTimeOverlapping(post, it.post!!) }) {
             throw DuplicatedException(35, "이미 매칭된 다른 공고와 동행 시간이 겹칩니다.")
         }
         val samePostPendingApplications = applicationRepository.findAllByPostAndStatus(post, ApplicationStatus.PENDING)
@@ -230,7 +230,7 @@ open class ApplicationService(
             .forEach { it.reject() }
         escortPendingApplications
             .filter { it.id != applicationId }
-            .filter { isTimeOverlapping(post, it.post) }
+            .filter { isTimeOverlapping(post, it.post!!) }
             .forEach { it.reject() }
 
         log.info("[지원 수락] applicationId={}, postId={}, escortId={}, clientId={}", applicationId, post.id, escort.id, userId)
@@ -255,7 +255,7 @@ open class ApplicationService(
         }
         application.reject()
         log.info("[지원 거절] applicationId={}, clientId={}", applicationId, userId)
-        noticeService.send(application.escort.id, C_APPLICATION_REJECT.of(post.title), U_APPLICATION_REJECT.of())
+        noticeService.send(application.escort!!.id, C_APPLICATION_REJECT.of(post.title), U_APPLICATION_REJECT.of())
     }
 
     private fun isTimeOverlapping(firstPost: Post, secondPost: Post): Boolean =
@@ -308,7 +308,7 @@ open class ApplicationService(
             log.warn("[노쇼 취소] applicationId={}, postId={}, escortId={}", applicationId, post.id, userId)
             noticeService.send(
                 post.client.id,
-                C_APPLICATION_CANCELED.of(application.escort.name, post.title),
+                C_APPLICATION_CANCELED.of(application.escort!!.name, post.title),
                 U_APPLICATION_CANCELED.of(post.id),
             )
             return
@@ -329,7 +329,7 @@ open class ApplicationService(
         )
         for (candidate in applications) {
             // 조회 후 상태가 바뀔 수 있으므로 잠금을 잡은 다음 재검증한다.
-            val post = postRepository.findByIdWithLock(candidate.post.id)
+            val post = postRepository.findByIdWithLock(candidate.post!!.id)
                 .orElseThrow { NotFoundException(11, "공고가 없습니다.") }
             val application = applicationRepository.findByIdWithLock(candidate.id)
                 .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
@@ -359,7 +359,7 @@ open class ApplicationService(
     private fun currentProgressOf(application: Application): EscortProgress =
         escortProgressLogRepository.findTopByApplicationOrderByOccurredAtDescIdDesc(application)
             .map { it.progress }
-            .orElse(EscortProgress.NOT_STARTED)
+            .orElse(EscortProgress.NOT_STARTED) ?: EscortProgress.NOT_STARTED
 
     private fun nextProgressOf(current: EscortProgress): EscortProgress? = when (current) {
         EscortProgress.NOT_STARTED -> EscortProgress.DEPARTED
@@ -390,7 +390,7 @@ open class ApplicationService(
         val application = applicationRepository.findByIdWithLock(applicationId)
             .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
 
-        if (application.escort.id != userId) {
+        if (application.escort!!.id != userId) {
             throw ForbiddenException(26, "본인의 동행 진행 상태만 변경할 수 있습니다.")
         }
         if (application.status != ApplicationStatus.ACCEPTED) {
@@ -419,23 +419,23 @@ open class ApplicationService(
 
         when (progress) {
             EscortProgress.AT_HOSPITAL -> noticeService.send(
-                application.escort.id,
-                C_APPLICATION_PROGRESS_AT_HOSPITAL.of(application.post.hospitalName),
+                application.escort!!.id,
+                C_APPLICATION_PROGRESS_AT_HOSPITAL.of(application.post!!.hospitalName),
                 U_APPLICATION_PROGRESS_AT_HOSPITAL.of(applicationId),
             )
             EscortProgress.ARRIVED_HOME -> noticeService.send(
-                application.post.client.id,
-                C_APPLICATION_PROGRESS_ARRIVED_HOME.of(application.post.hospitalName),
-                U_APPLICATION_PROGRESS_ARRIVED_HOME.of(applicationId, application.post.id),
+                application.post!!.client.id,
+                C_APPLICATION_PROGRESS_ARRIVED_HOME.of(application.post!!.hospitalName),
+                U_APPLICATION_PROGRESS_ARRIVED_HOME.of(applicationId, application.post!!.id),
             )
             else -> {
                 noticeService.send(
-                    application.post.client.id,
+                    application.post!!.client.id,
                     C_APPLICATION_UPDATED_PROGRESS.of(progress.description),
-                    U_APPLICATION_UPDATED_PROGRESS_CLIENT.of(applicationId, application.post.id),
+                    U_APPLICATION_UPDATED_PROGRESS_CLIENT.of(applicationId, application.post!!.id),
                 )
                 noticeService.send(
-                    application.escort.id,
+                    application.escort!!.id,
                     C_APPLICATION_UPDATED_PROGRESS.of(progress.description),
                     U_APPLICATION_UPDATED_PROGRESS_ESCORT.of(applicationId),
                 )
@@ -447,8 +447,8 @@ open class ApplicationService(
     open fun getProgress(applicationId: Long?, userId: Long?): ApplicationProgressResponse {
         val application = applicationRepository.findById(requireNotNull(applicationId) { "The given id must not be null" })
             .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
-        val isEscort = application.escort.id == userId
-        val isClient = application.post.client.id == userId
+        val isEscort = application.escort!!.id == userId
+        val isClient = application.post!!.client.id == userId
         if (!isEscort && !isClient) {
             throw ForbiddenException(27, "본인의 동행 건만 진행 상태를 조회할 수 있습니다.")
         }
@@ -459,11 +459,11 @@ open class ApplicationService(
     open fun getEscortProfile(applicationId: Long?, userId: Long?): ApplicationEscortProfileResponse {
         val application = applicationRepository.findById(requireNotNull(applicationId) { "The given id must not be null" })
             .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
-        val post = application.post
+        val post = application.post!!
         if (post.client.id != userId) {
             throw ForbiddenException(20, "본인 공고의 지원자 프로필만 조회할 수 있습니다.")
         }
-        val escort = application.escort
+        val escort = application.escort!!
         val escortProfile = escortProfileRepository.findById(escort.id)
             .orElseThrow { NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.") }
         val rating = if (escortProfile.ratingCount == 0) {
@@ -492,13 +492,13 @@ open class ApplicationService(
     open fun getClientProfile(applicationId: Long?, userId: Long?): ApplicationClientProfileResponse {
         val application = applicationRepository.findById(requireNotNull(applicationId) { "The given id must not be null" })
             .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
-        if (application.escort.id != userId) {
+        if (application.escort!!.id != userId) {
             throw ForbiddenException(28, "매칭된 의뢰인의 프로필만 조회할 수 있습니다.")
         }
         if (application.status != ApplicationStatus.ACCEPTED) {
             throw ForbiddenException(33, "승인된 동행에서만 의뢰인 정보를 조회할 수 있습니다.")
         }
-        val client = application.post.client
+        val client = application.post!!.client
         val clientProfile = clientProfileRepository.findById(client.id)
             .orElseThrow { NotFoundException(2, "의뢰인 프로필이 존재하지 않습니다.") }
         return ApplicationClientProfileResponse(
@@ -534,7 +534,7 @@ open class ApplicationService(
         val application = applicationRepository.findById(requireNotNull(applicationId) { "The given id must not be null" })
             .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
 
-        if (application.escort.id != userId) {
+        if (application.escort!!.id != userId) {
             throw ForbiddenException(29, "본인이 진행하는 동행에서만 실시간 위치를 보낼 수 있습니다.")
         }
         if (application.status != ApplicationStatus.ACCEPTED) {
@@ -570,8 +570,8 @@ open class ApplicationService(
             return
         }
         val applicationId = application.id
-        val escortId = application.escort.id
-        val post = application.post
+        val escortId = application.escort!!.id
+        val post = application.post!!
 
         val target = when (currentProgressOf(application)) {
             EscortProgress.DEPARTED -> if (
@@ -612,13 +612,13 @@ open class ApplicationService(
     open fun getLocation(applicationId: Long?, userId: Long?): ApplicationLocationResponse {
         val application = applicationRepository.findById(requireNotNull(applicationId) { "The given id must not be null" })
             .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
-        val isEscort = application.escort.id == userId
-        val isClient = application.post.client.id == userId
+        val isEscort = application.escort!!.id == userId
+        val isClient = application.post!!.client.id == userId
         if (!isEscort && !isClient) {
             throw ForbiddenException(30, "본인의 동행 건만 실시간 위치를 조회할 수 있습니다.")
         }
         if (application.status != ApplicationStatus.ACCEPTED ||
-            application.post.postStatus != PostStatus.IN_PROGRESS ||
+            application.post!!.postStatus != PostStatus.IN_PROGRESS ||
             escortProgressLogRepository.existsByApplicationAndProgress(application, EscortProgress.ARRIVED_HOME)
         ) {
             throw NotFoundException(31, "아직 공유된 실시간 위치가 없습니다.")

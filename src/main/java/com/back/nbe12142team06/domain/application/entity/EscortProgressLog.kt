@@ -22,16 +22,16 @@ class EscortProgressLog protected constructor() {
 
     @field:ManyToOne(fetch = FetchType.LAZY)
     @field:JoinColumn(name = "application_id", nullable = false)
-    lateinit var application: Application
+    var application: Application? = null
         protected set
 
     @field:Enumerated(EnumType.STRING)
     @field:Column(nullable = false)
-    var progress: EscortProgress = EscortProgress.NOT_STARTED
+    var progress: EscortProgress? = EscortProgress.NOT_STARTED
         protected set
 
     @field:Column(name = "occurred_at", nullable = false)
-    lateinit var occurredAt: LocalDateTime
+    var occurredAt: LocalDateTime? = null
         protected set
 
     @field:Enumerated(EnumType.STRING)
@@ -47,7 +47,7 @@ class EscortProgressLog protected constructor() {
     // Kotlin 코드에서는 이름 있는 인자로 생성할 수 있다.
     constructor(
         application: Application,
-        progress: EscortProgress = EscortProgress.NOT_STARTED,
+        progress: EscortProgress? = EscortProgress.NOT_STARTED,
         occurredAt: LocalDateTime,
         source: ProgressSource? = null,
     ) : this() {
@@ -66,13 +66,13 @@ class EscortProgressLog protected constructor() {
     class EscortProgressLogBuilder {
         private var id: Long? = null
         private var application: Application? = null
-        private var progress: EscortProgress = EscortProgress.NOT_STARTED
+        private var progress: EscortProgress? = EscortProgress.NOT_STARTED
         private var occurredAt: LocalDateTime? = null
         private var source: ProgressSource? = null
 
         fun id(value: Long?) = apply { id = value }
         fun application(value: Application?) = apply { application = value }
-        fun progress(value: EscortProgress) = apply { progress = value }
+        fun progress(value: EscortProgress?) = apply { progress = value }
         fun occurredAt(value: LocalDateTime?) = apply { occurredAt = value }
         fun source(value: ProgressSource?) = apply { source = value }
 

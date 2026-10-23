@@ -7,11 +7,11 @@ import com.back.nbe12142team06.domain.application.enums.ApplicationStatus
 data class ApplicationApplyResponse(
     val id: Long?,
     val postId: Long?,
-    val status: ApplicationStatus,
+    val status: ApplicationStatus?,
 ) {
     constructor(application: Application) : this(
         application.id,
-        application.post.id,
+        application.post!!.id,
         application.status,
     )
 }

@@ -349,7 +349,7 @@ class PaymentServiceTest {
 
         paymentService.validPayment(
                 post,
-                Application.builder().post(post).escort(createEscort()).build(),
+                Application.builder().build(),
                 LocalDate.now()
         );
 
@@ -370,7 +370,7 @@ class PaymentServiceTest {
 
         paymentService.validPayment(
                 post,
-                Application.builder().post(post).escort(createEscort()).build(),
+                Application.builder().build(),
                 LocalDate.now()
         );
 

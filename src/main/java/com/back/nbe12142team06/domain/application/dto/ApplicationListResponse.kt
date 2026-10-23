@@ -8,12 +8,12 @@ data class ApplicationListResponse(
     val applicationId: Long?,
     val escortId: Long?,
     val escortName: String?,
-    val status: ApplicationStatus,
+    val status: ApplicationStatus?,
 ) {
     constructor(application: Application) : this(
         application.id,
-        application.escort.id,
-        application.escort.name,
+        application.escort!!.id,
+        application.escort!!.name,
         application.status,
     )
 }
