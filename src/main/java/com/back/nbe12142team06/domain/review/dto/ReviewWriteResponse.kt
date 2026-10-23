@@ -15,7 +15,7 @@ data class ReviewWriteResponse(
 ) {
     constructor(review: Review) : this(
         review.id,
-        review.application.id,
+        review.application!!.id,
         review.rating,
         review.tags,
         review.content,

@@ -16,7 +16,7 @@ data class ReviewDto(
 ) {
     constructor(review: Review) : this(
         review.id,
-        review.application.id,
+        review.application!!.id,
         review.rating,
         // 원본 Java의 Set.copyOf() 동작을 유지한다.
         // 엔티티 컬렉션을 복사해 트랜잭션 종료 후의 지연 로딩 참조를 끊는다.
