@@ -1,11 +1,8 @@
-package com.back.nbe12142team06.domain.notification.entity;
+package com.back.nbe12142team06.domain.notification.entity
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
-public enum NotificationContent {
+enum class NotificationContent(
+    val format: String
+) {
     C_APPLICATION_APPLY("%s님이 %s 공고에 지원하셨습니다."),
     C_APPLICATION_ACCEPT("%s 공고에 매칭되었습니다."),
     C_APPLICATION_REJECT("%s 공고에 거절되었습니다."),
@@ -21,9 +18,7 @@ public enum NotificationContent {
     C_PAYMENT_EXTRA_PAY("%s 동행의 추가 결제요청드립니다. 추가 결제 금액: %s"),
     C_SETTLEMENT_DONE("정산이 완료되었습니다. 정산 금액: %s");
 
-    private final String format;
-
-    public String of(Object... args) {
-        return String.format(format, args);
+    fun of(vararg args: Any): String {
+        return format.format(*args)
     }
 }
