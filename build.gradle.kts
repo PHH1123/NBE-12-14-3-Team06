@@ -89,6 +89,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testAnnotationProcessor("org.projectlombok:lombok")
     testCompileOnly("org.projectlombok:lombok")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0") // 코틀린 편의 모키토 프레임워크
 
     // 모니터링
     implementation("org.springframework.boot:spring-boot-starter-actuator")

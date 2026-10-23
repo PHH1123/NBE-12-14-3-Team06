@@ -45,6 +45,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -197,7 +198,7 @@ class NoShowPenaltySettlementTest {
 
     private void application(PostWriteRequest postWriteRequest) {
         post = postService.findById(postService.write(client.getId(), postWriteRequest).id());
-        paymentRepository.testStatusDone(post.getId());
+        paymentRepository.testStatusDoneAndPutPaymentKey(post.getId(), UUID.randomUUID().toString());
 
         // 영속성 컨텍스트 초기화 후 공고 다시 조회
         post = postService.findById(post.getId());
@@ -212,7 +213,7 @@ class NoShowPenaltySettlementTest {
 
     private void applicationCancel(PostWriteRequest tempPostWriteRequest) {
         Post tempPost = postService.findById(postService.write(client.getId(), tempPostWriteRequest).id());
-        paymentRepository.testStatusDone(tempPost.getId());
+        paymentRepository.testStatusDoneAndPutPaymentKey(tempPost.getId(), UUID.randomUUID().toString());
 
         // 공고 다시 조회
         tempPost = postService.findById(tempPost.getId());

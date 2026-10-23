@@ -44,6 +44,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -154,7 +155,7 @@ class SettlementControllerTest {
         );
 
         savedPost1 = postService.findById(postService.write(savedUser1.getId(), postWriteRequest1).id());
-        paymentRepository.testStatusDone(savedPost1.getId());
+        paymentRepository.testStatusDoneAndPutPaymentKey(savedPost1.getId(), UUID.randomUUID().toString());
 
         PostWriteRequest postWriteRequest2 = new PostWriteRequest(
                 title + "2", content + "2", postRegion + "2", hospitalName + "2", hospitalAddress + "2",
@@ -163,7 +164,7 @@ class SettlementControllerTest {
         );
 
         PostWriteResponse post2 = postService.write(savedUser1.getId(), postWriteRequest2);
-        paymentRepository.testStatusDone(post2.id());
+        paymentRepository.testStatusDoneAndPutPaymentKey(post2.id(), UUID.randomUUID().toString());
 
         // 영속성 컨텍스트 초기화 후 공고 다시 조회
         savedPost1 = postService.findById(savedPost1.getId());

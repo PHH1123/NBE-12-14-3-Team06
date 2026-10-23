@@ -193,15 +193,15 @@ class ApplicationConcurrencyTest {
      * 환불 금액은 balanceAmount 에서 가져가므로 결제 금액과 같은 값으로 채워둔다.
      */
     private fun saveDonePayment(post: Post) {
-        paymentRepository.saveAndFlush(Payment.builder()
-                .amount(post.totalPay)
-                .hourlyPaySnapshot(post.hourlyPay)
-                .hours(post.escortHours)
-                .post(post)
-                .paymentKey("INIT-PAYKEY-concurrency-" + post.id)
-                .balanceAmount(post.totalPay)
-                .paymentStatus(PaymentStatus.DONE)
-                .build())
+        paymentRepository.saveAndFlush(Payment(
+            amount = post.totalPay,
+            hourlyPaySnapshot = post.hourlyPay,
+            hours = post.escortHours,
+            post = post,
+            paymentKey = "INIT-PAYKEY-concurrency-" + post.id,
+            balanceAmount = post.totalPay,
+            paymentStatus = PaymentStatus.DONE
+        ))
     }
 
 

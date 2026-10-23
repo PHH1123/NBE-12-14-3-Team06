@@ -2,6 +2,7 @@ package com.back.nbe12142team06.domain.payment.service;
 
 import com.back.nbe12142team06.domain.application.entity.Application;
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient;
+import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest;
 import com.back.nbe12142team06.domain.payment.dto.PaymentConfirmRequest;
 import com.back.nbe12142team06.domain.payment.entity.Payment;
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus;
@@ -30,9 +31,7 @@ import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -65,19 +64,13 @@ class PaymentServiceTest {
         int hourlyPaySnapshot = 15_000;
         BigDecimal hours = BigDecimal.TEN;
         BigDecimal amount = hours.multiply(BigDecimal.valueOf(hourlyPaySnapshot));
-        Payment payment = Payment.builder()
-                .id(id)
-                .post(post)
-                .amount(amount)
-                .hourlyPaySnapshot(hourlyPaySnapshot)
-                .hours(hours)
-                .orderId(UUID.randomUUID().toString())
-                .paymentKey(UUID.randomUUID().toString())
-                .method("CARD")
-                .paymentStatus(status)
-                .approvedAt(LocalDateTime.now().minusDays(2))
-                .balanceAmount(amount)
-                .build();
+        Payment payment = new Payment(
+                id, amount, hourlyPaySnapshot, hours, post,
+                "CARD", status, UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(), LocalDateTime.now().minusDays(2),
+                amount
+        );
+
         return payment;
     }
 
@@ -190,7 +183,7 @@ class PaymentServiceTest {
         Payment payment = createPayment(post, PaymentStatus.DONE);
 
         when(paymentRepository.findByPostId(any(Long.class)))
-                .thenReturn(Optional.of(payment));
+                .thenReturn(payment);
 
         Payment deletedPayment = paymentService.cancelPostAndPayment(post.getId());
 
@@ -248,7 +241,7 @@ class PaymentServiceTest {
         doReturn(List.of(payment))
                 .when(paymentPersistenceService).findDeletedAll();
         doThrow(new RuntimeException("DB 저장 실패"))
-                .when(paymentPersistenceService).paymentCancelDb(any(), any(), any(boolean.class));
+                .when(paymentPersistenceService).paymentCancelDb(anyLong(), any(), any(boolean.class));
 
         int[] counts = paymentService.cancelPostAndPaymentCallApi();
 
@@ -263,10 +256,10 @@ class PaymentServiceTest {
         User client = createClient();
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.DONE);
-        PaymentConfirmRequest request = new PaymentConfirmRequest(null, null, String.valueOf(payment.getAmount()));
+        PaymentConfirmRequest request = new PaymentConfirmRequest(UUID.randomUUID().toString(), UUID.randomUUID().toString(), String.valueOf(payment.getAmount()));
 
         doReturn(payment)
-                .when(paymentPersistenceService).findById(any(Long.class), any(Long.class));
+                .when(paymentPersistenceService).findById(anyLong(), anyLong());
 
         assertThatThrownBy(() -> paymentService.confirm(request, payment.getId(), client.getId()))
                 .isInstanceOf(InvalidException.class)
@@ -279,7 +272,7 @@ class PaymentServiceTest {
         User client = createClient();
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.CANCELED);
-        PaymentConfirmRequest request = new PaymentConfirmRequest(null, null, String.valueOf(payment.getAmount()));
+        PaymentConfirmRequest request = new PaymentConfirmRequest(UUID.randomUUID().toString(), UUID.randomUUID().toString(), String.valueOf(payment.getAmount()));
 
         doReturn(payment)
                 .when(paymentPersistenceService).findById(any(Long.class), any(Long.class));
@@ -318,7 +311,7 @@ class PaymentServiceTest {
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.CANCELED);
 
-        assertThatThrownBy(() -> paymentService.cancel(payment, null, BigDecimal.ZERO, false, true))
+        assertThatThrownBy(() -> paymentService.cancel(payment, new PaymentCancelRequest(""), BigDecimal.ZERO, false, true))
                 .isInstanceOf(InvalidException.class)
                 .hasMessage("이미 취소된 결제입니다.");
     }
@@ -330,7 +323,7 @@ class PaymentServiceTest {
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.READY);
 
-        assertThatThrownBy(() -> paymentService.cancel(payment, null, BigDecimal.ZERO, false, true))
+        assertThatThrownBy(() -> paymentService.cancel(payment, new PaymentCancelRequest(""), BigDecimal.ZERO, false, true))
                 .isInstanceOf(InvalidException.class)
                 .hasMessage("결제 완료 상태가 아닙니다.");
     }
@@ -342,10 +335,10 @@ class PaymentServiceTest {
         Post post = createPost(client, 1L, 4);
         Payment payment = createPayment(post, PaymentStatus.DONE);
 
-        doReturn(List.of(payment))
-                .when(paymentPersistenceService).findByPostId(any());
+        doReturn(new ArrayList<>(List.of(payment)))
+                .when(paymentPersistenceService).findByPostId(anyLong());
         doReturn(null)
-                .when(paymentPersistenceService).paymentPartialCancelDb(any(), any(), any(BigDecimal.class));
+                .when(paymentPersistenceService).paymentPartialCancelDb(anyLong(), any(), any(BigDecimal.class));
 
         paymentService.validPayment(
                 post,
@@ -353,7 +346,7 @@ class PaymentServiceTest {
                 LocalDate.now()
         );
 
-        verify(paymentPersistenceService, times(1)).paymentPartialCancelDb(any(), any(), any(BigDecimal.class));
+        verify(paymentPersistenceService, times(1)).paymentPartialCancelDb(anyLong(), any(), any(BigDecimal.class));
     }
 
     @Test
@@ -364,7 +357,7 @@ class PaymentServiceTest {
         Payment payment = createPayment(post, PaymentStatus.DONE);
 
         doReturn(List.of(payment))
-                .when(paymentPersistenceService).findByPostId(any());
+                .when(paymentPersistenceService).findByPostId(anyLong());
         doReturn(null)
                 .when(paymentPersistenceService).createPayment(any());
 
@@ -390,7 +383,7 @@ class PaymentServiceTest {
         paymentRepository.save(payment);
 
         doReturn(payment)
-                .when(paymentPersistenceService).findById(any(), any());
+                .when(paymentPersistenceService).findById(anyLong(), anyLong());
         doThrow(new InternalServerErrorException(43, "토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다."))
                 .when(tossPaymentClient).callApiConfirm(any(), any(), any());
 
@@ -411,20 +404,20 @@ class PaymentServiceTest {
     void cancelPaymentStatusDoneWithApplicationCancel() {
         // given
         User client = createClient(false);
-        Post post = createPost(client, null);
+        Post post = createPost(client, 1L);
         Payment payment = createPayment(post, PaymentStatus.DONE);
 
         doReturn(List.of(payment))
-                .when(paymentPersistenceService).findByPostId(any());
+                .when(paymentPersistenceService).findByPostId(anyLong());
         doReturn(null)
-                .when(paymentPersistenceService).paymentCancelDb(any(), any(), any(boolean.class));
+                .when(paymentPersistenceService).paymentCancelDb(anyLong(), any(), anyBoolean());
 
         //when
         paymentService.cancel(post);
 
         // then
         verify(tossPaymentClient, times(1)).callApiCancel(any(), any(), any());
-        verify(paymentPersistenceService, times(1)).paymentCancelDb(any(), any(), any(boolean.class));
+        verify(paymentPersistenceService, times(1)).paymentCancelDb(anyLong(), any(), anyBoolean());
     }
 
     @Test
@@ -432,20 +425,20 @@ class PaymentServiceTest {
     void cancelPaymentStatusDoneAndPartialCanceledWithApplicationCancel() {
         // given
         User client = createClient(false);
-        Post post = createPost(client, null);
+        Post post = createPost(client, 1L);
         Payment donePayment = createPayment(post, PaymentStatus.DONE);
         Payment partialCanceledPayment = createPayment(post, PaymentStatus.PARTIAL_CANCELED);
 
         doReturn(List.of(donePayment, partialCanceledPayment))
-                .when(paymentPersistenceService).findByPostId(any());
+                .when(paymentPersistenceService).findByPostId(anyLong());
         doReturn(null)
-                .when(paymentPersistenceService).paymentCancelDb(any(), any(), any(boolean.class));
+                .when(paymentPersistenceService).paymentCancelDb(anyLong(), any(), anyBoolean());
 
         //when
         paymentService.cancel(post);
 
         // then
         verify(tossPaymentClient, times(2)).callApiCancel(any(), any(), any());
-        verify(paymentPersistenceService, times(2)).paymentCancelDb(any(), any(), any(boolean.class));
+        verify(paymentPersistenceService, times(2)).paymentCancelDb(anyLong(), any(), anyBoolean());
     }
 }

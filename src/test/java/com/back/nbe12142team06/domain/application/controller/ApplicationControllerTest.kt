@@ -20,6 +20,7 @@ import com.back.nbe12142team06.domain.user.enums.Role
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository
 import com.back.nbe12142team06.domain.user.repository.UserRepository
 import jakarta.servlet.http.Cookie
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -31,18 +32,15 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.util.ReflectionTestUtils
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.ResultActions
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.springframework.transaction.annotation.Transactional
-
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
-
-import org.junit.jupiter.api.Assertions.*
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
+import java.util.*
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post as mvcPost
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -157,14 +155,14 @@ class ApplicationControllerTest {
         testPostId = postRepository.save(post).id!!
 
         // 테스트 과정에 결제 데이터가 필요해서 추가
-        var payment = Payment.builder()
-                .amount(post.totalPay)
-                .hourlyPaySnapshot(post.hourlyPay)
-                .hours(post.escortHours)
-                .post(post)
-                .paymentStatus(PaymentStatus.DONE)
-                .build()
-
+        val payment = Payment(
+            amount = post.totalPay,
+            hourlyPaySnapshot = post.hourlyPay,
+            hours = post.escortHours,
+            post = post,
+            paymentStatus = PaymentStatus.DONE,
+            balanceAmount = post.totalPay
+        )
         paymentRepository.save(payment)
 
         // 의뢰인 로그인
@@ -1460,13 +1458,13 @@ class ApplicationControllerTest {
 
         var overlappingPostId = postRepository.save(overlappingPost).id
 
-        var payment = Payment.builder()
-                .amount(overlappingPost.totalPay)
-                .hourlyPaySnapshot(overlappingPost.hourlyPay)
-                .hours(overlappingPost.escortHours)
-                .post(overlappingPost)
-                .paymentStatus(PaymentStatus.DONE)
-                .build()
+        val payment = Payment(
+            amount = overlappingPost.totalPay,
+            hourlyPaySnapshot = overlappingPost.hourlyPay,
+            hours = overlappingPost.escortHours,
+            post = overlappingPost,
+            paymentStatus = PaymentStatus.DONE
+        )
         paymentRepository.save(payment)
 
         // 이미 다른 공고에서 ACCEPTED된 동행인이
@@ -2570,13 +2568,14 @@ class ApplicationControllerTest {
 
     private fun savePayment(post: Post, paymentStatus: PaymentStatus): Payment {
 
-        var payment = Payment.builder()
-                .amount(post.totalPay)
-                .hourlyPaySnapshot(post.hourlyPay)
-                .hours(post.escortHours)
-                .post(post)
-                .paymentStatus(paymentStatus)
-                .build()
+        val payment = Payment(
+            amount = post.totalPay,
+            hourlyPaySnapshot = post.hourlyPay,
+            hours = post.escortHours,
+            post = post,
+            paymentStatus = paymentStatus,
+            paymentKey = UUID.randomUUID().toString(),
+        )
 
         return paymentRepository.save(payment)
     }
@@ -2680,7 +2679,7 @@ class ApplicationControllerTest {
         // 승인 가드가 보는 "성공한 결제"가 없는 상태
         assertEquals(
                 0,
-                paymentRepository.findSuccessPayByPostId(canceledPaymentPost.id).size
+                paymentRepository.findSuccessPayByPostId(canceledPaymentPost.id!!).size
         )
 
         mvc.perform(mvcPost("/api/v1/applications/{postId}", canceledPaymentPost.id)
