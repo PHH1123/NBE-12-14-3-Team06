@@ -146,7 +146,7 @@ class PostmatchedCancelTest {
         postId = post.id!!
         escortId = escort.id
         clientId = client.id
-        applicationId = application.id
+        applicationId = application.id!!
     }
 
     // 이 테스트는 노쇼취소 경로를 타면서 NoShowPenalty 행을 만든다. 이 클래스는
