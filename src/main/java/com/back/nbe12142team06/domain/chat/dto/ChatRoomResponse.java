@@ -15,9 +15,9 @@ public record ChatRoomResponse(
         Role partnerRole,
         String lastChatContent,
         LocalDateTime lastChatSentAt,
-        int unReadCount
+        Long unReadCount
 ) {
-    public ChatRoomResponse(ChatRoom chatRoom, Long userId, int unReadCount) {
+    public ChatRoomResponse(ChatRoom chatRoom, Long userId, Long unReadCount) {
         ChatPart chatPart = chatRoom.getChatParts().stream()
                 .filter((cp -> !cp.getUser().getId().equals(userId)))
                 .findFirst().orElseThrow(() -> new NotFoundException("상대방을 찾을 수 없습니다."));

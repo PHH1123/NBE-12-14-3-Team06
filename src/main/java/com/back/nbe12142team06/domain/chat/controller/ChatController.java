@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.chat.controller;
 
+import com.back.nbe12142team06.domain.chat.dto.UnreadCountDto;
 import com.back.nbe12142team06.global.response.RsData;
 import com.back.nbe12142team06.global.security.SecurityUser;
 import com.back.nbe12142team06.domain.chat.dto.ChatMessageDto;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
@@ -48,7 +50,7 @@ public class ChatController {
         ChatRoom chatRoom = chatService.createChatRoom(senderId, receiverId);
 
         return new RsData<>("201-121", "채팅방이 생성되었습니다.",
-                new ChatRoomResponse(chatRoom, user.getId(), 0));
+                new ChatRoomResponse(chatRoom, user.getId(), 0L));
     }
 
     @GetMapping("/api/v1/chat")
@@ -57,12 +59,12 @@ public class ChatController {
         Long userId = user.getId();
 
         List<ChatRoom> chatRoomList = chatService.getChatRoomList(userId);
+        Map<Long, Long> unReadMap = chatService.getUnReadCounts(userId, chatRoomList);
 
         return new RsData<>("200-121", "채팅방 목록을 조회했습니다.",
-                chatRoomList.stream().map(chatRoom -> {
-                    int unReadCounts = chatService.getUnReadCounts(userId, chatRoom.getId());
-                    return new ChatRoomResponse(chatRoom, userId, unReadCounts);
-                }).toList());
+                chatRoomList.stream()
+                        .map(chatRoom -> new ChatRoomResponse(
+                                chatRoom, userId, unReadMap.getOrDefault(chatRoom.getId(), 0L))).toList());
     }
 
     @GetMapping("/api/v1/chat/{chatRoomId}")
