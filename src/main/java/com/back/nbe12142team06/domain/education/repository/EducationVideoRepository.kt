@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface EducationVideoRepository : JpaRepository<EducationVideo, Long> {
 
-    fun findAllByRequiredTrue(): List<EducationVideo>
+    // fun findAllByRequiredTrue(): List<EducationVideo>
 
     // 필수 영상 수
     fun countByRequiredTrue(): Long
