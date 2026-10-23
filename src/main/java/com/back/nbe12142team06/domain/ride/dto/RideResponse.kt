@@ -29,7 +29,7 @@ data class RideResponse (
         fun from(ride: Ride): RideResponse {
             val post = ride.post
             val pickup = Location(post.pickupLat, post.pickupLng, post.pickupAddress)
-            val hospital = Location(post.hospitalLat, post.hospitalLat, post.hospitalAddress)
+            val hospital = Location(post.hospitalLat, post.hospitalLng, post.hospitalAddress)
 
             val (origin, dest) = when (ride.direction) {
                 RideDirection.TO_HOSPITAL -> pickup to hospital
