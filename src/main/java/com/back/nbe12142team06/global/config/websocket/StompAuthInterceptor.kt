@@ -23,7 +23,7 @@ class StompAuthInterceptor(
     private val authTokenService: AuthTokenService,
     private val chatPartRepository: ChatPartRepository
 ) : ChannelInterceptor {
-    override fun preSend(message: Message<*>, channel: MessageChannel): Message<*>? {
+    override fun preSend(message: Message<*>, channel: MessageChannel): Message<*> {
         val accessor: StompHeaderAccessor =
             MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor::class.java)
                 ?: return message
