@@ -42,7 +42,7 @@ class EducationService(
         watchProgressLogRepository.save(WatchProgressLog(progress, positionSec, now, accepted))
 
         // 필수 영상 전부 시청 시 동행인 프로필 신원인증 처리
-        if (progress.isCompleted && isAllRequiredCompleted(escortProfile)) {
+        if (progress.completed && isAllRequiredCompleted(escortProfile)) {
             escortProfileRepository.verify(userId, now)
 
             // 벌크 UPDATE는 메모리 객체를 갱신하지 않으므로, 응답용으로 최신 상태를 다시 조회

@@ -10,7 +10,7 @@ data class WatchProgressLogCreateResponse(
 ) {
     constructor(progress: EducationProgress) : this(
         progress.maxWatchedSec,
-        progress.isCompleted,
+        progress.completed,
         progress.escortProfile.verified,
     )
 }

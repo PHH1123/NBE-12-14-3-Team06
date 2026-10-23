@@ -19,6 +19,6 @@ data class EducationVideoResponse(
         progress.educationVideo.durationSec,
         progress.educationVideo.required,
         progress.maxWatchedSec,
-        progress.isCompleted,
+        progress.completed,
     )
 }
