@@ -86,6 +86,12 @@ class Payment(
     var cancelReason: String? = null
         protected set
 
+    // id가 nullable로 처리되는데 실제 로직 중 대부분은 id가 null일 수 없습니다.
+    // 그래서 id가 null이면 IllegalStateException을 반환합니다.
+    // 커스텀 예외가 아닌 이유는 비즈니스 예외가 아닌 개발자의 실수로 발생하는 예외이기 때문입니다.
+    val requiredId : Long
+        get() = id ?: error("ID가 NULL입니다.")
+
     // 결제 취소 할 수 있는 금액, 최소 0원 이상이어야 함
     @Column(
         nullable = false,
@@ -119,13 +125,13 @@ class Payment(
     }
 
     // 결제 승인
-    fun approvePayment(orderId: String, paymentKey: String, method: String) {
+    fun approvePayment(orderId: String, paymentKey: String, method: String?) {
         this.statusUpdate(PaymentStatus.DONE)
         this.approvedAt = LocalDateTime.now()
         this.orderId = orderId
         this.paymentKey = paymentKey
         this.method = method
-        this.balanceAmount = this.amount!!
+        this.balanceAmount = this.amount
     }
 
     // 결제 취소 -> 새로운 결제 데이터 반환
@@ -169,9 +175,9 @@ class Payment(
         this.hours = hours
     }
 
-    fun verifyAmount(request: SaveAmountRequest, log: Logger?): Boolean {
+    fun verifyAmount(request: SaveAmountRequest, log: Logger): Boolean {
         if (this.amount.compareTo(BigDecimal.valueOf(request.amount.toInt().toLong())) != 0) {
-            log?.warn("결제 금액 정보 불일치 - 요청 amount: {}, 저장된 amount: {}", request.amount, this.amount)
+            log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 저장된 amount: {}", request.amount, this.amount)
             throw InvalidException(42, "결제 금액 정보가 유효하지 않습니다.")
         }
         return true
