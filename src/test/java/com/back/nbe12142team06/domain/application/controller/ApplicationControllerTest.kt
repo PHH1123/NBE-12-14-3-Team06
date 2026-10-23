@@ -2573,7 +2573,8 @@ class ApplicationControllerTest {
             hourlyPaySnapshot = post.hourlyPay,
             hours = post.escortHours,
             post = post,
-            paymentStatus = paymentStatus
+            paymentStatus = paymentStatus,
+            paymentKey = UUID.randomUUID().toString(),
         )
 
         return paymentRepository.save(payment)
