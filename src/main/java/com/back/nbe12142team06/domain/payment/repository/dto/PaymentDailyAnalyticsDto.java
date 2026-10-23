@@ -1,10 +1,11 @@
 package com.back.nbe12142team06.domain.payment.repository.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record PaymentDailyAnalyticsDto(
         LocalDate approvedAt,
-        Long paidAmount,
+        BigDecimal paidAmount,
         Long counts
 ) {
 }

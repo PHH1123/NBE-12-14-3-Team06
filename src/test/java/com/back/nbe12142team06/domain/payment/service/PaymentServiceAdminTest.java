@@ -53,8 +53,7 @@ public class PaymentServiceAdminTest {
 
     private Payment createPayment(Post post, PaymentStatus status, LocalDateTime approvedAt, BigDecimal hours, BigDecimal mulBalanceAmount, Long id) {
         int hourlyPaySnapshot = 15_000;
-//        BigDecimal hours = BigDecimal.TEN;
-        int amount = hourlyPaySnapshot * hours.intValue();
+        BigDecimal amount = hours.multiply(BigDecimal.valueOf(hourlyPaySnapshot));
         Payment payment = Payment.builder()
                 .id(id)
                 .post(post)
@@ -66,7 +65,7 @@ public class PaymentServiceAdminTest {
                 .method("CARD")
                 .paymentStatus(status)
                 .approvedAt(approvedAt)
-                .balanceAmount(mulBalanceAmount.multiply(BigDecimal.valueOf(amount)).intValue())
+                .balanceAmount(mulBalanceAmount.multiply(amount))
                 .build();
         return payment;
     }
@@ -200,9 +199,9 @@ public class PaymentServiceAdminTest {
         List<PaymentDailyAnalyticsDto> result =
                 paymentService.getDailyPaymentAnalytics(LocalDate.now().minusDays(7), LocalDate.now());
 
-        assertThat(result.get(0).paidAmount()).isEqualByComparingTo(15_000L);
-        assertThat(result.get(1).paidAmount()).isEqualByComparingTo(105_000L);
-        assertThat(result.get(2).paidAmount()).isEqualByComparingTo(45_000L);
+        assertThat(result.get(0).paidAmount()).isEqualByComparingTo(BigDecimal.valueOf(15_000L));
+        assertThat(result.get(1).paidAmount()).isEqualByComparingTo(BigDecimal.valueOf(105_000L));
+        assertThat(result.get(2).paidAmount()).isEqualByComparingTo(BigDecimal.valueOf(45_000L));
     }
 
     @Test

@@ -64,7 +64,7 @@ class PaymentServiceTest {
     private Payment createPayment(Post post, PaymentStatus status, Long id) {
         int hourlyPaySnapshot = 15_000;
         BigDecimal hours = BigDecimal.TEN;
-        int amount = hourlyPaySnapshot * hours.intValue();
+        BigDecimal amount = hours.multiply(BigDecimal.valueOf(hourlyPaySnapshot));
         Payment payment = Payment.builder()
                 .id(id)
                 .post(post)
@@ -318,7 +318,7 @@ class PaymentServiceTest {
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.CANCELED);
 
-        assertThatThrownBy(() -> paymentService.cancel(payment, null, 0, false, true))
+        assertThatThrownBy(() -> paymentService.cancel(payment, null, BigDecimal.ZERO, false, true))
                 .isInstanceOf(InvalidException.class)
                 .hasMessage("이미 취소된 결제입니다.");
     }
@@ -330,7 +330,7 @@ class PaymentServiceTest {
         Post post = createPost(client);
         Payment payment = createPayment(post, PaymentStatus.READY);
 
-        assertThatThrownBy(() -> paymentService.cancel(payment, null, 0, false, true))
+        assertThatThrownBy(() -> paymentService.cancel(payment, null, BigDecimal.ZERO, false, true))
                 .isInstanceOf(InvalidException.class)
                 .hasMessage("결제 완료 상태가 아닙니다.");
     }
@@ -345,11 +345,11 @@ class PaymentServiceTest {
         doReturn(List.of(payment))
                 .when(paymentPersistenceService).findByPostId(any());
         doReturn(null)
-                .when(paymentPersistenceService).paymentPartialCancelDb(any(), any(), any(int.class));
+                .when(paymentPersistenceService).paymentPartialCancelDb(any(), any(), any(BigDecimal.class));
 
         paymentService.validPayment(post, Application.builder().build(), LocalDate.now());
 
-        verify(paymentPersistenceService, times(1)).paymentPartialCancelDb(any(), any(), any(int.class));
+        verify(paymentPersistenceService, times(1)).paymentPartialCancelDb(any(), any(), any(BigDecimal.class));
     }
 
     @Test

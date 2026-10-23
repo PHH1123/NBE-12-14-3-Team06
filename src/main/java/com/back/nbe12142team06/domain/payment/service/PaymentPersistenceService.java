@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -81,7 +82,7 @@ public class PaymentPersistenceService {
     }
 
     @Transactional
-    public Payment paymentPartialCancelDb(Long paymentId, String cancelReason, int amount) {
+    public Payment paymentPartialCancelDb(Long paymentId, String cancelReason, BigDecimal amount) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
         return payment.cancelPartialPayment(cancelReason, amount);
