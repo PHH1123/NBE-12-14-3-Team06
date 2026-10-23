@@ -528,7 +528,6 @@ public class PostControllerTest {
         // testUser로 공고 등록
         Long postId = registerPost();
 
-        // TODO : 매칭 로직은 아직 미구현이라 테스트에서 직접 MATCHED로 전환
         Post post = postRepository.findById(postId).orElseThrow();
         post.match();
         postRepository.saveAndFlush(post);
