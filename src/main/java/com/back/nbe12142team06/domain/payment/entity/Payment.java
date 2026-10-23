@@ -30,14 +30,8 @@ public class Payment extends BaseSoftDeleteTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 결제 금액, 최소 0원 보다 커야함
-    // 너무 빠른 동행의 종료로 이용 금액이 0원인 경우도 있음
-    // deprecated
-//    @Column(
-//            nullable = false,
-//            check = @CheckConstraint(name = "chk_amount", constraint = "amount > 0")
-//    )
-    private int amount;
+    @Column(precision = 15, scale = 0)
+    private BigDecimal amount;
 
     // 시간 당 금액
     @Column(nullable = false)
@@ -78,10 +72,11 @@ public class Payment extends BaseSoftDeleteTimeEntity {
     // 결제 취소 할 수 있는 금액, 최소 0원 이상이어야 함
     @Column(
             nullable = false,
-            check = @CheckConstraint(name = "chk_balance_amount", constraint = "balance_amount >= 0")
+            check = @CheckConstraint(name = "chk_balance_amount", constraint = "balance_amount >= 0"),
+            precision = 15, scale = 0
     )
     @Builder.Default
-    private int balanceAmount = 0;
+    private BigDecimal balanceAmount = BigDecimal.ZERO;
 
     // 결제를 취소/재결제 할 수 있기 때문에 N:1
     @ManyToOne(fetch = FetchType.LAZY)
@@ -114,7 +109,7 @@ public class Payment extends BaseSoftDeleteTimeEntity {
     // 결제 취소 -> 새로운 결제 데이터 반환
     public Payment cancelPayment(String cancelReason) {
         this.statusUpdate(PaymentStatus.CANCELED);
-        this.balanceAmount = 0;
+        this.balanceAmount = BigDecimal.ZERO;
         this.setDeletedAt(LocalDateTime.now());
         updateCanceledAt();
         this.cancelReason = cancelReason;
@@ -127,10 +122,10 @@ public class Payment extends BaseSoftDeleteTimeEntity {
     }
 
     // 결제 부분 취소
-    public Payment cancelPartialPayment(String cancelReason, int cancelAmount) {
+    public Payment cancelPartialPayment(String cancelReason, BigDecimal cancelAmount) {
         this.cancelReason = cancelReason;
-        this.amount -= cancelAmount;
-        this.balanceAmount -= cancelAmount;
+        // this.amount = this.amount.subtract(cancelAmount);
+        this.balanceAmount = this.balanceAmount.subtract(cancelAmount);
         this.statusUpdate(PaymentStatus.PARTIAL_CANCELED);
         return this;
     }
@@ -140,7 +135,7 @@ public class Payment extends BaseSoftDeleteTimeEntity {
     }
 
     public void updateAmount(int amount) {
-        this.amount = amount;
+        this.amount = BigDecimal.valueOf(amount);
     }
 
     public void updateCanceledAt() {
@@ -153,7 +148,7 @@ public class Payment extends BaseSoftDeleteTimeEntity {
     }
 
     public boolean verifyAmount(SaveAmountRequest request) {
-        if (this.amount != Integer.parseInt(request.amount())) {
+        if (this.amount.compareTo(BigDecimal.valueOf(Integer.parseInt(request.amount()))) != 0) {
             log.warn("결제 금액 정보 불일치 - 요청 amount: {}, 저장된 amount: {}", request.amount(), this.amount);
             throw new InvalidException(42, "결제 금액 정보가 유효하지 않습니다.");
         }

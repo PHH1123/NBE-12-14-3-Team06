@@ -67,7 +67,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     @Query("select cast(p.approvedAt as LocalDate), sum(p.amount) paidAmount, count(p) counts " +
             "from Payment p " +
-            "where p.approvedAt >= :startDate and p.approvedAt <= :endDate " +
+            "where p.approvedAt >= :startDate and p.approvedAt < :endDate " +
             "and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED) " +
             "group by cast(p.approvedAt as LocalDate) " +
             "order by cast(p.approvedAt as LocalDate)")
@@ -76,7 +76,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     @Query("select p " +
             "from Payment p " +
-            "where p.approvedAt >= :startDate and p.approvedAt <= :endDate " +
+            "where p.approvedAt >= :startDate and p.approvedAt < :endDate " +
             "and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED)")
     List<Payment> findAnalyticsByPeriod(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate);
@@ -85,7 +85,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             "from Payment pay " +
             "join fetch pay.post post " +
             "join fetch post.client " +
-            "where pay.approvedAt >= :startDate and pay.approvedAt <= :endDate")
+            "where pay.approvedAt >= :startDate and pay.approvedAt < :endDate")
     Page<Payment> findPaymentsForAdmin(@Param("startDate") LocalDateTime startDate,
                                        @Param("endDate") LocalDateTime endDate,
                                        Pageable pageable);

@@ -27,6 +27,7 @@ import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.service.UserService;
 import jakarta.persistence.EntityManager;
 import jakarta.servlet.http.Cookie;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -57,15 +58,15 @@ class NoShowPenaltySettlementTest {
     // 시급
     private final int HOURLY_PAY = 15_000;
     // 동행 시간
-    private final int HOURS = 4;
+    private final BigDecimal HOURS = BigDecimal.valueOf(4);
     // 의뢰인 결제 금액
-    private final int PAYOUT_AMOUNT = HOURLY_PAY * HOURS;
+    private final BigDecimal PAYOUT_AMOUNT = HOURS.multiply(BigDecimal.valueOf(HOURLY_PAY));
     // 플랫폼 수수료
-    private final int PLATFORM_FEE = (int) (PAYOUT_AMOUNT * 0.1);
+    private final BigDecimal PLATFORM_FEE = PAYOUT_AMOUNT.multiply(BigDecimal.valueOf(0.1));
     // 패널티 금액
-    private final int PENALTY_AMOUNT = (int) ((PAYOUT_AMOUNT - PLATFORM_FEE) * 0.1);
+    private final BigDecimal PENALTY_AMOUNT = PAYOUT_AMOUNT.subtract(PLATFORM_FEE).multiply(BigDecimal.valueOf(0.1));
     // 동행 매니저에게 정산되는 금액
-    private final int SETTLEMENT_AMOUNT = PAYOUT_AMOUNT - PLATFORM_FEE - PENALTY_AMOUNT;
+    private final BigDecimal SETTLEMENT_AMOUNT = PAYOUT_AMOUNT.subtract(PLATFORM_FEE).subtract(PENALTY_AMOUNT);
 
     @Autowired
     private MockMvc mvc;
@@ -142,7 +143,7 @@ class NoShowPenaltySettlementTest {
         LocalDateTime recruitStartAt = LocalDateTime.now().plusDays(1);
         LocalDateTime recruitEndAt = LocalDateTime.now().plusDays(6);
         LocalDateTime escortStartAt = LocalDateTime.now().plusDays(7);
-        LocalDateTime escortEndAt = LocalDateTime.now().plusDays(7).plusHours(HOURS);
+        LocalDateTime escortEndAt = LocalDateTime.now().plusDays(7).plusHours(HOURS.intValue());
         PostWriteRequest postWriteRequest = new PostWriteRequest(
                 title, content, postRegion, hospitalName, hospitalAddress, hospitalLat, hospitalLng,
                 pickupAddress, pickupLat, pickupLng, hourlyPay, recruitStartAt, recruitEndAt, escortStartAt, escortEndAt,
@@ -259,12 +260,12 @@ class NoShowPenaltySettlementTest {
         NoShowPenalty noShowPenalty = noShowPenaltyRepository.findAll().stream().findFirst().get();
 
         // 1. 실제 정산 금액 2. 패널티 금액 3. 플랫폼 수수료
-        assertEquals(SETTLEMENT_AMOUNT, settlement.getPayoutAmount());
-        assertEquals(PENALTY_AMOUNT, settlement.getPenaltyAmount());
-        assertEquals(PLATFORM_FEE, settlement.getPlatformFee());
+        Assertions.assertThat(settlement.getPayoutAmount()).isEqualByComparingTo(SETTLEMENT_AMOUNT);
+        Assertions.assertThat(settlement.getPenaltyAmount()).isEqualByComparingTo(PENALTY_AMOUNT);
+        Assertions.assertThat(settlement.getPlatformFee()).isEqualByComparingTo(PLATFORM_FEE);
         // 1. 패널티 차감 전 금액 2. 패널티 금액
-        assertEquals(PAYOUT_AMOUNT - PLATFORM_FEE, noShowPenalty.getBaseAmount());
-        assertEquals(PENALTY_AMOUNT, noShowPenalty.getAmount());
+        Assertions.assertThat(noShowPenalty.getBaseAmount()).isEqualByComparingTo(PAYOUT_AMOUNT.subtract(PLATFORM_FEE));
+        Assertions.assertThat(noShowPenalty.getAmount()).isEqualByComparingTo(PENALTY_AMOUNT);
     }
 
 }

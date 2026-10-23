@@ -179,12 +179,12 @@ class ApplicationConcurrencyTest {
      */
     private void saveDonePayment(Post post) {
         paymentRepository.saveAndFlush(Payment.builder()
-                .amount(post.getTotalPay().intValue())
+                .amount(post.getTotalPay())
                 .hourlyPaySnapshot(post.getHourlyPay())
                 .hours(post.getEscortHours())
                 .post(post)
                 .paymentKey("INIT-PAYKEY-concurrency-" + post.getId())
-                .balanceAmount(post.getTotalPay().intValue())
+                .balanceAmount(post.getTotalPay())
                 .paymentStatus(PaymentStatus.DONE)
                 .build());
     }

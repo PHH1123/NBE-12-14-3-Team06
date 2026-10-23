@@ -35,8 +35,8 @@ public record PaymentAdminResponse(
         }
         this(
                 payment.getId(),
-                payment.getAmount(),
-                payment.getBalanceAmount(),
+                payment.getAmount().intValue(),
+                payment.getBalanceAmount().intValue(),
                 payment.getHourlyPaySnapshot(),
                 payment.getHours(),
                 payment.getOrderId(),

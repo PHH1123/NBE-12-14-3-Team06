@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -174,25 +175,25 @@ public class SettlementService {
         return new int[]{successCount + failedCount, successCount, failedCount};
     }
 
-    private SettlementClientResponse settlementApi(int amount, String name, String account) {
+    private SettlementClientResponse settlementApi(BigDecimal amount, String name, String account) {
         SettlementClientResponse response =
-                (SettlementClientResponse) settlementClient.settlementRequest(new SettlementClientRequest(account, name, amount));
+                (SettlementClientResponse) settlementClient.settlementRequest(new SettlementClientRequest(account, name, amount.intValue()));
         return response;
     }
 
     @Transactional
-    public Settlement createSettlement(int payoutAmount, Application application, User escort, LocalDate settledDate) {
-        int settlementAmount = (int) (payoutAmount * 0.9);
-        int platformFee = payoutAmount - settlementAmount;
+    public Settlement createSettlement(BigDecimal payoutAmount, Application application, User escort, LocalDate settledDate) {
+        BigDecimal settlementAmount = payoutAmount.multiply(BigDecimal.valueOf(0.9));
+        BigDecimal platformFee = payoutAmount.subtract(settlementAmount);
 
         // 패널티 적용해야 하는지 확인
         Optional<NoShowPenalty> noShowPenalty = noShowPenaltyService.getNoShowPenalty(escort.getId());
 
         // 패널티 적용 시 정산 금액 차감
-        int penaltyAmount = 0;
+        BigDecimal penaltyAmount = BigDecimal.ZERO;
         if (noShowPenalty.isPresent()) {
-            penaltyAmount = (int) (settlementAmount * 0.1);
-            settlementAmount -= penaltyAmount;
+            penaltyAmount = settlementAmount.multiply(BigDecimal.valueOf(0.1));
+            settlementAmount = settlementAmount.subtract(penaltyAmount);
         }
 
         Settlement settlement = Settlement.builder()
@@ -209,7 +210,7 @@ public class SettlementService {
         // 패널티 데이터 업데이트
         if (noShowPenalty.isPresent()) {
             noShowPenaltyService.applyPenalty(escort.getId(), penaltyAmount,
-                    settlementAmount + penaltyAmount, settlement, noShowPenalty.get());
+                    settlementAmount.add(penaltyAmount), settlement, noShowPenalty.get());
         }
 
         return savedSettlement;
@@ -226,7 +227,7 @@ public class SettlementService {
         }
 
         if (endDate != null) {
-            endDateTime = endDate.atStartOfDay();
+            endDateTime = endDate.plusDays(1).atStartOfDay();
         } else {
             endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
         }
@@ -245,7 +246,7 @@ public class SettlementService {
         }
 
         if (endDate != null) {
-            endDateTime = endDate.atStartOfDay();
+            endDateTime = endDate.plusDays(1).atStartOfDay();
         } else {
             endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
         }

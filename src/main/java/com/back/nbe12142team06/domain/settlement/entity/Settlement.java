@@ -7,6 +7,7 @@ import com.back.nbe12142team06.global.exception.InvalidException;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -31,25 +32,28 @@ public class Settlement extends BaseSoftDeleteTimeEntity {
     // 실 지급액, 최소 0원 이상이어야 함
     @Column(
             nullable = false,
-            check = @CheckConstraint(name = "chk_payout_amount", constraint = "payout_amount >= 0")
+            check = @CheckConstraint(name = "chk_payout_amount", constraint = "payout_amount >= 0"),
+            precision = 15, scale = 0
     )
-    private int payoutAmount;
+    private BigDecimal payoutAmount;
 
     // 플랫폼 수수료, 최소 0원 이상이어야 함
     @Column(
             nullable = false,
-            check = @CheckConstraint(name = "chk_platform_fee", constraint = "platform_fee >= 0")
+            check = @CheckConstraint(name = "chk_platform_fee", constraint = "platform_fee >= 0"),
+            precision = 15, scale = 0
     )
     @Builder.Default
-    private int platformFee = 0;
+    private BigDecimal platformFee = BigDecimal.ZERO;
 
     // 패널티 금액, 최소 0원 이상이어야 함
     @Column(
             nullable = false,
-            check = @CheckConstraint(name = "chk_penalty_amount", constraint = "penalty_amount >= 0")
+            check = @CheckConstraint(name = "chk_penalty_amount", constraint = "penalty_amount >= 0"),
+            precision = 15, scale = 0
     )
     @Builder.Default
-    private int penaltyAmount = 0;
+    private BigDecimal penaltyAmount = BigDecimal.ZERO;
 
     // 정산 상태
     @Enumerated(EnumType.STRING)
