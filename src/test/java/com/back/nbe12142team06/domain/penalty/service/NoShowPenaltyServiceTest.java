@@ -17,6 +17,7 @@ import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,15 +41,15 @@ class NoShowPenaltyServiceTest {
     // 시급
     private final int HOURLY_PAY = 15_000;
     // 동행 시간
-    private final int HOURS = 10;
+    private final BigDecimal HOURS = BigDecimal.TEN;
     // 의뢰인 결제 금액
-    private final int PAYOUT_AMOUNT = HOURLY_PAY * HOURS;
+    private final BigDecimal PAYOUT_AMOUNT = HOURS.multiply(BigDecimal.valueOf(HOURLY_PAY));
     // 플랫폼 수수료
-    private final int PLATFORM_FEE = (int) (PAYOUT_AMOUNT * 0.1);
+    private final BigDecimal PLATFORM_FEE = PAYOUT_AMOUNT.multiply(BigDecimal.valueOf(0.1));
     // 패널티 차감 전 정산 금액
-    private final int BASE_AMOUNT = PAYOUT_AMOUNT - PLATFORM_FEE;
+    private final BigDecimal BASE_AMOUNT = PAYOUT_AMOUNT.subtract(PLATFORM_FEE);
     // 패널티 금액
-    private final int PENALTY_AMOUNT = (int) (BASE_AMOUNT * 0.1);
+    private final BigDecimal PENALTY_AMOUNT = BASE_AMOUNT.multiply(BigDecimal.valueOf(0.1));
 
     @Autowired
     private EntityManager em;
@@ -79,7 +80,7 @@ class NoShowPenaltyServiceTest {
         LocalDateTime recruitStartAt = LocalDateTime.now().plusDays(1);
         LocalDateTime recruitEndAt = LocalDateTime.now().plusDays(6);
         LocalDateTime escortStartAt = LocalDateTime.now().plusDays(7);
-        LocalDateTime escortEndAt = LocalDateTime.now().plusDays(7).plusHours(HOURS);
+        LocalDateTime escortEndAt = LocalDateTime.now().plusDays(7).plusHours(HOURS.intValue());
 
         return Post.builder()
                 .id(id)
@@ -143,7 +144,7 @@ class NoShowPenaltyServiceTest {
 
     private Settlement createSettlement(Application application, User escort) {
         return Settlement.builder()
-                .payoutAmount(BASE_AMOUNT - PENALTY_AMOUNT)
+                .payoutAmount(BASE_AMOUNT.subtract(PENALTY_AMOUNT))
                 .platformFee(PLATFORM_FEE)
                 .penaltyAmount(PENALTY_AMOUNT)
                 .settlementStatus(SettlementStatus.PENDING)
@@ -189,8 +190,8 @@ class NoShowPenaltyServiceTest {
         // 적용 결과가 패널티에 남는다
         NoShowPenalty appliedPenalty = noShowPenaltyRepository.findById(pendingPenalty.getId()).orElseThrow();
         assertThat(appliedPenalty.getStatus()).isEqualTo(NoShowPenaltyStatus.APPLIED);
-        assertThat(appliedPenalty.getAmount()).isEqualTo(PENALTY_AMOUNT);
-        assertThat(appliedPenalty.getBaseAmount()).isEqualTo(BASE_AMOUNT);
+        Assertions.assertThat(PENALTY_AMOUNT).isEqualByComparingTo(appliedPenalty.getAmount());
+        Assertions.assertThat(BASE_AMOUNT).isEqualByComparingTo(appliedPenalty.getBaseAmount());
         assertThat(appliedPenalty.getSettlement().getId()).isEqualTo(settlement.getId());
 
         // 이후 정산에서는 다시 적용 대상으로 잡히지 않는다 (findByEscortIdAndStatus 가 PENDING 만 조회)

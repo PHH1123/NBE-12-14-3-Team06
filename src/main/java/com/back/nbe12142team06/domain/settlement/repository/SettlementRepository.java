@@ -74,13 +74,13 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     Optional<Settlement> findJoinFetchById(@Param("id") Long id);
 
     @Query("select s from Settlement s " +
-            "where s.createdAt >= :startDate and s.createdAt <= :endDate")
+            "where s.createdAt >= :startDate and s.createdAt < :endDate")
     List<Settlement> findAnalytics(@Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate);
 
     @Query("select s from Settlement s " +
             "join fetch s.escort " +
-            "where s.createdAt >= :startDate and s.createdAt <= :endDate")
+            "where s.createdAt >= :startDate and s.createdAt < :endDate")
     Page<Settlement> findByPeriod(@Param("startDate") LocalDateTime startDate,
                                   @Param("endDate") LocalDateTime endDate,
                                   Pageable pageable);
@@ -101,4 +101,7 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     int updateProcessingForAdmin(@Param("settlementId") Long settlementId);
 
     boolean existsByEscortIdAndSettlementStatusNot(Long escortId, SettlementStatus status);
+
+    @Query("select s from Settlement s join fetch s.escort where s.id=:settlementId")
+    Optional<Settlement> fetchJoinById(@Param("settlementId") Long settlementId);
 }

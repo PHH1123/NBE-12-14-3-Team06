@@ -17,6 +17,7 @@ type SortOrder = 'latest' | 'oldest';
 type ApplicationRow = {
   id: number;
   postId: number;
+  postStatus: string;
   title: string;
   hospitalName: string;
   region: string;
@@ -72,6 +73,7 @@ function mapApplication(dto: MyApplicationDto): ApplicationRow {
   return {
     id: dto.applicationId,
     postId: dto.postId,
+    postStatus: dto.postStatus,
     title: dto.title,
     hospitalName: dto.hospitalName,
     region: dto.region ?? '',
@@ -98,6 +100,16 @@ function ApplicationAction({ row, onCancel }: { row: ApplicationRow; onCancel: (
     case 'pending':
       return <button type="button" onClick={() => onCancel(row)} className={CANCEL}>지원 취소</button>;
     case 'matched':
+      return (
+        <div className="flex flex-col items-center gap-2">
+          <Link href={`/escort/${row.id}`} className={PRIMARY}>
+            <Activity aria-hidden="true" className="size-3.5 text-[#2F7D5B]" />동행 보기
+          </Link>
+          {row.postStatus === 'MATCHED' && (
+            <button type="button" onClick={() => onCancel(row)} className={CANCEL}>지원 취소</button>
+          )}
+        </div>
+      );
     case 'inProgress':
       return (
         <Link href={`/escort/${row.id}`} className={PRIMARY}>
@@ -152,9 +164,12 @@ export default function MyApplicationsPage() {
 
   const confirmCancel = async (row: ApplicationRow) => {
     if (canceling) return;
+    const isMatched = row.status === 'matched' && row.postStatus === 'MATCHED';
     const approved = await confirm({
-      title: '지원을 취소하시겠습니까?',
-      description: `${row.title}\n대기 중 지원 취소는 노쇼로 처리되지 않습니다.`,
+      title: isMatched ? '매칭된 지원을 취소하시겠습니까?' : '지원을 취소하시겠습니까?',
+      description: isMatched
+        ? `${row.title}\n매칭 확정 후 취소하면 노쇼로 처리됩니다.\n노쇼 횟수가 증가하고 등급에 영향을 줄 수 있으며, 노쇼 페널티 기록이 생성됩니다.\n취소 후에는 되돌릴 수 없습니다.`
+        : `${row.title}\n대기 중 지원 취소는 노쇼로 처리되지 않습니다.`,
       confirmLabel: '지원 취소',
       tone: 'danger',
     });
@@ -163,8 +178,8 @@ export default function MyApplicationsPage() {
     setError(undefined);
     try {
       await cancelApplication(row.id);
-      setRows((current) => current.map((item) => item.id === row.id ? { ...item, status: 'canceled' } : item));
-      setNotice('지원이 취소되었습니다.');
+      setRows((current) => current.map((item) => item.id === row.id ? { ...item, status: isMatched ? 'noShow' : 'canceled' } : item));
+      setNotice(isMatched ? '지원이 취소되었으며 노쇼로 처리되었습니다.' : '지원이 취소되었습니다.');
       reload();
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : '지원 취소에 실패했습니다.');
@@ -246,7 +261,7 @@ export default function MyApplicationsPage() {
           )}
 
           <div className="overflow-hidden rounded-2xl border border-[#E1E5E8] bg-white shadow-xs">
-            <div className="hidden grid-cols-[112px_minmax(0,1fr)_150px_72px_94px_125px] gap-4 border-b border-[#E1E5E8] bg-[#EDF0F2]/60 px-6 py-3.5 text-xs font-semibold text-[#67717C] min-[1100px]:grid" style={{ gridTemplateColumns: "88px minmax(0, 1fr) 150px 72px 94px 125px", columnGap: "12px" }}>
+            <div className="hidden grid-cols-[112px_minmax(0,1fr)_150px_72px_94px_125px] gap-4 border-b border-[#E1E5E8] bg-[#EDF0F2]/60 px-6 py-3.5 text-xs font-semibold text-[#67717C] min-[1100px]:grid" style={{ gridTemplateColumns: "88px minmax(0, 1fr) 150px 72px 94px 216px", columnGap: "12px" }}>
               <div>상태</div>
               <div>병원 및 공고</div>
               <div>동행 일시</div>
@@ -267,7 +282,7 @@ export default function MyApplicationsPage() {
               <div className="divide-y divide-[#E1E5E8]">
                 {visibleRows.map((row) => (
                   <div key={row.id} className="px-6 py-5 transition-colors hover:bg-[#F7F8F8]">
-                    <div className="hidden grid-cols-[112px_minmax(0,1fr)_150px_72px_94px_125px] items-center gap-4 text-sm min-[1100px]:grid" style={{ gridTemplateColumns: "88px minmax(0, 1fr) 150px 72px 94px 125px", columnGap: "12px" }}>
+                    <div className="hidden grid-cols-[112px_minmax(0,1fr)_150px_72px_94px_125px] items-center gap-4 text-sm min-[1100px]:grid" style={{ gridTemplateColumns: "88px minmax(0, 1fr) 150px 72px 94px 216px", columnGap: "12px" }}>
                       <div><StatusBadge status={row.status} /></div>
                       <div className="min-w-0 pr-2">
                         <Link href={`/posts/${row.postId}`} className="block truncate text-base font-semibold text-[#14243A] hover:text-[#426B93]">{row.title}</Link>

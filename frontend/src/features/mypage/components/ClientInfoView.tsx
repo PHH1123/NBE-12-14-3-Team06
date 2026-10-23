@@ -72,14 +72,17 @@ function ProfileEditor({ user, onSaved, onCancel }: {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <p className="text-xs text-[#67717C]">아이디와 성별은 변경할 수 없습니다. 수정하려면 현재 비밀번호를 입력해야 합니다.</p>
+      <div className="space-y-1 text-sm text-[#67717C]">
+        <p>아이디와 성별은 변경할 수 없습니다.</p>
+        <p>정보 수정 시 비밀번호 입력이 필요하며, 기존 비밀번호를 입력하면 그대로 유지됩니다.</p>
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div><label htmlFor="client-email" className={FIELD_LABEL}>이메일</label><input id="client-email" type="email" autoComplete="email" className={INPUT} value={email} onChange={(event) => setEmail(event.target.value)} required /></div>
         <div><label htmlFor="client-name" className={FIELD_LABEL}>실명</label><input id="client-name" className={INPUT} value={name} onChange={(event) => setName(event.target.value)} required /></div>
         <div><label htmlFor="client-birth" className={FIELD_LABEL}>생년월일</label><input id="client-birth" type="date" className={INPUT} value={birthDate} onChange={(event) => setBirthDate(event.target.value)} required /></div>
         <div><label htmlFor="client-phone" className={FIELD_LABEL}>전화번호</label><input id="client-phone" type="tel" autoComplete="tel" className={INPUT} value={phoneNum} onChange={(event) => setPhoneNum(event.target.value)} required /></div>
         <div><label htmlFor="client-region" className={FIELD_LABEL}>거주 지역</label><DropdownSelect id="client-region" name="region" value={region} onValueChange={setRegion} options={regionOptions} placeholder="지역을 선택해주세요." required size="form" /></div>
-        <div><label htmlFor="client-password" className={FIELD_LABEL}>현재 비밀번호</label><input id="client-password" type="password" autoComplete="current-password" className={INPUT} value={password} onChange={(event) => setPassword(event.target.value)} required /></div>
+        <div><label htmlFor="client-password" className={FIELD_LABEL}>비밀번호</label><input id="client-password" type="password" placeholder="비밀번호를 입력해 주세요." autoComplete="new-password" className={INPUT} value={password} onChange={(event) => setPassword(event.target.value)} required /><p className="mt-1.5 text-xs text-[#67717C]">새 비밀번호를 입력하면 계정 비밀번호가 변경됩니다.</p></div>
       </div>
       {error && <p role="alert" className="text-xs font-medium text-[#B4413C]">{error}</p>}
       <div className="flex justify-end gap-2"><button type="button" className={SECONDARY} onClick={onCancel}>취소</button><button type="submit" className={PRIMARY} disabled={saving}>{saving ? '저장 중…' : '수정 완료'}</button></div>

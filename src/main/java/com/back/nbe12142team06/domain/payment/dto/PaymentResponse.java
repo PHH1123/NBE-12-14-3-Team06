@@ -21,7 +21,7 @@ public record PaymentResponse(
     public PaymentResponse(Payment payment) {
         this(
                 payment.getId(),
-                payment.getAmount(),
+                payment.getAmount().intValue(),
                 payment.getHourlyPaySnapshot(),
                 payment.getHours(),
                 payment.getOrderId(),

@@ -73,7 +73,7 @@ public class SettlementServiceTest {
     private Payment createPayment(Post post, PaymentStatus status, Long id) {
         int hourlyPaySnapshot = 15_000;
         BigDecimal hours = BigDecimal.TEN;
-        int amount = hourlyPaySnapshot * hours.intValue();
+        BigDecimal amount = BigDecimal.valueOf(hourlyPaySnapshot).multiply(hours);
         Payment payment = Payment.builder()
                 .id(id)
                 .post(post)
@@ -191,16 +191,16 @@ public class SettlementServiceTest {
 
     private Settlement createSettlement(Application application, User escort, Long id, SettlementStatus status) {
         int hourlyPay = 15_000;
-        int hours = 10;
-        int amount = hourlyPay * hours;
-        int payoutAmount = (int)(amount * 0.9);
-        int platformFee = (int) (amount * 0.1);
+        BigDecimal hours = BigDecimal.TEN;
+        BigDecimal amount = hours.multiply(BigDecimal.valueOf(hourlyPay));
+        BigDecimal payoutAmount = amount.multiply(BigDecimal.valueOf(0.9));
+        BigDecimal platformFee = amount.multiply(BigDecimal.valueOf(0.1));
 
         return Settlement.builder()
                 .id(id)
                 .payoutAmount(payoutAmount)
                 .platformFee(platformFee)
-                .penaltyAmount(0)
+                .penaltyAmount(BigDecimal.ZERO)
                 .settlementStatus(status)
                 .settledDate(LocalDate.now().plusDays(1))
                 .application(application)
@@ -369,8 +369,8 @@ public class SettlementServiceTest {
                 .when(settlementPersistenceService).updateSettlement(any(), any());
 
         assertThatThrownBy(() -> settlementService.request(escort.getId(), settlement.getId()))
-                .isInstanceOf(PersistenceException.class)
-                .hasMessage("스레드 고갈");
+                .isInstanceOf(InternalServerErrorException.class)
+                .hasMessageContaining("DB 에러");
 
         assertThatThrownBy(() -> settlementService.request(escort.getId(), settlement.getId()))
                 .isInstanceOf(InvalidException.class)

@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -69,24 +70,9 @@ public class SettlementService {
             throw new InvalidException(71, "이미 정산 중이거나 정산이 완료되었습니다.");
         }
 
-        Settlement settlement;
-
+        SettlementClientResponse response;
         try {
-            SettlementClientResponse response = settlementApi(accountDto.payoutAmount(), name, account);
-            // 정산 완료 상태 변경
-            if (response.res_cnt() >= 1) {
-                try {
-                    settlement = settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.COMPLETED);
-                    log.info("정산 성공 - settlementId: {}", accountDto.id());
-                } catch (Exception e) {
-                    log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
-                    throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
-                }
-            } else {
-                settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.FAILED);
-                log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", settlementId);
-                throw new InternalServerErrorException(72, "정산에 실패했습니다.");
-            }
+            response = settlementApi(accountDto.payoutAmount(), name, account);
         } catch (RuntimeException e) {
             // 금융 결제원 API 요청 에러
             settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.FAILED);
@@ -94,8 +80,23 @@ public class SettlementService {
             throw new InternalServerErrorException(72, "정산에 실패했습니다.");
         }
 
+        if (response.res_cnt() < 1) {
+            settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.FAILED);
+            log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", settlementId);
+            throw new InternalServerErrorException(72, "정산에 실패했습니다.");
+        }
+
+        Settlement settlement;
+        try {
+            settlement = settlementPersistenceService.updateSettlement(settlementId, SettlementStatus.COMPLETED);
+            log.info("정산 성공 - settlementId: {}", settlementId);
+        } catch (RuntimeException e) {
+            log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
+            throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
+        }
+
         // 알림
-        noticeService.send(settlement.getEscort(),
+        noticeService.send(settlement.getEscort().getId(),
                 C_SETTLEMENT_DONE.of(String.valueOf(settlement.getPayoutAmount())),
                 U_SETTLEMENT_DONE.of(settlement.getApplication().getId()));
     }
@@ -142,54 +143,57 @@ public class SettlementService {
                 continue;
             }
 
+            SettlementClientResponse response;
             try {
-                SettlementClientResponse response =
-                        settlementApi(accountDto.payoutAmount(), accountDto.name(), accountDto.accountNumber());
-                // 정산 성공
-                if (response.res_cnt() >= 1) {
-                    try {
-                        settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.COMPLETED);
-                    } catch (Exception e) {
-                        log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
-                        throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
-                    }
-                    successCount++;
-                    log.info("정산 성공 - settlementId: {}", accountDto.id());
-                } else {
-                    // 정산 성공 0건
-                    settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.FAILED);
-                    failedCount++;
-                    log.error("정산 실패 - 금융 결제원 API 요청 성공 0건, settlementId: {}", accountDto.id());
-                }
+                response = settlementApi(accountDto.payoutAmount(), accountDto.name(), accountDto.accountNumber());
             } catch (RuntimeException e) {
                 // 금융 결제원 API 요청 에러
                 settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.FAILED);
                 log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", accountDto.id(), e);
+                failedCount++;
+                continue;
             }
+
+            if (response.res_cnt() < 1) {
+                // 정산 성공 0건
+                settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.FAILED);
+                failedCount++;
+                log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", accountDto.id());
+            }
+
+            try {
+                settlementPersistenceService.updateSettlement(accountDto.id(), SettlementStatus.COMPLETED);
+            } catch (RuntimeException e) {
+                log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id());
+                throw new InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.");
+            }
+
+            successCount++;
+            log.info("정산 성공 - settlementId: {}", accountDto.id());
         }
 
         return new int[]{successCount + failedCount, successCount, failedCount};
     }
 
-    private SettlementClientResponse settlementApi(int amount, String name, String account) {
+    private SettlementClientResponse settlementApi(BigDecimal amount, String name, String account) {
         SettlementClientResponse response =
-                (SettlementClientResponse) settlementClient.settlementRequest(new SettlementClientRequest(account, name, amount));
+                (SettlementClientResponse) settlementClient.settlementRequest(new SettlementClientRequest(account, name, amount.intValue()));
         return response;
     }
 
     @Transactional
-    public Settlement createSettlement(int payoutAmount, Application application, User escort, LocalDate settledDate) {
-        int settlementAmount = (int) (payoutAmount * 0.9);
-        int platformFee = payoutAmount - settlementAmount;
+    public Settlement createSettlement(BigDecimal payoutAmount, Application application, User escort, LocalDate settledDate) {
+        BigDecimal settlementAmount = payoutAmount.multiply(BigDecimal.valueOf(0.9));
+        BigDecimal platformFee = payoutAmount.subtract(settlementAmount);
 
         // 패널티 적용해야 하는지 확인
         Optional<NoShowPenalty> noShowPenalty = noShowPenaltyService.getNoShowPenalty(escort.getId());
 
         // 패널티 적용 시 정산 금액 차감
-        int penaltyAmount = 0;
+        BigDecimal penaltyAmount = BigDecimal.ZERO;
         if (noShowPenalty.isPresent()) {
-            penaltyAmount = (int) (settlementAmount * 0.1);
-            settlementAmount -= penaltyAmount;
+            penaltyAmount = settlementAmount.multiply(BigDecimal.valueOf(0.1));
+            settlementAmount = settlementAmount.subtract(penaltyAmount);
         }
 
         Settlement settlement = Settlement.builder()
@@ -206,7 +210,7 @@ public class SettlementService {
         // 패널티 데이터 업데이트
         if (noShowPenalty.isPresent()) {
             noShowPenaltyService.applyPenalty(escort.getId(), penaltyAmount,
-                    settlementAmount + penaltyAmount, settlement, noShowPenalty.get());
+                    settlementAmount.add(penaltyAmount), settlement, noShowPenalty.get());
         }
 
         return savedSettlement;
@@ -223,7 +227,7 @@ public class SettlementService {
         }
 
         if (endDate != null) {
-            endDateTime = endDate.atStartOfDay();
+            endDateTime = endDate.plusDays(1).atStartOfDay();
         } else {
             endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
         }
@@ -242,7 +246,7 @@ public class SettlementService {
         }
 
         if (endDate != null) {
-            endDateTime = endDate.atStartOfDay();
+            endDateTime = endDate.plusDays(1).atStartOfDay();
         } else {
             endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
         }

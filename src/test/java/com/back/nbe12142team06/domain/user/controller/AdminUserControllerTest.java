@@ -2,11 +2,13 @@ package com.back.nbe12142team06.domain.user.controller;
 
 import com.back.nbe12142team06.domain.auth.entity.RefreshToken;
 import com.back.nbe12142team06.domain.auth.repository.RefreshTokenRepository;
+import com.back.nbe12142team06.domain.post.repository.PostRepository;
 import com.back.nbe12142team06.domain.user.entity.User;
 import com.back.nbe12142team06.domain.user.entity.UserStatusHistory;
 import com.back.nbe12142team06.domain.user.enums.Gender;
 import com.back.nbe12142team06.domain.user.enums.Role;
 import com.back.nbe12142team06.domain.user.enums.UserStatus;
+import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository;
 import com.back.nbe12142team06.domain.user.repository.UserRepository;
 import com.back.nbe12142team06.domain.user.repository.UserStatusHistoryRepository;
 import com.jayway.jsonpath.JsonPath;
@@ -20,6 +22,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +66,12 @@ public class AdminUserControllerTest {
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    private EscortProfileRepository escortProfileRepository;
+
+    @Autowired
+    private PostRepository postRepository;
 
     private int phoneSeq = 0;
 
@@ -1211,5 +1220,271 @@ public class AdminUserControllerTest {
                 .andExpect(jsonPath("$.data.userStatus").value("SUSPENDED"))
                 .andExpect(jsonPath("$.data.suspendEndAt").isNotEmpty())
                 .andExpect(jsonPath("$.data.statusReason").value("노쇼 3회 누적"));
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 기간 정지 요청 - SUSPEND된 의뢰인 계정은 공고 등록 요청 시 403-31 반환")
+    void t40() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        Cookie user1Token = signUp("user1", "CLIENT");
+        Long user1Id = findUserId("user1");
+
+        // 정지
+        requestSuspension(user1Id, adminToken)
+                .andExpect(status().isOk());
+
+
+        LocalDateTime recruitStartAt = LocalDateTime.now().plusDays(1);
+        LocalDateTime recruitEndAt = recruitStartAt.plusHours(1);
+        LocalDateTime escortStartAt = recruitEndAt.plusHours(1);
+        LocalDateTime escortEndAt = escortStartAt.plusHours(2);
+
+        // 정지된 의뢰인이 공고 등록 시도
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/posts")
+                        .cookie(user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "title": "병원 동행 구합니다",
+                                "content": "정기 검진 동행 부탁드립니다",
+                                "region": "서울",
+                                "hospitalName": "서울대병원",
+                                "hospitalAddress": "서울 종로구 대학로 101",
+                                "hospitalLat": 37.5796,
+                                "hospitalLng": 126.9990,
+                                "pickupAddress": "서울 종로구 혜화동 1",
+                                "pickupLat": 37.5822,
+                                "pickupLng": 127.0018,
+                                "hourlyPay": 15000,
+                                "recruitStartAt": "%s",
+                                "recruitEndAt": "%s",
+                                "escortStartAt": "%s",
+                                "escortEndAt": "%s",
+                                "rideSelectToHospital": "TAXI",
+                                "rideSelectToHome": "TAXI",
+                                "patientNote": null,
+                                "reportRequired": true
+                            }
+                            """.formatted(recruitStartAt, recruitEndAt, escortStartAt, escortEndAt))
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-31"))
+                .andExpect(jsonPath("$.msg").value("공고 등록 권한이 없습니다."));
+
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 기간 정지 요청 - SUSPEND된 동행인 계정은 공고 지원 요청 시 403-31 반환")
+    void t41() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        Cookie clientToken = signUp("user1", "CLIENT");
+        Long clientId = findUserId("user1");
+
+        Cookie escortToken = signUp("escort1", "ESCORT");
+        Long escortID = findUserId("escort1");
+
+        LocalDateTime recruitStartAt = LocalDateTime.now().plusDays(1);
+        LocalDateTime recruitEndAt = recruitStartAt.plusHours(1);
+        LocalDateTime escortStartAt = recruitEndAt.plusHours(1);
+        LocalDateTime escortEndAt = escortStartAt.plusHours(2);
+
+        // 의뢰인이 공고 등록
+        String writeResponse = mvc.perform(
+                        post("/api/v1/posts")
+                                .cookie(clientToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                        {
+                            "title": "병원 동행 구합니다",
+                            "content": "정기 검진 동행 부탁드립니다",
+                            "region": "서울",
+                            "hospitalName": "서울대병원",
+                            "hospitalAddress": "서울 종로구 대학로 101",
+                            "hospitalLat": 37.5796,
+                            "hospitalLng": 126.9990,
+                            "pickupAddress": "서울 종로구 혜화동 1",
+                            "pickupLat": 37.5822,
+                            "pickupLng": 127.0018,
+                            "hourlyPay": 15000,
+                            "recruitStartAt": "%s",
+                            "recruitEndAt": "%s",
+                            "escortStartAt": "%s",
+                            "escortEndAt": "%s",
+                            "rideSelectToHospital": "TAXI",
+                            "rideSelectToHome": "TAXI",
+                            "patientNote": null,
+                            "reportRequired": true
+                        }
+                        """.formatted(recruitStartAt, recruitEndAt, escortStartAt, escortEndAt))
+                ).andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        Long postId = ((Number) JsonPath.read(writeResponse, "$.data.id")).longValue();
+
+        // 모집 기간 안으로 들어오도록 모집 시작 시간을 과거로 변경
+        var savedPost = this.postRepository.findById(postId).orElseThrow();
+        ReflectionTestUtils.setField(savedPost, "recruitStartAt", LocalDateTime.now().minusMinutes(1));
+        em.flush();
+
+        // 동행인 프로필 등록 + 교육 이수 처리 -> 정지만 아니면 지원 가능한 상태
+        createEscortProfile(escortToken);
+        escortProfileRepository.verify(escortID, LocalDateTime.now());
+
+        // 동행인 정지
+        requestSuspension(escortID, adminToken)
+                .andExpect(status().isOk());
+
+        // 정지된 동행인이 공고 지원 시도
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/applications/{postId}", postId)
+                        .cookie(escortToken)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-31"))
+                .andExpect(jsonPath("$.msg").value("활성 상태의 회원만 지원할 수 있습니다."));
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 기간 정지 요청 - BANNED된 의뢰인 계정은 공고 등록 요청 시 403-31 반환")
+    void t42() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        Cookie user1Token = signUp("user1", "CLIENT");
+        Long user1Id = findUserId("user1");
+
+        // 정지
+        requestBan(user1Id, adminToken)
+                .andExpect(status().isOk());
+
+
+        LocalDateTime recruitStartAt = LocalDateTime.now().plusDays(1);
+        LocalDateTime recruitEndAt = recruitStartAt.plusHours(1);
+        LocalDateTime escortStartAt = recruitEndAt.plusHours(1);
+        LocalDateTime escortEndAt = escortStartAt.plusHours(2);
+
+        // 정지된 의뢰인이 공고 등록 시도
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/posts")
+                        .cookie(user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "title": "병원 동행 구합니다",
+                                "content": "정기 검진 동행 부탁드립니다",
+                                "region": "서울",
+                                "hospitalName": "서울대병원",
+                                "hospitalAddress": "서울 종로구 대학로 101",
+                                "hospitalLat": 37.5796,
+                                "hospitalLng": 126.9990,
+                                "pickupAddress": "서울 종로구 혜화동 1",
+                                "pickupLat": 37.5822,
+                                "pickupLng": 127.0018,
+                                "hourlyPay": 15000,
+                                "recruitStartAt": "%s",
+                                "recruitEndAt": "%s",
+                                "escortStartAt": "%s",
+                                "escortEndAt": "%s",
+                                "rideSelectToHospital": "TAXI",
+                                "rideSelectToHome": "TAXI",
+                                "patientNote": null,
+                                "reportRequired": true
+                            }
+                            """.formatted(recruitStartAt, recruitEndAt, escortStartAt, escortEndAt))
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-31"))
+                .andExpect(jsonPath("$.msg").value("공고 등록 권한이 없습니다."));
+
+    }
+
+    @Test
+    @DisplayName("[AdminUserController] 기간 정지 요청 - BANNED된 동행인 계정은 공고 지원 요청 시 403-31 반환")
+    void t43() throws Exception {
+        createTestAdmin();
+        Cookie adminToken = loginAsAdmin();
+
+        Cookie clientToken = signUp("user1", "CLIENT");
+        Long clientId = findUserId("user1");
+
+        Cookie escortToken = signUp("escort1", "ESCORT");
+        Long escortID = findUserId("escort1");
+
+        LocalDateTime recruitStartAt = LocalDateTime.now().plusDays(1);
+        LocalDateTime recruitEndAt = recruitStartAt.plusHours(1);
+        LocalDateTime escortStartAt = recruitEndAt.plusHours(1);
+        LocalDateTime escortEndAt = escortStartAt.plusHours(2);
+
+        // 의뢰인이 공고 등록
+        String writeResponse = mvc.perform(
+                        post("/api/v1/posts")
+                                .cookie(clientToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                        {
+                            "title": "병원 동행 구합니다",
+                            "content": "정기 검진 동행 부탁드립니다",
+                            "region": "서울",
+                            "hospitalName": "서울대병원",
+                            "hospitalAddress": "서울 종로구 대학로 101",
+                            "hospitalLat": 37.5796,
+                            "hospitalLng": 126.9990,
+                            "pickupAddress": "서울 종로구 혜화동 1",
+                            "pickupLat": 37.5822,
+                            "pickupLng": 127.0018,
+                            "hourlyPay": 15000,
+                            "recruitStartAt": "%s",
+                            "recruitEndAt": "%s",
+                            "escortStartAt": "%s",
+                            "escortEndAt": "%s",
+                            "rideSelectToHospital": "TAXI",
+                            "rideSelectToHome": "TAXI",
+                            "patientNote": null,
+                            "reportRequired": true
+                        }
+                        """.formatted(recruitStartAt, recruitEndAt, escortStartAt, escortEndAt))
+                ).andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        Long postId = ((Number) JsonPath.read(writeResponse, "$.data.id")).longValue();
+
+        // 모집 기간 안으로 들어오도록 모집 시작 시간을 과거로 변경
+        var savedPost = this.postRepository.findById(postId).orElseThrow();
+        ReflectionTestUtils.setField(savedPost, "recruitStartAt", LocalDateTime.now().minusMinutes(1));
+        em.flush();
+
+        // 동행인 프로필 등록 + 교육 이수 처리 -> 정지만 아니면 지원 가능한 상태
+        createEscortProfile(escortToken);
+        escortProfileRepository.verify(escortID, LocalDateTime.now());
+
+        // 동행인 정지
+        requestBan(escortID, adminToken)
+                .andExpect(status().isOk());
+
+        // 정지된 동행인이 공고 지원 시도
+        ResultActions resultActions = mvc.perform(
+                post("/api/v1/applications/{postId}", postId)
+                        .cookie(escortToken)
+        ).andDo(print());
+
+        resultActions
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.statusCode").value("403-31"))
+                .andExpect(jsonPath("$.msg").value("활성 상태의 회원만 지원할 수 있습니다."));
     }
 }

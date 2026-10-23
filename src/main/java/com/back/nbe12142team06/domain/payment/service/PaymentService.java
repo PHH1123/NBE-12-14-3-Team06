@@ -28,6 +28,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -66,10 +67,11 @@ public class PaymentService {
         }
         // 3. DB 반영
         try {
-            paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId);
+            payment = paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId);
         } catch (NotFoundException e) {
             cancel(userId, paymentId, new PaymentCancelRequest("서버 에러 발생"));
             log.error("결제 승인 실패", e);
+            throw e;
         } catch (RuntimeException ex) {
             cancel(userId, paymentId, new PaymentCancelRequest("서버 에러 발생"));
             log.error("결제 승인 실패", ex);
@@ -79,7 +81,7 @@ public class PaymentService {
         log.info("결제 승인 성공 - paymentId: {}, userId: {}", paymentId, userId);
 
         // 알림
-        noticeService.send(payment.getPost().getClient(),
+        noticeService.send(userId,
                 C_PAYMENT_DONE.of(payment.getPost().getTitle(), String.valueOf(payment.getAmount())),
                 U_PAYMENT_DONE.of(payment.getPost().getId()));
 
@@ -94,7 +96,7 @@ public class PaymentService {
         return paymentPersistenceService.findById(userId, paymentId);
     }
 
-    public Payment cancel(Payment payment, PaymentCancelRequest request, int cancelAmount, boolean isPartialCancel, boolean createNewPayment) {
+    public Payment cancel(Payment payment, PaymentCancelRequest request, BigDecimal cancelAmount, boolean isPartialCancel, boolean createNewPayment) {
         if (payment.getPaymentStatus().equals(PaymentStatus.CANCELED)) {
             throw new InvalidException(44, "이미 취소된 결제입니다.");
         }
@@ -113,7 +115,7 @@ public class PaymentService {
 
         // DB 반영
         try {
-            if (payment.getBalanceAmount() > cancelAmount || isPartialCancel) {
+            if (payment.getBalanceAmount().compareTo(cancelAmount) > 0 || isPartialCancel) {
                 paymentPersistenceService.paymentPartialCancelDb(payment.getId(), cancelReason, cancelAmount);
             } else {
                 paymentPersistenceService.paymentCancelDb(payment.getId(), cancelReason, createNewPayment);
@@ -142,14 +144,14 @@ public class PaymentService {
             throw new InvalidException(46, "이미 종료된 동행이거나 매칭되었기 때문에 결제를 취소할 수 없습니다.");
         }
 
-        int amount = payment.getAmount();
+        BigDecimal amount = payment.getAmount();
         Payment canceledPayment = this.cancel(payment, request, amount, false, true);
 
         // 지원한 사용자 모두 거절
         paymentPersistenceService.rejectApplication(post);
 
         // 알림
-        noticeService.send(post.getClient(),
+        noticeService.send(userId,
                 C_PAYMENT_CANCELED.of(post.getTitle(), String.valueOf(payment.getAmount())),
                 U_PAYMENT_CANCELED.of(post.getId()));
 
@@ -172,57 +174,57 @@ public class PaymentService {
     }
 
     public void validPayment(Post post, Application application, LocalDate settledDate) {
-        int payoutAmount = validPayment(post);
+        BigDecimal payoutAmount = validPayment(post);
         // 정산 데이터 생성
         settlementService.createSettlement(payoutAmount, application, application.getEscort(), settledDate);
     }
 
-    public int validPayment(Post post) {
+    public BigDecimal validPayment(Post post) {
         // 결제 완료를 모두 가져옴
         List<Payment> payments = paymentPersistenceService.findByPostId(post.getId());
 
         // 결제 완료된 결제가 없는 경우
         if (payments.isEmpty()) {
             paymentPersistenceService.updateAmountForModifyPost(post.getId(), post);
-            return post.getTotalPay().intValue();
+            return post.getTotalPay();
         }
 
-        int balanceAmount = 0;
+        BigDecimal balanceAmount = BigDecimal.ZERO;
         for (Payment payment : payments) {
-            balanceAmount += payment.getAmount();
+            balanceAmount = balanceAmount.add(payment.getAmount());
         }
 
-        balanceAmount -= post.getTotalPay().intValue();
-        int payoutAmount = post.getTotalPay().intValue();
+        balanceAmount = balanceAmount.subtract(post.getTotalPay());
+        BigDecimal payoutAmount = post.getTotalPay();
 
         // 추가 결제 플로우
-        if (balanceAmount < 0) {
+        if (balanceAmount.compareTo(BigDecimal.ZERO) < 0) {
             // 결제 데이터 생성
             Payment newPayment = Payment.builder()
                     .post(post)
                     .hourlyPaySnapshot(post.getHourlyPay())
                     .hours(post.getEscortHours())
-                    .amount(Math.abs(balanceAmount))
+                    .amount(balanceAmount.abs())
                     .build();
             paymentPersistenceService.createPayment(newPayment);
 
             // 알림
-            noticeService.send(post.getClient(),
+            noticeService.send(post.getClient().getId(),
                     C_PAYMENT_EXTRA_PAY.of(post.getTitle(), String.valueOf(newPayment.getAmount())),
                     U_PAYMENT_EXTRA_PAY.of(post.getId()));
         }
 
         // 부분 취소 플로우
-        else if (balanceAmount > 0) {
+        else if (balanceAmount.compareTo(BigDecimal.ZERO) > 0) {
             // 취소 로직 결제 데이터 생성 없애기
             cancel(
                     payments.getFirst(),
-                    new PaymentCancelRequest("결제 금액: %s, 이용 금액: %s".formatted(balanceAmount + payoutAmount, payoutAmount)),
+                    new PaymentCancelRequest("결제 금액: %s, 이용 금액: %s".formatted(balanceAmount.add(payoutAmount) , payoutAmount)),
                     balanceAmount, true, false
             );
 
             // 알림
-            noticeService.send(post.getClient(),
+            noticeService.send(post.getClient().getId(),
                     C_PAYMENT_PARTIAL_CANCELED.of(post.getTitle(), String.valueOf(balanceAmount)),
                     U_PAYMENT_PARTIAL_CANCELED.of(post.getId()));
         }
@@ -235,7 +237,7 @@ public class PaymentService {
                 .post(post)
                 .hourlyPaySnapshot(post.getHourlyPay())
                 .hours(post.getEscortHours())
-                .amount(post.getTotalPay().intValue())
+                .amount(post.getTotalPay())
                 .build();
         return paymentPersistenceService.createPayment(payment);
     }
@@ -271,8 +273,7 @@ public class PaymentService {
 
             // 외부 API 요청
             try {
-                ResponseEntity<TossConfirmResponse> response =
-                        tossPaymentClient.callApiCancel(cancelReason, tossPaymentKey, String.valueOf(payment.getBalanceAmount()));
+                tossPaymentClient.callApiCancel(cancelReason, tossPaymentKey, String.valueOf(payment.getBalanceAmount()));
             } catch (RuntimeException e) {
                 failedCount++;
                 continue;
@@ -281,10 +282,6 @@ public class PaymentService {
             // DB 반영
             try {
                 paymentPersistenceService.paymentCancelDb(payment.getId(), cancelReason, false);
-            } catch (NotFoundException e) {
-                log.error("결제 취소 - DB 저장 실패", e);
-                failedCount++;
-                continue;
             } catch (RuntimeException ex) {
                 log.error("결제 취소 - DB 저장 실패", ex);
                 failedCount++;
@@ -334,7 +331,7 @@ public class PaymentService {
         }
 
         if (endDate != null) {
-            endDateTime = endDate.atStartOfDay();
+            endDateTime = endDate.plusDays(1).atStartOfDay();
         } else {
             endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
         }
@@ -353,7 +350,7 @@ public class PaymentService {
         }
 
         if (endDate != null) {
-            endDateTime = endDate.atStartOfDay();
+            endDateTime = endDate.plusDays(1).atStartOfDay();
         } else {
             endDateTime = LocalDate.now().plusDays(1).atStartOfDay();
         }

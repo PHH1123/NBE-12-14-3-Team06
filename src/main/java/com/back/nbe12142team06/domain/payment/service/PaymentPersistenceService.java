@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -56,9 +57,9 @@ public class PaymentPersistenceService {
     }
 
     @Transactional
-    public void paymentSaveDb(ResponseEntity<TossConfirmResponse> response, Long paymentId, String tossPaymentKey, String tossOrderId) {
+    public Payment paymentSaveDb(ResponseEntity<TossConfirmResponse> response, Long paymentId, String tossPaymentKey, String tossOrderId) {
         TossConfirmResponse body = response.getBody();
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentRepository.findByIdFetchJoin(paymentId)
                 .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
         if (body != null) {
             // 승인 시 상태 변경, 더티 체킹으로 자동 변경
@@ -66,6 +67,7 @@ public class PaymentPersistenceService {
         } else {
             payment.ApprovePayment(tossOrderId, tossPaymentKey, null);
         }
+        return payment;
     }
 
     @Transactional
@@ -80,7 +82,7 @@ public class PaymentPersistenceService {
     }
 
     @Transactional
-    public Payment paymentPartialCancelDb(Long paymentId, String cancelReason, int amount) {
+    public Payment paymentPartialCancelDb(Long paymentId, String cancelReason, BigDecimal amount) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
         return payment.cancelPartialPayment(cancelReason, amount);

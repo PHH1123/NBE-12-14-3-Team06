@@ -132,7 +132,7 @@ public class ApplicationService {
         log.info("[지원] applicationId={}, postId={}, escortId={}", savedApplication.getId(), postId, userId);
 
         // 알림
-        noticeService.send(post.getClient(),
+        noticeService.send(post.getClient().getId(),
                 C_APPLICATION_APPLY.of(escort.getName(), post.getTitle()),
                 U_APPLICATION_APPLY.of(post.getId()));
 
@@ -259,7 +259,7 @@ public class ApplicationService {
                 applicationId, post.getId(), escort.getId(), userId);
 
         // 알림
-        noticeService.send(escort,
+        noticeService.send(escort.getId(),
                 C_APPLICATION_ACCEPT.of(post.getTitle()),
                 U_APPLICATION_ACCEPT.of(applicationId));
 
@@ -295,7 +295,7 @@ public class ApplicationService {
         log.info("[지원 거절] applicationId={}, clientId={}", applicationId, userId);
 
         // 알림
-        noticeService.send(application.getEscort(),
+        noticeService.send(application.getEscort().getId(),
                 C_APPLICATION_REJECT.of(post.getTitle()),
                 U_APPLICATION_REJECT.of());
     }
@@ -377,7 +377,7 @@ public class ApplicationService {
             log.warn("[노쇼 취소] applicationId={}, postId={}, escortId={}", applicationId, post.getId(), userId);
 
             // 알림
-            noticeService.send(post.getClient(),
+            noticeService.send(post.getClient().getId(),
                     C_APPLICATION_CANCELED.of(application.getEscort().getName(), post.getTitle()),
                     U_APPLICATION_CANCELED.of(post.getId()));
 
@@ -532,6 +532,11 @@ public class ApplicationService {
         // 이동 상태 변경
         rideService.move(application.getActivePostId(), progress);
 
+        // 의뢰인의 최종 완료 확인과 별개로, 귀가 완료 즉시 위치를 삭제한다.
+        if (progress == EscortProgress.ARRIVED_HOME) {
+            applicationRepository.clearLocation(applicationId);
+        }
+
         if (progress == EscortProgress.DEPARTED) {
             post.startProgress(occurredAt);
         }
@@ -540,21 +545,21 @@ public class ApplicationService {
 
         if (progress == EscortProgress.AT_HOSPITAL) {
             // 알림 - 동행 매니저
-            noticeService.send(application.getEscort(),
+            noticeService.send(application.getEscort().getId(),
                     C_APPLICATION_PROGRESS_AT_HOSPITAL.of(application.getPost().getHospitalName()),
                     U_APPLICATION_PROGRESS_AT_HOSPITAL.of(applicationId));
         } else if (progress == EscortProgress.ARRIVED_HOME) {
             // 알림 - 의뢰인
-            noticeService.send(application.getPost().getClient(),
+            noticeService.send(application.getPost().getClient().getId(),
                     C_APPLICATION_PROGRESS_ARRIVED_HOME.of(application.getPost().getHospitalName()),
                     U_APPLICATION_PROGRESS_ARRIVED_HOME.of(applicationId, application.getPost().getId()));
         } else {
             // 알림 - 의뢰인
-            noticeService.send(application.getPost().getClient(),
+            noticeService.send(application.getPost().getClient().getId(),
                     C_APPLICATION_UPDATED_PROGRESS.of(progress.getDescription()),
                     U_APPLICATION_UPDATED_PROGRESS_CLIENT.of(applicationId, application.getPost().getId()));
             // 알림 - 동행 매니저
-            noticeService.send(application.getEscort(),
+            noticeService.send(application.getEscort().getId(),
                     C_APPLICATION_UPDATED_PROGRESS.of(progress.getDescription()),
                     U_APPLICATION_UPDATED_PROGRESS_ESCORT.of(applicationId));
         }
@@ -671,6 +676,12 @@ public class ApplicationService {
     @Transactional
     public void saveLocation(Long applicationId, Long userId, ApplicationLocationRequest request) {
 
+        // 진행 단계 변경과 동일한 Post 락을 먼저 잡아 귀가 완료·위치 저장을 순차 처리한다.
+        Long postId = applicationRepository.findPostIdById(applicationId)
+                .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
+        Post post = postRepository.findByIdWithLock(postId)
+                .orElseThrow(() -> new NotFoundException(11, "%s번 공고가 없습니다.".formatted(postId)));
+
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
@@ -685,7 +696,7 @@ public class ApplicationService {
         }
 
         // 동행이 진행 중일 때만 (출발 기록 후 ~ 동행 완료 전)
-        if (application.getPost().getPostStatus() != PostStatus.IN_PROGRESS) {
+        if (post.getPostStatus() != PostStatus.IN_PROGRESS) {
             throw new InvalidException(34, "동행이 진행 중일 때만 실시간 위치를 보낼 수 있습니다.");
         }
 
@@ -759,8 +770,6 @@ public class ApplicationService {
     }
     @Transactional(readOnly = true)
     public ApplicationLocationResponse getLocation(Long applicationId, Long userId) {
-        // TODO: 위치 조회 구현
-        //  1. 지원 조회 (없으면 404)
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException(24, "지원을 찾을 수 없습니다."));
 
@@ -771,12 +780,10 @@ public class ApplicationService {
         if (!isEscort && !isClient) {
             throw new ForbiddenException(30, "본인의 동행 건만 실시간 위치를 조회할 수 있습니다.");
         }
-        // 동행이 진행 중이 아니면 위치를 돌려주지 않는다.
-        // TODO(위치 삭제): 개인정보 처리방침에 "동행 종료 후 지체 없이 삭제"를 명시했다. 아직 미구현이라 GET 에서만 막아 둠.
-        //  - ApplicationRepository 에 clearLocation(벌크 UPDATE) 추가
-        //  - 호출 지점: updateProgress(ARRIVED_HOME), PostService.escortComplete, 노쇼 취소, matchedCancel
+        // 귀가 완료 뒤에는 공고가 아직 IN_PROGRESS 여도 조회할 수 없다.
         if (application.getStatus() != ApplicationStatus.ACCEPTED
-                || application.getPost().getPostStatus() != PostStatus.IN_PROGRESS) {
+                || application.getPost().getPostStatus() != PostStatus.IN_PROGRESS
+                || escortProgressLogRepository.existsByApplicationAndProgress(application, EscortProgress.ARRIVED_HOME)) {
             throw new NotFoundException(31, "아직 공유된 실시간 위치가 없습니다.");
         }
         //  저장된 위치가 없으면(application.getLat() == null) NotFoundException → 프론트는 404 를 "아직 없음"으로 처리

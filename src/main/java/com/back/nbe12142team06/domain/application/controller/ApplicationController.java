@@ -195,7 +195,7 @@ public class ApplicationController {
                 null
         );
     }
-    @Operation(summary = "동행 실시간 위치 조회", description = "동행 매니저의 가장 최근 위치를 조회합니다. 동행 매니저 본인, 그 공고를 작성한 의뢰인, 관리자만 볼 수 있습니다.")
+    @Operation(summary = "동행 실시간 위치 조회", description = "동행 진행 중에만 최근 위치를 조회합니다. 해당 동행 매니저 본인과 공고 작성 의뢰인만 볼 수 있으며, 귀가 완료 시 위치정보가 삭제됩니다.")
     @GetMapping("/{applicationId}/location")
     public RsData<ApplicationLocationResponse> getLocation(
             @PathVariable Long applicationId,

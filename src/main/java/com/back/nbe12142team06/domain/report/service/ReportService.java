@@ -71,7 +71,7 @@ public class ReportService {
             log.info("[보고서 작성] reportId={}, applicationId={}, escortId={}", savedReport.getId(), applicationId, actorId);
 
             // 알림
-            noticeService.send(application.getEscort(),
+            noticeService.send(application.getPost().getClient().getId(),
                     C_REPORT_WRITE.of(application.getPost().getTitle()),
                     U_REPORT_WRITE.of(applicationId));
 

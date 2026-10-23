@@ -7,9 +7,9 @@ import java.util.Map;
 
 public interface EmitterRepository {
 
-    SseEmitter save(String emitterId, SseEmitter sseEmitter);
+    SseEmitter save(Long userId, String emitterId, SseEmitter sseEmitter);
 
-    Map<String, SseEmitter> findAllEmitterStartWithByUserId(Long userId);
+    Map<String, SseEmitter> findAllByUserId(Long userId);
 
-    void deleteById(String emitterId);
+    void delete(Long userId, String emitterId);
 }

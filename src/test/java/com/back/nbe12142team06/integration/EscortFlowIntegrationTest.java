@@ -37,6 +37,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -413,17 +414,18 @@ class EscortFlowIntegrationTest {
         assertThat(payments).hasSize(1);
         verify(tossPaymentClient, never()).callApiCancel(any(), any(), any());
 
-        int totalPay = hourlyPay * 2; // 계획 2시간 == 실제 2시간(옵션 B)
-        int expectedPayout = (int) (totalPay * 0.9);
-        int expectedPlatformFee = totalPay - expectedPayout;
+        // 계획 2시간 == 실제 2시간(옵션 B)
+        BigDecimal totalPay = BigDecimal.TWO.multiply(BigDecimal.valueOf(hourlyPay));
+        BigDecimal expectedPayout = totalPay.multiply(BigDecimal.valueOf(0.9));
+        BigDecimal expectedPlatformFee = totalPay.subtract(expectedPayout);
 
         Settlement settlement = settlementRepository.findAll().stream()
                 .filter(s -> s.getEscort().getId().equals(escortUserId))
                 .findFirst()
                 .orElseThrow();
         assertThat(settlement.getSettlementStatus()).isEqualTo(SettlementStatus.PENDING);
-        assertThat(settlement.getPayoutAmount()).isEqualTo(expectedPayout);
-        assertThat(settlement.getPlatformFee()).isEqualTo(expectedPlatformFee);
+        assertThat(settlement.getPayoutAmount()).isEqualByComparingTo(expectedPayout);
+        assertThat(settlement.getPlatformFee()).isEqualByComparingTo(expectedPlatformFee);
 
         // 12. 동행인이 진료 보고서 작성
         mvc.perform(post("/api/v1/applications/{applicationId}/report", applicationId)

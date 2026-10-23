@@ -142,6 +142,10 @@ class PostCancelApplicationIntegrationTest {
         // 패널티 없음: 노쇼 횟수가 늘지 않는다
         assertThat(escortProfileRepository.findById(escortA.getId()).orElseThrow().getNoShowCount()).isZero();
 
+        // newPost()의 testStatusDone()은 clearAutomatically=true로 영속성 컨텍스트를 비운다.
+        // 먼저 매칭 취소 상태를 DB에 반영해 테스트 도중 변경 사항이 사라지지 않게 한다.
+        applicationRepository.flush();
+
         // 취소된 지원이 승인 상태로 남아 있으면 같은 시간대의 다른 공고 승인이 "시간 겹침"으로 막힌다.
         Post sameTimePost = newPost(7);
         Long newApplication = apply(sameTimePost, escortA);
