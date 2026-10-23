@@ -245,7 +245,7 @@ public class PaymentService {
     }
 
     public Payment findByPostIdAndReady(Long postId, Long userId) {
-        return paymentRepository.findByPostIdAndUserIdAndReady(postId, userId).orElse(null);
+        return paymentRepository.findByPostIdAndUserIdAndReady(postId, userId);
     }
 
     public void updateAmount(Long paymentId, String amount) {

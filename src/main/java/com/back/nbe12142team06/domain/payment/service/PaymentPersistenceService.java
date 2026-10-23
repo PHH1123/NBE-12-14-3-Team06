@@ -73,10 +73,10 @@ public class PaymentPersistenceService {
     @Transactional
     public Payment paymentCancelDb(Long paymentId, String cancelReason, boolean createNewPayment) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
+                .<NotFoundException>orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
         Payment newPayment = payment.cancelPayment(cancelReason);
         if (createNewPayment) {
-            return paymentRepository.save(newPayment);
+            return paymentRepository.<Payment>save(newPayment);
         }
         return payment;
     }
@@ -84,13 +84,13 @@ public class PaymentPersistenceService {
     @Transactional
     public Payment paymentPartialCancelDb(Long paymentId, String cancelReason, BigDecimal amount) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
+                .<NotFoundException>orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
         return payment.cancelPartialPayment(cancelReason, amount);
     }
 
     @Transactional
     public Payment createPayment(Payment payment) {
-        return paymentRepository.save(payment);
+        return paymentRepository.<Payment>save(payment);
     }
 
     public List<Payment> findByPostId(Long postId) {
@@ -111,7 +111,7 @@ public class PaymentPersistenceService {
     @Transactional
     public Payment updateAmount(Long paymentId, String amount) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
+                .<NotFoundException>orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
         payment.updateAmount(Integer.parseInt(amount));
         return payment;
     }
@@ -165,7 +165,7 @@ public class PaymentPersistenceService {
     @Transactional
     public void updateStatusForAdmin(Long paymentId, PaymentStatus status) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
+                .<NotFoundException>orElseThrow(() -> new NotFoundException(41, "결제 정보를 찾을 수 없습니다."));
 
         payment.statusUpdate(status);
     }
