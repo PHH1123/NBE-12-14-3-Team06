@@ -36,13 +36,13 @@ public class NoticeService {
         // 5분
         String emitterId = userId + "_" + System.currentTimeMillis();
         SseEmitter sseEmitter = new SseEmitter(300_000L);
-        emitterRepository.save(emitterId, sseEmitter);
+        emitterRepository.save(userId, emitterId, sseEmitter);
 
         // 연결 전송
         sendToClient(sseEmitter, emitterId, "connect");
 
         // 연결 종료 시 인메모리 해시맵에서 제거 예약
-        sseEmitter.onCompletion(() -> emitterRepository.deleteById(emitterId));
+        sseEmitter.onCompletion(() -> emitterRepository.delete(userId, emitterId));
 
         sseEmitter.onTimeout(sseEmitter::complete);
         sseEmitter.onError(e -> sseEmitter.complete());

@@ -6,6 +6,8 @@ import com.back.nbe12142team06.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Getter
 @Builder
@@ -18,10 +20,12 @@ public class NoShowPenalty extends BaseTimeEntity {
     private Long id;
 
     // 패널티 금액
-    private int amount;
+    @Column(precision = 15, scale = 0)
+    private BigDecimal amount;
 
     // 정산 금액
-    private int baseAmount;
+    @Column(precision = 15, scale = 0)
+    private BigDecimal baseAmount;
 
     // 패널티 상태
     @Enumerated(EnumType.STRING)
@@ -39,7 +43,7 @@ public class NoShowPenalty extends BaseTimeEntity {
     private Settlement settlement;
 
     // 노쇼 정보 수정
-    public void updateNoShow(int amount, int baseAmount, Settlement settlement) {
+    public void updateNoShow(BigDecimal amount, BigDecimal baseAmount, Settlement settlement) {
         this.amount = amount;
         this.baseAmount = baseAmount;
         this.status = NoShowPenaltyStatus.APPLIED;

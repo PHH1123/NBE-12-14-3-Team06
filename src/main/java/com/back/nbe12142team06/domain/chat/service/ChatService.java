@@ -75,7 +75,7 @@ public class ChatService {
     public void leaveChatRoom(Long userId, Long chatRoomId) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
                 .orElseThrow(() -> new NotFoundException(122, "존재하지 않는 채팅방입니다."));
-        ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+        ChatPart chatPart = chatPartRepository.fetchJoinByUserIdAndChatRoomId(userId, chatRoomId)
                 .orElseThrow(() -> new NotFoundException(121, "채팅 입장 내역이 없습니다."));
 
         if (!chatPart.getIsActive()) {
@@ -91,8 +91,7 @@ public class ChatService {
     // 채팅 보내기
     @Transactional
     public ChatMessage sendMessage(Long chatRoomId, Long senderId, String content) {
-        // TODO: Fetch Join 적용
-        ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(senderId, chatRoomId)
+        ChatPart chatPart = chatPartRepository.fetchJoinByUserIdAndChatRoomId(senderId, chatRoomId)
                 .orElseThrow(() -> new NotFoundException(121, "채팅 입장 내역이 없습니다."));
 
         ChatPart receiverChatPart = chatPartRepository.findByUserIdNotAndChatRoomId(senderId, chatRoomId).getFirst();

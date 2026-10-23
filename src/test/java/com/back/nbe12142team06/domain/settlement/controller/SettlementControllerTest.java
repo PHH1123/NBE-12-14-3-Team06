@@ -171,7 +171,7 @@ class SettlementControllerTest {
 
         Application application1 = applicationRepository.findAllByPostIdWithEscort(savedPost1.getId()).stream().findFirst().orElse(null);
 
-        savedSettlement1 = settlementService.createSettlement(savedPost1.getTotalPay().intValue(), application1, savedUser2, LocalDate.now().plusDays(1));
+        savedSettlement1 = settlementService.createSettlement(savedPost1.getTotalPay(), application1, savedUser2, LocalDate.now().plusDays(1));
         savedSettlement1Id = savedSettlement1.getId();
 
 
@@ -310,7 +310,7 @@ class SettlementControllerTest {
     void settlementScheduler() {
 
         Settlement settlement = Settlement.builder()
-                .payoutAmount(1000)
+                .payoutAmount(BigDecimal.valueOf(1000))
                 .settlementStatus(SettlementStatus.PENDING)
                 .settledDate(LocalDate.now())
                 .application(null)

@@ -31,9 +31,9 @@ public record SettlementAdminResponse(
 
         this(
                 settlement.getId(),
-                settlement.getPayoutAmount(),
-                settlement.getPlatformFee(),
-                settlement.getPenaltyAmount(),
+                settlement.getPayoutAmount().intValue(),
+                settlement.getPlatformFee().intValue(),
+                settlement.getPenaltyAmount().intValue(),
                 settlement.getSettlementStatus(),
                 settlement.getSettledDate(),
                 application == null ? null : application.getId(),

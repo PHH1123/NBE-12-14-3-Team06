@@ -117,14 +117,9 @@ export type AdminSettlementRow = {
   name: string | null;
 };
 
-/** 백엔드 날짜 구간의 endDate는 해당 날짜 00시이므로 UI 종료일의 다음 날을 전달합니다. */
-export function adminEndDateExclusive(date: string) {
-  const next = new Date(`${date}T00:00:00Z`);
-  next.setUTCDate(next.getUTCDate() + 1);
-  return next.toISOString().slice(0, 10);
-}
+/** 백엔드 날짜 구간은 endDate 를 그 날짜까지 포함으로 해석하므로 UI 종료일을 그대로 전달합니다. */
 export function fetchAdminPaymentsPage(page: number, startDate: string, endDate: string, signal?: AbortSignal) {
-  const params = new URLSearchParams({ page: String(page), size: '20', startDate, endDate: adminEndDateExclusive(endDate) });
+  const params = new URLSearchParams({ page: String(page), size: '20', startDate, endDate });
   return api<SpringPage<AdminPaymentRow>>(`/api/v1/admin/payments?${params}`, { signal });
 }
 /** 해당 API는 JSON body가 아닌 status 쿼리 파라미터를 받습니다. */
@@ -132,7 +127,7 @@ export function updateAdminPaymentStatus(paymentId: number, status: AdminPayment
   return api<void>(`/api/v1/admin/payments/${paymentId}/status?status=${encodeURIComponent(status)}`, { method: 'PATCH' });
 }
 export function fetchAdminSettlementsPage(page: number, startDate: string, endDate: string, signal?: AbortSignal) {
-  const params = new URLSearchParams({ page: String(page), size: '20', startDate, endDate: adminEndDateExclusive(endDate) });
+  const params = new URLSearchParams({ page: String(page), size: '20', startDate, endDate });
   return api<SpringPage<AdminSettlementRow>>(`/api/v1/admin/settlements?${params}`, { signal });
 }
 /** POST /{id}는 실제 정산 요청을 시도하므로 확인 후 호출해야 합니다. */

@@ -19,9 +19,9 @@ public record SettlementResponse(
     public SettlementResponse(Settlement settlement) {
         this(
                 settlement.getId(),
-                settlement.getPayoutAmount(),
-                settlement.getPlatformFee(),
-                settlement.getPenaltyAmount(),
+                settlement.getPayoutAmount().intValue(),
+                settlement.getPlatformFee().intValue(),
+                settlement.getPenaltyAmount().intValue(),
                 settlement.getSettlementStatus(),
                 settlement.getSettledDate(),
                 new PostDto(settlement.getApplication().getPost())
