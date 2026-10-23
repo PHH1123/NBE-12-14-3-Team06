@@ -1,16 +1,16 @@
 package com.back.nbe12142team06.domain.chat.controller;
 
-import com.back.nbe12142team06.domain.chat.dto.UnreadCountDto;
-import com.back.nbe12142team06.global.response.RsData;
-import com.back.nbe12142team06.global.security.SecurityUser;
 import com.back.nbe12142team06.domain.chat.dto.ChatMessageDto;
 import com.back.nbe12142team06.domain.chat.dto.ChatMessageResponse;
 import com.back.nbe12142team06.domain.chat.dto.ChatRoomResponse;
 import com.back.nbe12142team06.domain.chat.entity.ChatMessage;
 import com.back.nbe12142team06.domain.chat.entity.ChatRoom;
 import com.back.nbe12142team06.domain.chat.service.ChatService;
+import com.back.nbe12142team06.global.response.RsData;
+import com.back.nbe12142team06.global.security.SecurityUser;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,12 +27,17 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "채팅", description = "채팅 구독, 전송, 조회, 읽기 관련 API")
 @Controller
 @RequiredArgsConstructor
 public class ChatController {
 
     private final ChatService chatService;
 
+    @Operation(
+            summary = "주제 구독",
+            description = "채팅을 실시간으로 읽기 위해 채팅방을 구독합니다."
+    )
     @MessageMapping("/chat/{chatRoomId}")
     public void handle(@DestinationVariable Long chatRoomId,
                        @Payload ChatMessageDto dto,
@@ -42,6 +47,10 @@ public class ChatController {
         chatService.sendMessage(chatRoomId, user.getId(), dto.content());
     }
 
+    @Operation(
+            summary = "채팅방 생성",
+            description = "채팅방을 생성합니다."
+    )
     @PostMapping("/api/v1/chat")
     @ResponseBody
     public RsData<ChatRoomResponse> createChatRoom(@AuthenticationPrincipal SecurityUser user,
@@ -53,6 +62,10 @@ public class ChatController {
                 new ChatRoomResponse(chatRoom, user.getId(), 0L));
     }
 
+    @Operation(
+            summary = "채팅방 목록 조회",
+            description = "채팅방 목록을 조회합니다."
+    )
     @GetMapping("/api/v1/chat")
     @ResponseBody
     public RsData<List<ChatRoomResponse>> list(@AuthenticationPrincipal SecurityUser user) {
@@ -67,6 +80,10 @@ public class ChatController {
                                 chatRoom, userId, unReadMap.getOrDefault(chatRoom.getId(), 0L))).toList());
     }
 
+    @Operation(
+            summary = "채팅 메시지 조회",
+            description = "채팅 메시지를 조회합니다."
+    )
     @GetMapping("/api/v1/chat/{chatRoomId}")
     @ResponseBody
     public RsData<Page<ChatMessageResponse>> getMessage(@AuthenticationPrincipal SecurityUser user,
@@ -84,6 +101,10 @@ public class ChatController {
                 messages.map(ChatMessageResponse::new));
     }
 
+    @Operation(
+            summary = "채팅방 퇴장",
+            description = "채팅방을 퇴장합니다."
+    )
     @PatchMapping("/api/v1/chat/{chatRoomId}")
     @ResponseBody
     public RsData<?> leaveChatRoom(@AuthenticationPrincipal SecurityUser user,
