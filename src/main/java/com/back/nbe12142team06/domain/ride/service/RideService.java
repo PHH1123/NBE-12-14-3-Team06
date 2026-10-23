@@ -41,9 +41,9 @@ public class RideService {
             }
 
             if (ride.getDirection().equals(RideDirection.TO_HOSPITAL)) {
-                ride.rideUpdate(request.rideSelectToHospital().toString());
+                ride.rideUpdate(request.rideSelectToHospital.toString());
             } else {
-                ride.rideUpdate(request.rideSelectToHome().toString());
+                ride.rideUpdate(request.rideSelectToHome.toString());
             }
         }
 
