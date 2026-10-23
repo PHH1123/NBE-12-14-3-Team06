@@ -170,7 +170,7 @@ class ApplicationConcurrencyTest {
                 .reportRequired(false)
                 .build()
 
-        postId = postRepository.save(post).id
+        postId = postRepository.save(post).id!!
 
         saveDonePayment(post)
     }
@@ -1271,7 +1271,7 @@ class ApplicationConcurrencyTest {
                     .findById(postId).orElseThrow()
 
             var resultPostB = postRepository
-                    .findById(postBId).orElseThrow()
+                    .findById(postBId!!).orElseThrow()
 
             System.out.println("승인 예외 = " + acceptError.get())
             System.out.println("취소 예외 = " + cancelError.get())

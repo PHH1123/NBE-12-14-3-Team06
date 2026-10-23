@@ -136,14 +136,14 @@ class ApplyCancelReapplyTest {
     @Test
     @DisplayName("[회귀] 지원 → 취소 → 재지원 → 재취소 가 모두 가능해야 한다")
     fun 지원_취소_재지원_재취소가_모두_가능해야_한다() {
-        val first = applicationService.apply(postId, escortId).id()
+        val first = applicationService.apply(postId, escortId).id!!
         applicationService.cancel(first, escortId)
 
-        val second = applicationService.apply(postId, escortId).id()
+        val second = applicationService.apply(postId, escortId).id!!
         applicationService.cancel(second, escortId)   // 복합 unique 제약이었을 때 여기서 터졌다.
 
         val all = applicationRepository.findAll()
-            .filter { it.post.id == postId && it.escort.id == escortId }
+            .filter { it.post!!.id == postId && it.escort!!.id == escortId }
         assertThat(all).hasSize(2)
     }
 }

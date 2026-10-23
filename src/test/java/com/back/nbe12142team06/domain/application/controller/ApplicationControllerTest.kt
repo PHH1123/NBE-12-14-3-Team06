@@ -154,7 +154,7 @@ class ApplicationControllerTest {
                 .reportRequired(false)
                 .build()
 
-        testPostId = postRepository.save(post).id
+        testPostId = postRepository.save(post).id!!
 
         // 테스트 과정에 결제 데이터가 필요해서 추가
         var payment = Payment.builder()
@@ -1248,7 +1248,7 @@ class ApplicationControllerTest {
 
         // 다른 공고 자체는 계속 모집 가능
         var otherPost = postRepository
-                .findById(overlappingPostId)
+                .findById(overlappingPostId!!)
                 .orElseThrow()
 
         assertEquals(
@@ -1359,7 +1359,7 @@ class ApplicationControllerTest {
 
         // 두 번째 공고는 계속 OPEN
         var otherPost = postRepository
-                .findById(nonOverlappingPostId)
+                .findById(nonOverlappingPostId!!)
                 .orElseThrow()
 
         assertEquals(
@@ -1510,7 +1510,7 @@ class ApplicationControllerTest {
 
         // 두 번째 공고 역시 OPEN 유지
         var stillOpenPost = postRepository
-                .findById(overlappingPostId)
+                .findById(overlappingPostId!!)
                 .orElseThrow()
 
         assertEquals(
@@ -1897,7 +1897,7 @@ class ApplicationControllerTest {
 
         // 취소 후 공고 확인
         var canceledPost = postRepository
-                .findById(expiredMatchedPost.id)
+                .findById(expiredMatchedPost.id!!)
                 .orElseThrow()
 
         // 취소 후 동행인 프로필 확인
@@ -2663,7 +2663,7 @@ class ApplicationControllerTest {
 
         assertEquals(
                 PostStatus.OPEN,
-                postRepository.findById(unpaidPost.id).orElseThrow().postStatus
+                postRepository.findById(unpaidPost.id!!).orElseThrow().postStatus
         )
     }
 
@@ -2706,7 +2706,7 @@ class ApplicationControllerTest {
         // 매칭이 되지 않으므로 동행 진행 → 동행 완료 → 정산까지 이어질 수 없다
         assertEquals(
                 PostStatus.OPEN,
-                postRepository.findById(canceledPaymentPost.id).orElseThrow().postStatus
+                postRepository.findById(canceledPaymentPost.id!!).orElseThrow().postStatus
         )
     }
 
@@ -2839,7 +2839,7 @@ class ApplicationControllerTest {
 
         assertEquals(
                 PostStatus.CANCELED,
-                postRepository.findById(expiredMatchedPost.id).orElseThrow().postStatus
+                postRepository.findById(expiredMatchedPost.id!!).orElseThrow().postStatus
         )
 
         // 다른 동행인은 지원부터 막힌다 — 재매칭되지 않는다

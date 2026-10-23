@@ -42,6 +42,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
@@ -60,6 +61,7 @@ import java.time.LocalDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
+@TestPropertySource(properties = ["spring.datasource.url=jdbc:h2:mem:post_controller_test;MODE=MySQL"])
 @AutoConfigureMockMvc
 @Transactional
 class PostControllerTest {
@@ -210,7 +212,7 @@ class PostControllerTest {
             .escort(escort)
             .build()
         application.accept()
-        return applicationRepository.save(application).id
+        return applicationRepository.save(application).id!!
     }
 
     @Test
@@ -917,7 +919,7 @@ class PostControllerTest {
         assertThat(result.escortEndAt.hour).isEqualTo(arrivedAt.hour)
         assertThat(result.escortEndAt.minute).isEqualTo(arrivedAt.minute)
 
-        val escortId = applicationRepository.findById(applicationId).orElseThrow().escort.id
+        val escortId = applicationRepository.findById(applicationId).orElseThrow().escort!!.id
         val escortProfile = escortProfileRepository.findById(escortId).orElseThrow()
         assertThat(escortProfile.completedCount).isEqualTo(1)
     }

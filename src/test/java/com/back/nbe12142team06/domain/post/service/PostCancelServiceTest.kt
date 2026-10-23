@@ -50,7 +50,7 @@ class PostCancelServiceTest {
     @BeforeEach
     fun setUp() {
         val seq = SEQ.incrementAndGet()
-        client = saveUser("cancelClient$seq", Role.CLIENT, "010-6661-%04d".format(seq))
+        client = saveUser("cancelClient$seq", Role.CLIENT, "010-6961-%04d".format(seq))
     }
 
     private fun saveUser(username: String, role: Role, phone: String): User {

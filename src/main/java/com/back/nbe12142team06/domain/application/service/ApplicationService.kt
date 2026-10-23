@@ -132,7 +132,7 @@ open class ApplicationService(
 
     @Transactional
     open fun apply(postId: Long?, userId: Long?): ApplicationApplyResponse {
-        val post = postRepository.findByIdWithLock(postId)
+        val post = postRepository.findByIdWithLock(requireNotNull(postId) { "The given id must not be null" })
             .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
 
         if (post.postStatus != PostStatus.OPEN) {
@@ -166,7 +166,7 @@ open class ApplicationService(
         noticeService.send(
             post.client.id,
             C_APPLICATION_APPLY.of(escort.name, post.title),
-            U_APPLICATION_APPLY.of(post.id),
+            U_APPLICATION_APPLY.of(requireNotNull(post.id) { "Post ID must not be null" }),
         )
         return ApplicationApplyResponse(savedApplication)
     }
@@ -234,7 +234,7 @@ open class ApplicationService(
             .forEach { it.reject() }
 
         log.info("[지원 수락] applicationId={}, postId={}, escortId={}, clientId={}", applicationId, post.id, escort.id, userId)
-        noticeService.send(escort.id, C_APPLICATION_ACCEPT.of(post.title), U_APPLICATION_ACCEPT.of(applicationId))
+        noticeService.send(escort.id, C_APPLICATION_ACCEPT.of(post.title), U_APPLICATION_ACCEPT.of(requireNotNull(applicationId) { "Application ID must not be null" }))
         return ApplicationAcceptResponse(application)
     }
 
@@ -309,7 +309,7 @@ open class ApplicationService(
             noticeService.send(
                 post.client.id,
                 C_APPLICATION_CANCELED.of(application.escort!!.name, post.title),
-                U_APPLICATION_CANCELED.of(post.id),
+                U_APPLICATION_CANCELED.of(requireNotNull(post.id) { "Post ID must not be null" }),
             )
             return
         }
@@ -329,7 +329,7 @@ open class ApplicationService(
         )
         for (candidate in applications) {
             // 조회 후 상태가 바뀔 수 있으므로 잠금을 잡은 다음 재검증한다.
-            val post = postRepository.findByIdWithLock(candidate.post!!.id)
+            val post = postRepository.findByIdWithLock(requireNotNull(candidate.post!!.id) { "Post ID must not be null" })
                 .orElseThrow { NotFoundException(11, "공고가 없습니다.") }
             val application = applicationRepository.findByIdWithLock(candidate.id)
                 .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
@@ -421,23 +421,23 @@ open class ApplicationService(
             EscortProgress.AT_HOSPITAL -> noticeService.send(
                 application.escort!!.id,
                 C_APPLICATION_PROGRESS_AT_HOSPITAL.of(application.post!!.hospitalName),
-                U_APPLICATION_PROGRESS_AT_HOSPITAL.of(applicationId),
+                U_APPLICATION_PROGRESS_AT_HOSPITAL.of(requireNotNull(applicationId) { "Application ID must not be null" }),
             )
             EscortProgress.ARRIVED_HOME -> noticeService.send(
                 application.post!!.client.id,
                 C_APPLICATION_PROGRESS_ARRIVED_HOME.of(application.post!!.hospitalName),
-                U_APPLICATION_PROGRESS_ARRIVED_HOME.of(applicationId, application.post!!.id),
+                U_APPLICATION_PROGRESS_ARRIVED_HOME.of(requireNotNull(applicationId) { "Application ID must not be null" }, requireNotNull(application.post!!.id) { "Post ID must not be null" }),
             )
             else -> {
                 noticeService.send(
                     application.post!!.client.id,
                     C_APPLICATION_UPDATED_PROGRESS.of(progress.description),
-                    U_APPLICATION_UPDATED_PROGRESS_CLIENT.of(applicationId, application.post!!.id),
+                    U_APPLICATION_UPDATED_PROGRESS_CLIENT.of(requireNotNull(applicationId) { "Application ID must not be null" }, requireNotNull(application.post!!.id) { "Post ID must not be null" }),
                 )
                 noticeService.send(
                     application.escort!!.id,
                     C_APPLICATION_UPDATED_PROGRESS.of(progress.description),
-                    U_APPLICATION_UPDATED_PROGRESS_ESCORT.of(applicationId),
+                    U_APPLICATION_UPDATED_PROGRESS_ESCORT.of(requireNotNull(applicationId) { "Application ID must not be null" }),
                 )
             }
         }
