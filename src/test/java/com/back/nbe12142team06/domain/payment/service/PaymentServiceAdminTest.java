@@ -54,19 +54,12 @@ public class PaymentServiceAdminTest {
     private Payment createPayment(Post post, PaymentStatus status, LocalDateTime approvedAt, BigDecimal hours, BigDecimal mulBalanceAmount, Long id) {
         int hourlyPaySnapshot = 15_000;
         BigDecimal amount = hours.multiply(BigDecimal.valueOf(hourlyPaySnapshot));
-        Payment payment = Payment.builder()
-                .id(id)
-                .post(post)
-                .amount(amount)
-                .hourlyPaySnapshot(hourlyPaySnapshot)
-                .hours(hours)
-                .orderId(UUID.randomUUID().toString())
-                .paymentKey(UUID.randomUUID().toString())
-                .method("CARD")
-                .paymentStatus(status)
-                .approvedAt(approvedAt)
-                .balanceAmount(mulBalanceAmount.multiply(amount))
-                .build();
+        Payment payment = new Payment(
+                id, amount, hourlyPaySnapshot, hours, post,
+                "CARD", status, UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(), approvedAt,
+                mulBalanceAmount.multiply(amount)
+        );
         return payment;
     }
 
@@ -177,16 +170,20 @@ public class PaymentServiceAdminTest {
     @Test
     @DisplayName("[PaymentService] 관리자 일별 결제 정보 조회")
     void dailyPayment() {
+        User client = createClient(false);
+        userRepository.save(client);
+        Post post = createPost(client, null);
+        postRepository.save(post);
 
-        Payment payment1 = createPayment(null, PaymentStatus.DONE,
+        Payment payment1 = createPayment(post, PaymentStatus.DONE,
                 LocalDateTime.now().minusDays(8), BigDecimal.TEN, null);
-        Payment payment2 = createPayment(null, PaymentStatus.DONE,
+        Payment payment2 = createPayment(post, PaymentStatus.DONE,
                 LocalDateTime.now().minusDays(7), BigDecimal.ONE, null);
-        Payment payment3 = createPayment(null, PaymentStatus.DONE,
+        Payment payment3 = createPayment(post, PaymentStatus.DONE,
                 LocalDateTime.now().minusDays(6), BigDecimal.TWO, null);
-        Payment payment4 = createPayment(null, PaymentStatus.PARTIAL_CANCELED,
+        Payment payment4 = createPayment(post, PaymentStatus.PARTIAL_CANCELED,
                 LocalDateTime.now().minusDays(6), BigDecimal.valueOf(5L), null);
-        Payment payment5 = createPayment(null, PaymentStatus.DONE,
+        Payment payment5 = createPayment(post, PaymentStatus.DONE,
                 LocalDateTime.now().minusDays(5), BigDecimal.valueOf(3L), null);
 
         paymentRepository.save(payment1);
@@ -207,21 +204,25 @@ public class PaymentServiceAdminTest {
     @Test
     @DisplayName("[PaymentService] 관리자 기간별 결제 및 환불 금액 조회")
     void paymentByPeriod() {
+        User client = createClient(false);
+        userRepository.save(client);
+        Post post = createPost(client, null);
+        postRepository.save(post);
 
         // 150_000
-        Payment payment1 = createPayment(null, PaymentStatus.DONE,
+        Payment payment1 = createPayment(post, PaymentStatus.DONE,
                 LocalDateTime.now().minusDays(8), BigDecimal.TEN, null);
         // 15_000
-        Payment payment2 = createPayment(null, PaymentStatus.DONE,
+        Payment payment2 = createPayment(post, PaymentStatus.DONE,
                 LocalDateTime.now().minusDays(7), BigDecimal.ONE, null);
         // 30_000
-        Payment payment3 = createPayment(null, PaymentStatus.DONE,
+        Payment payment3 = createPayment(post, PaymentStatus.DONE,
                 LocalDateTime.now().minusDays(6), BigDecimal.TWO, null);
         // 75_000 - 37_500 = 37_500
-        Payment payment4 = createPayment(null, PaymentStatus.PARTIAL_CANCELED,
+        Payment payment4 = createPayment(post, PaymentStatus.PARTIAL_CANCELED,
                 LocalDateTime.now().minusDays(6), BigDecimal.valueOf(5L), BigDecimal.valueOf(0.5), null);
         // 45_000 - 9_000 = 36_000
-        Payment payment5 = createPayment(null, PaymentStatus.PARTIAL_CANCELED,
+        Payment payment5 = createPayment(post, PaymentStatus.PARTIAL_CANCELED,
                 LocalDateTime.now().minusDays(5), BigDecimal.valueOf(3L), BigDecimal.valueOf(0.8), null);
 
         paymentRepository.save(payment1);

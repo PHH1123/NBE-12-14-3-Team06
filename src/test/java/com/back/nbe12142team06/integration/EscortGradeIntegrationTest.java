@@ -35,6 +35,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -107,7 +108,7 @@ class EscortGradeIntegrationTest {
                 RideSelect.TAXI, RideSelect.TAXI, "", true);
 
         Post post = postService.findById(postService.write(client.getId(), request).id());
-        paymentRepository.testStatusDone(post.getId());   // 결제 완료 상태로 만든다
+        paymentRepository.testStatusDoneAndPutPaymentKey(post.getId(), UUID.randomUUID().toString());   // 결제 완료 상태로 만든다
         // 공고 다시 조회
         post = postService.findById(post.getId());
 
