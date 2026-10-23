@@ -1,11 +1,8 @@
-package com.back.nbe12142team06.domain.notification.entity;
+package com.back.nbe12142team06.domain.notification.entity
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
-public enum NotificationUrl {
+enum class NotificationUrl(
+    val format: String
+) {
     U_APPLICATION_APPLY("/client/posts/%d/applicants"),
     U_APPLICATION_ACCEPT("/escort/%d"),
     U_APPLICATION_REJECT("/mypage/applications"),
@@ -22,9 +19,7 @@ public enum NotificationUrl {
     U_PAYMENT_EXTRA_PAY("/client/posts/%d"),
     U_SETTLEMENT_DONE("/escort/%d");
 
-    private final String format;
-
-    public String of(Long... args) {
-        return String.format(format, args);
+    fun of(vararg args: Any): String {
+        return format.format(*args)
     }
 }
