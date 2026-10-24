@@ -1,6 +1,7 @@
 package com.back.nbe12142team06.domain.payment.service
 
 import com.back.nbe12142team06.domain.application.entity.Application
+import com.back.nbe12142team06.domain.application.repository.ApplicationRepository
 import com.back.nbe12142team06.domain.notification.service.NoticeService
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest
@@ -9,15 +10,11 @@ import com.back.nbe12142team06.domain.payment.entity.Payment
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository
 import com.back.nbe12142team06.domain.post.entity.Post
-import com.back.nbe12142team06.domain.post.repository.PostRepository
 import com.back.nbe12142team06.domain.settlement.service.SettlementService
 import com.back.nbe12142team06.domain.user.entity.User
 import com.back.nbe12142team06.domain.user.enums.Gender
 import com.back.nbe12142team06.domain.user.enums.Role
-import com.back.nbe12142team06.domain.user.repository.UserRepository
-import com.back.nbe12142team06.global.exception.InternalServerErrorException
 import com.back.nbe12142team06.global.exception.InvalidException
-import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.DisplayName
@@ -30,36 +27,36 @@ import org.mockito.kotlin.argThat
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.spy
 import org.mockito.kotlin.whenever
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.bean.override.mockito.MockitoBean
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
-import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Optional
 import java.util.UUID
 
-@SpringBootTest
-@ActiveProfiles("test")
-@Transactional
+/**
+ * PaymentService 의 검증·분기 로직 테스트.
+ * DB 와 Spring 컨텍스트 없이 경계(리포지토리·외부 결제 API·알림·정산)만 대역으로 바꿔 돌린다.
+ * 커밋 경계가 걸린 흐름은 PaymentNotTransactionServiceTest 에서 다룬다.
+ */
 class PaymentServiceTest {
 
-    @field:Autowired private lateinit var em: EntityManager
-    @field:Autowired private lateinit var paymentService: PaymentService
-    @field:Autowired private lateinit var postRepository: PostRepository
-    @field:Autowired private lateinit var userRepository: UserRepository
+    private val paymentRepository: PaymentRepository = mock()
+    private val applicationRepository: ApplicationRepository = mock()
+    private val tossPaymentClient: TossPaymentClient = mock()
+    private val settlementService: SettlementService = mock()
+    private val noticeService: NoticeService = mock()
 
-    @field:MockitoSpyBean private lateinit var paymentRepository: PaymentRepository
-    @field:MockitoBean private lateinit var tossPaymentClient: TossPaymentClient
-    @field:MockitoSpyBean private lateinit var paymentPersistenceService: PaymentPersistenceService
-    @field:MockitoBean private lateinit var settlementService: SettlementService
-    @field:MockitoBean private lateinit var noticeService: NoticeService
+    private val paymentPersistenceService =
+        spy(PaymentPersistenceService(paymentRepository, applicationRepository))
 
-    private fun createPayment(post: Post, status: PaymentStatus, id: Long? = 1L): Payment {
+    private val paymentService = PaymentService(
+        paymentRepository, paymentPersistenceService, tossPaymentClient, settlementService, noticeService
+    )
+
+    private fun createPayment(post: Post, status: PaymentStatus): Payment {
         val hourlyPaySnapshot = 15_000
         val hours = BigDecimal.TEN
         val amount = hours.multiply(BigDecimal.valueOf(hourlyPaySnapshot.toLong()))
@@ -67,7 +64,7 @@ class PaymentServiceTest {
         val isReady = status == PaymentStatus.READY
 
         return Payment(
-            id = id,
+            id = 1L,
             amount = amount,
             hourlyPaySnapshot = hourlyPaySnapshot,
             hours = hours,
@@ -81,9 +78,9 @@ class PaymentServiceTest {
         )
     }
 
-    private fun createPost(client: User, id: Long? = 1L, hour: Long = 10): Post {
+    private fun createPost(client: User, hour: Long = 10): Post {
         return Post.builder()
-            .id(id)
+            .id(1L)
             .title("정형외과 동행 구합니다")
             .content("무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.")
             .region("서울")
@@ -103,14 +100,12 @@ class PaymentServiceTest {
             .build()
     }
 
-    private fun createClient(addId: Boolean = true): User {
+    private fun createClient(): User {
         val client = User(
             "client01", "password1!", "client01@email.com", "의뢰인",
             Role.CLIENT, Gender.MALE, LocalDate.of(1960, 11, 11), "010-1234-1234", "서울"
         )
-        if (addId) {
-            setId(client, 1L)
-        }
+        setId(client, 1L)
         return client
     }
 
@@ -123,7 +118,7 @@ class PaymentServiceTest {
         return escort
     }
 
-    // 저장하지 않은 엔티티에도 id 가 필요한 테스트가 있어 리플렉션으로 넣는다
+    // 저장하지 않은 엔티티에도 id 가 필요해서 리플렉션으로 넣는다
     private fun setId(user: User, id: Long) {
         val idField = User::class.java.getDeclaredField("id")
         idField.isAccessible = true
@@ -159,6 +154,7 @@ class PaymentServiceTest {
         assertThat(counts[0]).isEqualTo(1)
         assertThat(counts[1]).isEqualTo(1)
         assertThat(counts[2]).isEqualTo(0)
+        assertThat(payment.paymentStatus).isEqualTo(PaymentStatus.CANCELED)
     }
 
     @Test
@@ -168,7 +164,6 @@ class PaymentServiceTest {
         val post = createPost(client)
         val payment = createPayment(post, PaymentStatus.DELETED)
 
-        // 스파이 빈은 when(spy.method()) 로 스텁하면 실제 조회가 한 번 실행돼서 doReturn 으로 둔다
         doReturn(listOf(payment)).whenever(paymentPersistenceService).findDeletedAll()
         doThrow(RuntimeException("토스 페이먼츠 API 호출 실패"))
             .whenever(tossPaymentClient).callApiCancel(any(), any(), any())
@@ -233,28 +228,6 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("[PaymentService] 승인 도중 IN_PROGRESS가 DB에 저장되는지")
-    fun paymentConfirmSavedDbInProgress() {
-        val client = createClient(addId = false)
-        val post = createPost(client, id = null)
-        val payment = createPayment(post, PaymentStatus.READY, id = null)
-
-        userRepository.save(client)
-        postRepository.save(post)
-        paymentRepository.save(payment)
-
-        val updatedCount = paymentPersistenceService.confirmUpdateStatus(payment.requiredId)
-
-        em.flush()
-        em.clear()
-
-        val inProgressPayment = paymentRepository.findById(payment.requiredId).get()
-
-        assertThat(updatedCount).isEqualTo(1)
-        assertThat(inProgressPayment.paymentStatus).isEqualTo(PaymentStatus.IN_PROGRESS)
-    }
-
-    @Test
     @DisplayName("[PaymentService] 결제 상태 CANCELED에서 결제 취소 요청")
     fun paymentReCancelFailed() {
         val client = createClient()
@@ -286,7 +259,7 @@ class PaymentServiceTest {
     @DisplayName("[PaymentService] 동행 시간 단축 시 차액 부분 취소(PARTIAL_CANCELED)")
     fun paymentPartialCanceled() {
         val client = createClient()
-        val post = createPost(client, 1L, 4)
+        val post = createPost(client, 4)
         val payment = createPayment(post, PaymentStatus.DONE)
 
         doReturn(listOf(payment)).whenever(paymentPersistenceService).findByPostId(any())
@@ -311,7 +284,7 @@ class PaymentServiceTest {
     @DisplayName("[PaymentService] 동행 시간 초과 시 추가 결제(READY) 생성")
     fun paymentNewAddPayment() {
         val client = createClient()
-        val post = createPost(client, 1L, 12)
+        val post = createPost(client, 12)
         val payment = createPayment(post, PaymentStatus.DONE)
 
         doReturn(listOf(payment)).whenever(paymentPersistenceService).findByPostId(any())
@@ -334,41 +307,11 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("[PaymentService] 결제 승인 실패 시 결제 데이터 하드 삭제")
-    fun paymentDeletePaymentWithConfirmFailed() {
-        val client = createClient(addId = false)
-        val post = createPost(client, id = null)
-        val payment = createPayment(post, PaymentStatus.READY, id = null)
-
-        userRepository.save(client)
-        postRepository.save(post)
-        paymentRepository.save(payment)
-
-        doReturn(payment).whenever(paymentPersistenceService).findById(any(), any())
-        doThrow(InternalServerErrorException(43, "토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다."))
-            .whenever(tossPaymentClient).callApiConfirm(any(), any(), any())
-
-        assertThatThrownBy {
-            paymentService.confirm(
-                PaymentConfirmRequest("tempPaymentKey", "tempOrderId", payment.amount.toString()),
-                payment.requiredId, client.id
-            )
-        }
-            .isInstanceOf(InternalServerErrorException::class.java)
-            .hasMessage("토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다.")
-
-        em.flush()
-        em.clear()
-
-        assertThat(paymentRepository.findById(payment.requiredId)).isEmpty()
-    }
-
-    @Test
     @DisplayName("[PaymentService] 지원 취소 시 모집 기한 종료이면 해당 공고 결제 취소 - 결제 DONE 1개")
     fun cancelPaymentStatusDoneWithApplicationCancel() {
         // given
-        val client = createClient(addId = false)
-        val post = createPost(client, 1L)
+        val client = createClient()
+        val post = createPost(client)
         val payment = createPayment(post, PaymentStatus.DONE)
 
         doReturn(listOf(payment)).whenever(paymentPersistenceService).findByPostId(any())
@@ -382,13 +325,13 @@ class PaymentServiceTest {
         verify(paymentPersistenceService, times(1)).paymentCancelDb(any(), any(), any())
     }
 
-    // deprecated
+    // deprecated, 비즈니스 로직과 다른 테스트
 //    @Test
 //    @DisplayName("[PaymentService] 지원 취소 시 모집 기한 종료이면 해당 공고 결제 취소 - 결제 DONE 1개, PARTIAL_CANCELED 1개")
 //    fun cancelPaymentStatusDoneAndPartialCanceledWithApplicationCancel() {
 //        // given
-//        val client = createClient(addId = false)
-//        val post = createPost(client, 1L)
+//        val client = createClient()
+//        val post = createPost(client)
 //        val donePayment = createPayment(post, PaymentStatus.DONE)
 //        val partialCanceledPayment = createPayment(post, PaymentStatus.PARTIAL_CANCELED)
 //
