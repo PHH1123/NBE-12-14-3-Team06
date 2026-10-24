@@ -192,18 +192,18 @@ public class UserService {
         User user = this.userRepository.findById(id)
                 .orElseThrow(() -> new UnauthorizedException(3, "회원 정보를 찾을 수 없습니다. 다시 로그인해주세요."));
 
-        String emailHash = this.blindIndexer.hashEmail(request.email());
-        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.phoneNum());
+        String emailHash = this.blindIndexer.hashEmail(request.getEmail());
+        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.getPhoneNum());
 
         validateDuplicatedEmailAndPhone(id, emailHash, phoneNumHash);
 
         user.updateUser(
-                passwordEncoder.encode(request.password()),
-                request.email(),
-                request.name(),
-                request.birthDate(),
-                request.phoneNum(),
-                request.region()
+                passwordEncoder.encode(request.getPassword()),
+                request.getEmail(),
+                request.getName(),
+                request.getBirthDate(),
+                request.getPhoneNum(),
+                request.getRegion()
         );
 
         return this.userRepository.save(user);
