@@ -247,10 +247,10 @@ class ChatServiceTest {
 
         assertThat(events.stream(ChatMessageEvent.class))
                 .element(0)
-                .satisfies(e -> assertThat(e.chatMessageResponse.content()).isEqualTo(ESCORT_CONTENT));
+                .satisfies(e -> assertThat(e.chatMessageResponse().content()).isEqualTo(ESCORT_CONTENT));
         assertThat(events.stream(ChatMessageEvent.class))
                 .element(1)
-                .satisfies(e -> assertThat(e.chatMessageResponse.content()).isEqualTo(CLIENT_CONTENT));
+                .satisfies(e -> assertThat(e.chatMessageResponse().content()).isEqualTo(CLIENT_CONTENT));
     }
 
     @Test
