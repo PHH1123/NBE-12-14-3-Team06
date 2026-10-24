@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.RestController
 @Tag(name = "리뷰", description = "동행 리뷰 작성 및 조회 관련 API")
 @RestController
 @RequestMapping("/api/v1/applications")
-class ReviewController(reviewService: ReviewService?) {
-    private val reviewServiceRef = reviewService
-    private val reviewService get() = reviewServiceRef!!
+class ReviewController(
+    private val reviewService: ReviewService
+) {
 
     @Operation(
         summary = "동행 리뷰 작성",

@@ -66,57 +66,19 @@ import java.time.Period
 
 @Service
 open class ApplicationService(
-    applicationRepository: ApplicationRepository?,
-    postRepository: PostRepository?,
-    userRepository: UserRepository?,
-    escortProfileRepository: EscortProfileRepository?,
-    escortProgressLogRepository: EscortProgressLogRepository?,
-    noShowPenaltyService: NoShowPenaltyService?,
-    clientProfileRepository: ClientProfileRepository?,
-    paymentRepository: PaymentRepository?,
-    paymentService: PaymentService?,
-    rideService: RideService?,
-    escortService: EscortService?,
-    noticeService: NoticeService?,
+    private val applicationRepository: ApplicationRepository,
+    private val postRepository: PostRepository,
+    private val userRepository: UserRepository,
+    private val escortProfileRepository: EscortProfileRepository,
+    private val escortProgressLogRepository: EscortProgressLogRepository,
+    private val noShowPenaltyService: NoShowPenaltyService,
+    private val clientProfileRepository: ClientProfileRepository,
+    private val paymentRepository: PaymentRepository,
+    private val paymentService: PaymentService,
+    private val rideService: RideService,
+    private val escortService: EscortService,
+    private val noticeService: NoticeService,
 ) {
-    // Java의 생성자는 테스트에서 사용하지 않는 의존성에 null을 받을 수 있다.
-    // Kotlin은 접근 시에만 기존 Java와 같이 null 참조 예외를 낸다.
-    private val applicationRepositoryRef: ApplicationRepository? = applicationRepository
-    private val applicationRepository: ApplicationRepository get() = applicationRepositoryRef!!
-
-    private val postRepositoryRef: PostRepository? = postRepository
-    private val postRepository: PostRepository get() = postRepositoryRef!!
-
-    private val userRepositoryRef: UserRepository? = userRepository
-    private val userRepository: UserRepository get() = userRepositoryRef!!
-
-    private val escortProfileRepositoryRef: EscortProfileRepository? = escortProfileRepository
-    private val escortProfileRepository: EscortProfileRepository get() = escortProfileRepositoryRef!!
-
-    private val escortProgressLogRepositoryRef: EscortProgressLogRepository? = escortProgressLogRepository
-    private val escortProgressLogRepository: EscortProgressLogRepository get() = escortProgressLogRepositoryRef!!
-
-    private val noShowPenaltyServiceRef: NoShowPenaltyService? = noShowPenaltyService
-    private val noShowPenaltyService: NoShowPenaltyService get() = noShowPenaltyServiceRef!!
-
-    private val clientProfileRepositoryRef: ClientProfileRepository? = clientProfileRepository
-    private val clientProfileRepository: ClientProfileRepository get() = clientProfileRepositoryRef!!
-
-    private val paymentRepositoryRef: PaymentRepository? = paymentRepository
-    private val paymentRepository: PaymentRepository get() = paymentRepositoryRef!!
-
-    private val paymentServiceRef: PaymentService? = paymentService
-    private val paymentService: PaymentService get() = paymentServiceRef!!
-
-    private val rideServiceRef: RideService? = rideService
-    private val rideService: RideService get() = rideServiceRef!!
-
-    private val escortServiceRef: EscortService? = escortService
-    private val escortService: EscortService get() = escortServiceRef!!
-
-    private val noticeServiceRef: NoticeService? = noticeService
-    private val noticeService: NoticeService get() = noticeServiceRef!!
-
     @field:PersistenceContext
     private lateinit var entityManager: EntityManager
 
