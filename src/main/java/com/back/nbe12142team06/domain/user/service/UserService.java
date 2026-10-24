@@ -220,18 +220,18 @@ public class UserService {
             throw new InvalidException(2, "탈퇴한 회원의 정보는 수정할 수 없습니다.");
         }
 
-        String emailHash = this.blindIndexer.hashEmail(request.email());
-        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.phoneNum());
+        String emailHash = this.blindIndexer.hashEmail(request.getEmail());
+        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.getPhoneNum());
 
         validateDuplicatedEmailAndPhone(userId, emailHash, phoneNumHash);
 
         user.updateUser(
                 user.getPassword(),   // 기존 비밀번호 해시 유지
-                request.email(),
-                request.name(),
-                request.birthDate(),
-                request.phoneNum(),
-                request.region()
+                request.getEmail(),
+                request.getName(),
+                request.getBirthDate(),
+                request.getPhoneNum(),
+                request.getRegion()
         );
         return this.userRepository.save(user);
     }
