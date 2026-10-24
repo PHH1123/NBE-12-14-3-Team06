@@ -143,7 +143,7 @@ class ChatServiceTest {
                 .when(userService).myProfile(client.getId());
         doReturn(escort)
                 .when(userService).myProfile(escort.getId());
-        doReturn(Optional.empty())
+        doReturn(null)
                 .when(chatRoomRepository).findByUser(any(), any());
         doAnswer(invocation -> invocation.getArgument(0))
                 .when(chatRoomRepository).save(any());
@@ -171,7 +171,7 @@ class ChatServiceTest {
                 .when(userService).myProfile(client1.getId());
         doReturn(client2)
                 .when(userService).myProfile(client2.getId());
-        doReturn(Optional.empty())
+        doReturn(null)
                 .when(chatRoomRepository).findByUser(any(), any());
         doAnswer(invocation -> invocation.getArgument(0))
                 .when(chatRoomRepository).save(any());
@@ -218,17 +218,20 @@ class ChatServiceTest {
         ChatPart escortChatPart = createChatPart(escort, chatRoom);
         ChatPart clientChatPart = createChatPart(client, chatRoom);
 
-        doReturn(Optional.of(escortChatPart))
-                .when(chatPartRepository).fetchJoinByUserIdAndChatRoomId(eq(escort.getId()), any());
-        doReturn(Optional.of(clientChatPart))
-                .when(chatPartRepository).fetchJoinByUserIdAndChatRoomId(eq(client.getId()), any());
+        doReturn(escortChatPart)
+                .when(chatPartRepository).fetchJoinByUserIdAndChatRoomId(eq(escort.getId()), anyLong());
+        doReturn(clientChatPart)
+                .when(chatPartRepository).fetchJoinByUserIdAndChatRoomId(eq(client.getId()), anyLong());
         doReturn(List.of(clientChatPart))
-                .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(escort.getId()), any());
+                .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(escort.getId()), anyLong());
         doReturn(List.of(escortChatPart))
-                .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(client.getId()), any());
+                .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(client.getId()), anyLong());
         doReturn(Optional.of(chatRoom))
-                .when(chatRoomRepository).findById(any());
-        doAnswer(invocation -> invocation.getArgument(0))
+                .when(chatRoomRepository).findById(anyLong());
+        doAnswer(invocation -> {
+            ChatMessage arg = invocation.getArgument(0);
+            return new ChatMessage(1L, arg.getChatPart(), arg.getContent(), arg.getSentAt(), arg.getType());
+        })
                 .when(chatMessageRepository).save(any());
 
         ChatMessage escortChatMessage = chatService.sendMessage(chatRoom.getId(), escort.getId(), ESCORT_CONTENT);
