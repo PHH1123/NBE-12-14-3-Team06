@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -121,18 +122,15 @@ class ChatServiceTest {
     }
 
     private ChatRoom createChatRoom(User sender, Long id) {
-        return ChatRoom.builder()
-                .id(id)
-                .lastChatContent(sender.getName() + CREATE_ROOM_MESSAGE)
-                .lastChatSentAt(LocalDateTime.now())
-                .build();
+        return new ChatRoom(
+                id, sender.getName() + CREATE_ROOM_MESSAGE, LocalDateTime.now(), true, new ArrayList<>()
+        );
     }
 
     private ChatPart createChatPart(User user, ChatRoom chatRoom) {
-        return ChatPart.builder()
-                .user(user)
-                .chatRoom(chatRoom)
-                .build();
+        return new ChatPart(
+                null, user, chatRoom, user.getRole(), true, LocalDateTime.now()
+        );
     }
 
     @Test
@@ -159,7 +157,7 @@ class ChatServiceTest {
 
         for (ChatPart chatPart : chatRoom.getChatParts()) {
             assertThat(chatPart.getChatRoom()).isEqualTo(chatRoom);
-            assertThat(chatPart.getIsActive()).isTrue();
+            assertThat(chatPart.isActive()).isTrue();
         }
     }
 
@@ -187,7 +185,7 @@ class ChatServiceTest {
 
         for (ChatPart chatPart : chatRoom.getChatParts()) {
             assertThat(chatPart.getChatRoom()).isEqualTo(chatRoom);
-            assertThat(chatPart.getIsActive()).isTrue();
+            assertThat(chatPart.isActive()).isTrue();
         }
     }
 

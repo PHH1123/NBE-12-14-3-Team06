@@ -11,8 +11,8 @@ data class ChatRoomResponse(
     val partnerId: Long,
     val partnerName: String,
     val partnerRole: Role,
-    val lastChatContent: String,
-    val lastChatSentAt: LocalDateTime,
+    val lastChatContent: String?,
+    val lastChatSentAt: LocalDateTime?,
     val unReadCount: Long,
 ) {
     companion object {
@@ -21,7 +21,7 @@ data class ChatRoomResponse(
             val chatPart = chatRoom.chatParts.firstOrNull { it.user.id != userId }
                 ?: throw NotFoundException("상대방을 찾을 수 없습니다.")
             return ChatRoomResponse(
-                chatRoomId = chatRoom.id,
+                chatRoomId = chatRoom.requiredId,
                 partnerId = chatPart.user.id,
                 partnerName = chatPart.user.name,
                 partnerRole = chatPart.role,

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,10 +57,9 @@ public class ChatService {
             return findChatRoom.get();
         }
 
-        ChatRoom chatRoom = ChatRoom.builder()
-                .lastChatContent(sender.getName() + CREATE_ROOM_MESSAGE)
-                .lastChatSentAt(LocalDateTime.now())
-                .build();
+        ChatRoom chatRoom = new ChatRoom(
+                null, sender.getName() + CREATE_ROOM_MESSAGE, LocalDateTime.now(), true, new ArrayList<>()
+        );
         ChatPart chatPart = chatRoom.addChatPart(sender, receiver);
         chatRoom = chatRoomRepository.save(chatRoom);
 
@@ -78,7 +78,7 @@ public class ChatService {
         ChatPart chatPart = chatPartRepository.fetchJoinByUserIdAndChatRoomId(userId, chatRoomId)
                 .orElseThrow(() -> new NotFoundException(121, "채팅 입장 내역이 없습니다."));
 
-        if (!chatPart.getIsActive()) {
+        if (!chatPart.isActive()) {
             throw new InvalidException(122, "이미 떠난 채팅방입니다.");
         }
 
@@ -95,7 +95,7 @@ public class ChatService {
                 .orElseThrow(() -> new NotFoundException(121, "채팅 입장 내역이 없습니다."));
 
         ChatPart receiverChatPart = chatPartRepository.findByUserIdNotAndChatRoomId(senderId, chatRoomId).getFirst();
-        if (!receiverChatPart.getIsActive()) {
+        if (!receiverChatPart.isActive()) {
             receiverChatPart.join();
         }
 
@@ -114,7 +114,7 @@ public class ChatService {
         ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
                 .orElseThrow(() -> new ForbiddenException(121, "채팅방에 접속하실 권한이 없습니다."));
 
-        if (!chatPart.getIsActive()) {
+        if (!chatPart.isActive()) {
             throw new InvalidException(122, "이미 떠난 채팅방입니다.");
         }
 

@@ -37,11 +37,9 @@ public class ChatMessageService {
                 .orElseThrow(() -> new NotFoundException(122, "존재하지 않는 채팅방입니다."));
 
         // 메시지 저장
-        ChatMessage chatMessage = ChatMessage.builder()
-                .chatPart(chatPart)
-                .content(content)
-                .type(MessageType.TALK)
-                .build();
+        ChatMessage chatMessage = new ChatMessage(
+                null, chatPart, content, LocalDateTime.now(), MessageType.TALK
+        );
 
         chatMessage = chatMessageRepository.save(chatMessage);
         chatRoom.updateLastChat(chatMessage.getContent(), chatMessage.getSentAt());
@@ -60,11 +58,9 @@ public class ChatMessageService {
     @Transactional
     public ChatMessage createRoomMessage(String content, ChatPart chatPart) {
         // 채팅방 생성 안내 메시지 저장
-        ChatMessage chatMessage = ChatMessage.builder()
-                .chatPart(chatPart)
-                .content(content)
-                .type(MessageType.ENTER)
-                .build();
+        ChatMessage chatMessage = new ChatMessage(
+                null, chatPart, content, LocalDateTime.now(), MessageType.ENTER
+        );
         return chatMessageRepository.save(chatMessage);
     }
 
@@ -75,11 +71,9 @@ public class ChatMessageService {
     @Transactional
     public ChatMessage leaveRoomMessage(String content, ChatPart chatPart, Long chatRoomId) {
         // 채팅방 나가기 안내 메시지 저장
-        ChatMessage chatMessage = ChatMessage.builder()
-                .chatPart(chatPart)
-                .content(content)
-                .type(MessageType.LEAVE)
-                .build();
+        ChatMessage chatMessage = new ChatMessage(
+                null, chatPart, content, LocalDateTime.now(), MessageType.LEAVE
+        );
         chatMessage = chatMessageRepository.save(chatMessage);
 
         // 채팅방 나갔을 때는 상대방이 채팅 중일 수 있으므로 메시지 전송

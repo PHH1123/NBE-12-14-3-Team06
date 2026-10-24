@@ -14,7 +14,7 @@ data class ChatMessageResponse(
     val type: MessageType
 ) {
     constructor(chatMessage: ChatMessage) : this(
-        chatMessageId = chatMessage.id,
+        chatMessageId = chatMessage.requiredId,
         senderId = chatMessage.chatPart.user.id,
         senderName = chatMessage.chatPart.user.name,
         content = chatMessage.content,
