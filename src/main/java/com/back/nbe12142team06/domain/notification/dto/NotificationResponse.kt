@@ -7,13 +7,13 @@ import java.time.LocalDateTime
 data class NotificationResponse(
     val id: Long,
     val content: String,
-    val url: String,
+    val url: String?,
     val isRead: Boolean,
     val userId: Long,
     val createdAt: LocalDateTime
 ) {
     constructor(notification: Notification) : this(
-        notification.id,
+        notification.requiredId,
         notification.content,
         notification.url,
         notification.isRead,
