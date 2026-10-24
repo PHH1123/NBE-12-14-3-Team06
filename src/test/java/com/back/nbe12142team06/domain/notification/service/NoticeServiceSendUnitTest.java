@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,7 +63,7 @@ class NoticeServiceSendUnitTest {
     private ArgumentCaptor<NotificationEvent> eventCaptor;
 
     private User createClient() {
-        return User.builder()
+        User user = User.builder()
                 .username("client01")
                 .password("password1!")
                 .email("client01@email.com")
@@ -73,16 +74,22 @@ class NoticeServiceSendUnitTest {
                 .phoneNum("010-1234-1234")
                 .region("서울")
                 .build();
+
+        try {
+            Field id = user.getClass().getDeclaredField("id");
+            id.setAccessible(true);
+            id.set(user, 1L);
+        } catch (Exception e) {
+
+        }
+        return user;
     }
 
     /** 저장된 뒤의 알림 — 실제 save() 가 돌려주는, 식별자가 붙은 엔티티를 흉내 냅니다. */
     private Notification savedNotification(User receiver, String content, String url) {
-        return Notification.builder()
-                .id(1L)
-                .content(content)
-                .url(url)
-                .receiver(receiver)
-                .build();
+        return new Notification(
+                1L, content, url, false, receiver
+        );
     }
 
     @Test
@@ -108,6 +115,7 @@ class NoticeServiceSendUnitTest {
     void savesNotificationAsUnread() {
         User client = createClient();
         doReturn(savedNotification(client, "알림", null)).when(notificationRepository).save(any());
+        doReturn(client).when(userRepository).getReferenceById(any());
 
         noticeService.send(client.getId(), "알림", null);
 
@@ -125,6 +133,7 @@ class NoticeServiceSendUnitTest {
         // 리스너가 만드는 NotificationResponse 에 id 가 들어갑니다.
         Notification saved = savedNotification(client, content, url);
         doReturn(saved).when(notificationRepository).save(any());
+        doReturn(client).when(userRepository).getReferenceById(any());
 
         noticeService.send(client.getId(), content, url);
 
@@ -144,6 +153,7 @@ class NoticeServiceSendUnitTest {
         String content = "동행매니저님이 공고에 지원하셨습니다.";
         // 지금 ApplicationService.apply() 가 url 로 null 을 넘깁니다.
         doReturn(savedNotification(client, content, null)).when(notificationRepository).save(any());
+        doReturn(client).when(userRepository).getReferenceById(any());
 
         noticeService.send(client.getId(), content, null);
 
@@ -159,6 +169,7 @@ class NoticeServiceSendUnitTest {
     void savesBeforePublishing() {
         User client = createClient();
         doReturn(savedNotification(client, "알림", null)).when(notificationRepository).save(any());
+        doReturn(client).when(userRepository).getReferenceById(any());
 
         noticeService.send(client.getId(), "알림", null);
 
@@ -173,6 +184,7 @@ class NoticeServiceSendUnitTest {
     void doesNotPushToEmittersItself() {
         User client = createClient();
         doReturn(savedNotification(client, "알림", null)).when(notificationRepository).save(any());
+        doReturn(client).when(userRepository).getReferenceById(any());
 
         noticeService.send(client.getId(), "알림", null);
 

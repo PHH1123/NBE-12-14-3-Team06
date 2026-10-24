@@ -32,15 +32,24 @@ import java.util.Optional
 @ExtendWith(MockitoExtension::class)
 class ApplicationCancelServiceTest {
 
-    @field:Mock private lateinit var applicationRepository: ApplicationRepository
-    @field:Mock private lateinit var postRepository: PostRepository
-    @field:Mock private lateinit var userRepository: UserRepository
-    @field:Mock private lateinit var escortProfileRepository: EscortProfileRepository
-    @field:Mock private lateinit var noShowPenaltyService: NoShowPenaltyService
-    @field:Mock private lateinit var paymentService: PaymentService
-    @field:Mock private lateinit var noticeService: NoticeService
-    @field:InjectMocks private lateinit var applicationService: ApplicationService
-    @field:Mock private lateinit var escortService: EscortService
+    @field:Mock
+    private lateinit var applicationRepository: ApplicationRepository
+    @field:Mock
+    private lateinit var postRepository: PostRepository
+    @field:Mock
+    private lateinit var userRepository: UserRepository
+    @field:Mock
+    private lateinit var escortProfileRepository: EscortProfileRepository
+    @field:Mock
+    private lateinit var noShowPenaltyService: NoShowPenaltyService
+    @field:Mock
+    private lateinit var paymentService: PaymentService
+    @field:Mock
+    private lateinit var noticeService: NoticeService
+    @field:InjectMocks
+    private lateinit var applicationService: ApplicationService
+    @field:Mock
+    private lateinit var escortService: EscortService
 
     @ParameterizedTest
     @EnumSource(value = PostStatus::class, names = ["IN_PROGRESS", "COMPLETED"])
@@ -150,6 +159,10 @@ class ApplicationCancelServiceTest {
         verifyNoInteractions(paymentService)
 
         // 의뢰인에게 알림 전송
-        verify(noticeService).send(any(), any(), any())
+        verify(noticeService).send(
+            org.mockito.kotlin.any<Long>(),
+            org.mockito.kotlin.any<String>(),
+            org.mockito.kotlin.any<String>()
+        )
     }
 }
