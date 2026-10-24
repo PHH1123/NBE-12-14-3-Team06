@@ -191,16 +191,16 @@ public class SettlementServiceTest {
         BigDecimal payoutAmount = amount.multiply(BigDecimal.valueOf(0.9));
         BigDecimal platformFee = amount.multiply(BigDecimal.valueOf(0.1));
 
-        return Settlement.builder()
-                .id(id)
-                .payoutAmount(payoutAmount)
-                .platformFee(platformFee)
-                .penaltyAmount(BigDecimal.ZERO)
-                .settlementStatus(status)
-                .settledDate(LocalDate.now().plusDays(1))
-                .application(application)
-                .escort(escort)
-                .build();
+        return new Settlement(
+                id,
+                payoutAmount,
+                platformFee,
+                BigDecimal.ZERO,
+                status,
+                LocalDate.now().plusDays(1),
+                application,
+                escort
+        );
     }
 
     private Application createApplication(User escort, Post post, Long id, ApplicationStatus status) {
@@ -223,14 +223,19 @@ public class SettlementServiceTest {
                 "123-000000-123");
     }
 
+    private Application saveApplication(User escort, User client) {
+        Post post = postRepository.save(createPost(client, null, PostStatus.COMPLETED));
+        return applicationRepository.save(createApplication(escort, post, null, ApplicationStatus.ACCEPTED));
+    }
+
     @Test
     @DisplayName("[SettlementService] 외부 송금 실패 시 FAILED")
     void settlementThirdPartyApiFailed() {
-        User escort = createEscort(false);
+        User escort = userRepository.save(createEscort(false));
+        User client = userRepository.save(createClient(false));
         EscortProfile escortProfile = createEscortProfile(escort);
-        Settlement settlement = createSettlement(null, escort, null, SettlementStatus.PENDING);
+        Settlement settlement = createSettlement(saveApplication(escort, client), escort, null, SettlementStatus.PENDING);
 
-        userRepository.save(escort);
         escortProfileRepository.save(escortProfile);
         settlementRepository.save(settlement);
 
@@ -281,11 +286,13 @@ public class SettlementServiceTest {
     void settlementRequestStatusProcessingAndCompleted() {
         User escort = createEscort(false);
         EscortProfile escortProfile = createEscortProfile(escort);
-        Settlement settlementProcessing = createSettlement(null, escort, null, SettlementStatus.PROCESSING);
-        Settlement settlementCompleted = createSettlement(null, escort, null, SettlementStatus.COMPLETED);
-
         userRepository.save(escort);
         escortProfileRepository.save(escortProfile);
+        User client = userRepository.save(createClient(false));
+
+        Settlement settlementProcessing = createSettlement(saveApplication(escort, client), escort, null, SettlementStatus.PROCESSING);
+        Settlement settlementCompleted = createSettlement(saveApplication(escort, client), escort, null, SettlementStatus.COMPLETED);
+
         settlementRepository.save(settlementProcessing);
         settlementRepository.save(settlementCompleted);
 
@@ -350,18 +357,17 @@ public class SettlementServiceTest {
     @Test
     @DisplayName("[SettlementService] DB 저장 실패, 실제로는 성공한 경우 PROCESSING으로 상태가 변경되며 재정산하지 못한다.")
     void settlementDbFailedReRequest() {
-        User escort = createEscort(false);
+        User escort = userRepository.save(createEscort(false));
+        User client = userRepository.save(createClient(false));
         EscortProfile escortProfile = createEscortProfile(escort);
-        Settlement settlement = createSettlement(null, escort, null, SettlementStatus.PENDING);
-
-        userRepository.save(escort);
         escortProfileRepository.save(escortProfile);
+        Settlement settlement = createSettlement(saveApplication(escort, client), escort, null, SettlementStatus.PENDING);
         settlementRepository.save(settlement);
 
         doReturn(new SettlementClientResponse("123-000000-123", "동행매니저", 150_000))
                 .when(settlementClient).settlementRequest(any());
         doThrow(new PersistenceException("스레드 고갈"))
-                .when(settlementPersistenceService).updateSettlement(any(), any());
+                .when(settlementPersistenceService).updateSettlement(anyLong(), any());
 
         assertThatThrownBy(() -> settlementService.request(escort.getId(), settlement.getId()))
                 .isInstanceOf(InternalServerErrorException.class)

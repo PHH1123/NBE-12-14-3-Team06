@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.application.enums.EscortProgress;
 import com.back.nbe12142team06.domain.post.entity.Post;
 import com.back.nbe12142team06.domain.ride.entity.Ride;
 import com.back.nbe12142team06.domain.ride.entity.RideDirection;
+import com.back.nbe12142team06.domain.ride.entity.RideSelect;
 import com.back.nbe12142team06.domain.ride.entity.RideStatus;
 import com.back.nbe12142team06.domain.ride.repository.RideRepository;
 import org.assertj.core.api.Assertions;
@@ -32,22 +33,17 @@ public class RideServiceTest {
     private RideRepository rideRepository;
 
     private Ride createRide(Long id, RideDirection direction, RideStatus status, Post post) {
-        return Ride.builder()
-                .id(id)
-                .direction(direction)
-                .rideStatus(status)
-                .post(post)
-                .build();
+        return new Ride(id, direction, status, RideSelect.TAXI, post);
     }
 
     @Test
     @DisplayName("[RideService] ACCEPTED → IN_PROGRESS, 병원 이동")
     void hospitalRideStatusAcceptedToInProgress() {
-        Ride rideToHospital = createRide(1L, RideDirection.TO_HOSPITAL, RideStatus.ACCEPTED, null);
-        Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.ACCEPTED, null);
+        Ride rideToHospital = createRide(1L, RideDirection.TO_HOSPITAL, RideStatus.ACCEPTED, new Post());
+        Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.ACCEPTED, new Post());
 
         doReturn(List.of(rideToHospital, rideToHome))
-                .when(rideRepository).findByPostId(any());
+                .when(rideRepository).findAllByPostId(anyLong());
 
         List<Ride> rides = rideService.move(1L, EscortProgress.TO_HOSPITAL);
         Ride updatedRide = null;
@@ -63,11 +59,11 @@ public class RideServiceTest {
     @Test
     @DisplayName("[RideService] ACCEPTED → IN_PROGRESS, 집 이동")
     void homeRideStatusAcceptedToInProgress() {
-        Ride rideToHospital = createRide(1L, RideDirection.TO_HOSPITAL, RideStatus.COMPLETED, null);
-        Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.ACCEPTED, null);
+        Ride rideToHospital = createRide(1L, RideDirection.TO_HOSPITAL, RideStatus.COMPLETED, new Post());
+        Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.ACCEPTED, new Post());
 
         doReturn(List.of(rideToHospital, rideToHome))
-                .when(rideRepository).findByPostId(any());
+                .when(rideRepository).findAllByPostId(anyLong());
 
         List<Ride> rides = rideService.move(1L, EscortProgress.TO_HOME);
         Ride updatedRide = null;
@@ -83,11 +79,11 @@ public class RideServiceTest {
     @Test
     @DisplayName("[RideService] IN_PROGRESS → COMPLETED, 병원 이동")
     void hospitalRideStatusInProgressToCompleted() {
-        Ride rideToHospital = createRide(1L, RideDirection.TO_HOSPITAL, RideStatus.IN_PROGRESS, null);
-        Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.ACCEPTED, null);
+        Ride rideToHospital = createRide(1L, RideDirection.TO_HOSPITAL, RideStatus.IN_PROGRESS, new Post());
+        Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.ACCEPTED, new Post());
 
         doReturn(List.of(rideToHospital, rideToHome))
-                .when(rideRepository).findByPostId(any());
+                .when(rideRepository).findAllByPostId(anyLong());
 
         List<Ride> rides = rideService.move(1L, EscortProgress.AT_HOSPITAL);
         Ride updatedRide = null;
@@ -103,11 +99,11 @@ public class RideServiceTest {
     @Test
     @DisplayName("[RideService] IN_PROGRESS → COMPLETED, 집 이동")
     void homeRideStatusInProgressToCompleted() {
-        Ride rideToHospital = createRide(1L, RideDirection.TO_HOSPITAL, RideStatus.COMPLETED, null);
-        Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.IN_PROGRESS, null);
+        Ride rideToHospital = createRide(1L, RideDirection.TO_HOSPITAL, RideStatus.COMPLETED, new Post());
+        Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.IN_PROGRESS, new Post());
 
         doReturn(List.of(rideToHospital, rideToHome))
-                .when(rideRepository).findByPostId(any());
+                .when(rideRepository).findAllByPostId(anyLong());
 
         List<Ride> rides = rideService.move(1L, EscortProgress.ARRIVED_HOME);
         Ride updatedRide = null;
@@ -123,11 +119,11 @@ public class RideServiceTest {
     @Test
     @DisplayName("[RideService] COMPLETED에서 move")
     void rideStatusCompletedMove() {
-        Ride rideToHospital = createRide(1L, RideDirection.TO_HOSPITAL, RideStatus.COMPLETED, null);
-        Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.COMPLETED, null);
+        Ride rideToHospital = createRide(1L, RideDirection.TO_HOSPITAL, RideStatus.COMPLETED, new Post());
+        Ride rideToHome = createRide(2L, RideDirection.TO_HOME, RideStatus.COMPLETED, new Post());
 
         doReturn(List.of(rideToHospital, rideToHome))
-                .when(rideRepository).findByPostId(any());
+                .when(rideRepository).findAllByPostId(anyLong());
 
         List<Ride> rides = rideService.move(1L, EscortProgress.ARRIVED_HOME);
 

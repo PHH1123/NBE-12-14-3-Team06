@@ -342,7 +342,7 @@ class PaymentServiceTest {
 
         paymentService.validPayment(
                 post,
-                Application.builder().build(),
+                Application.builder().escort(createEscort()).build(),
                 LocalDate.now()
         );
 
@@ -363,7 +363,7 @@ class PaymentServiceTest {
 
         paymentService.validPayment(
                 post,
-                Application.builder().build(),
+                Application.builder().escort(createEscort()).build(),
                 LocalDate.now()
         );
 

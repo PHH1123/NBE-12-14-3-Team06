@@ -457,7 +457,7 @@ function PostDetailPageBody({ viewer }: Props) {
   const toHospitalRide = rides.find((ride) => ride.direction === 'TO_HOSPITAL');
   const toHomeRide = rides.find((ride) => ride.direction === 'TO_HOME');
 
-  const rideLabel: Record<NonNullable<RideDto['selected']>, string> = {
+  const rideLabel: Record<RideDto['selected'], string> = {
     WALK: '도보',
     BUS: '대중교통',
     TAXI: '택시',

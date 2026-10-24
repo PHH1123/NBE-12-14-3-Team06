@@ -136,7 +136,7 @@ class PostService(
         // 결제 데이터 생성
         val payment = paymentService.createPayment(savedPost)
         // 이동수단 데이터 생성
-        rideService.createRide(savedPost, request.rideSelectToHospital, request.rideSelectToHome)
+        rideService.createRide(savedPost, request.rideSelectToHospital!!, request.rideSelectToHome!!)
 
         log.info("[공고 등록] postId={}, clientId={}", savedPost.id, userId)
         return PostWriteResponse(savedPost, payment.id)

@@ -143,15 +143,16 @@ class NoShowPenaltyServiceTest {
     }
 
     private Settlement createSettlement(Application application, User escort) {
-        return Settlement.builder()
-                .payoutAmount(BASE_AMOUNT.subtract(PENALTY_AMOUNT))
-                .platformFee(PLATFORM_FEE)
-                .penaltyAmount(PENALTY_AMOUNT)
-                .settlementStatus(SettlementStatus.PENDING)
-                .settledDate(LocalDate.now().plusDays(1))
-                .application(application)
-                .escort(escort)
-                .build();
+        return new Settlement(
+                null,
+                BASE_AMOUNT.subtract(PENALTY_AMOUNT),
+                PLATFORM_FEE,
+                PENALTY_AMOUNT,
+                SettlementStatus.PENDING,
+                LocalDate.now().plusDays(1),
+                application,
+                escort
+        );
     }
 
     // 노쇼가 발생한 지원 하나를 DB 에 올려둔다. (의뢰인 - 공고 - 동행 매니저 - 지원)
