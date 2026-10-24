@@ -96,7 +96,7 @@ class ApplicationControllerTest {
     fun setUp() {
 
         // 공고를 작성할 의뢰인
-        var client = User(
+        val client = User(
                 "client1",
                 passwordEncoder.encode("testPassword"),
                 "client1@test.com",
@@ -111,7 +111,7 @@ class ApplicationControllerTest {
         userRepository.save(client)
 
         // 공고에 지원할 동행인
-        var escort = User(
+        val escort = User(
                 "escort1",
                 passwordEncoder.encode("testPassword"),
                 "escort1@test.com",
@@ -126,7 +126,7 @@ class ApplicationControllerTest {
         userRepository.save(escort)
 
         // 테스트용 동행인 프로필 생성 (교육 이수 완료 상태)
-        var escortProfile = EscortProfile(escort, "ㅎㅎ", "은행은행", escort.name, "1234")
+        val escortProfile = EscortProfile(escort, "ㅎㅎ", "은행은행", escort.name, "1234")
         escortProfileRepository.save(escortProfile)
         this.escortProfileRepository.verify(escortProfile.userId, LocalDateTime.now())
 
@@ -200,7 +200,7 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원하기 - 정상 지원")
     fun t1() {
 
-        var resultActions = mvc
+        val resultActions = mvc
                 .perform(mvcPost("/api/v1/applications/{postId}", testPostId)
                         .cookie(escortAccessTokenCookie))
                 .andDo(print())
@@ -222,14 +222,14 @@ class ApplicationControllerTest {
     fun t1_1() {
 
         // given: 정상 회원을 일시 정지 상태로 변경
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
         escort.suspend(1L, "테스트용 일시 정지")
         userRepository.saveAndFlush(escort)
 
         // when: 일시 정지된 회원이 지원 시도
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 mvcPost("/api/v1/applications/{postId}", testPostId)
                         .cookie(escortAccessTokenCookie)
         ).andDo(print())
@@ -253,7 +253,7 @@ class ApplicationControllerTest {
     fun applyBeforeRecruitStart() {
 
         // given: 모집 시작일을 내일로 변경
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
         ReflectionTestUtils.setField(
@@ -287,7 +287,7 @@ class ApplicationControllerTest {
     fun applyAfterRecruitEnd() {
 
         // given: 모집 마감일을 1분 전으로 변경
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
         ReflectionTestUtils.setField(
@@ -321,14 +321,14 @@ class ApplicationControllerTest {
     fun t1_2() {
 
         // given: 로그인한 동행매니저를 영구 정지
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
         escort.ban(1L, "테스트용 영구 정지")
         userRepository.saveAndFlush(escort)
 
         // when: 기존 로그인 쿠키로 지원 시도
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 mvcPost("/api/v1/applications/{postId}", testPostId)
                         .cookie(escortAccessTokenCookie)
         ).andDo(print())
@@ -351,14 +351,14 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationService] 진행 중인 동행이 있으면 탈퇴 제한 대상")
     fun t1_3() {
 
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
         // 승인된 지원 생성
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort)
                 .build()
@@ -371,7 +371,7 @@ class ApplicationControllerTest {
         post.startProgress(LocalDateTime.now())
 
         // 진행 중 동행이 있으므로 true
-        var result = applicationService.hasInProgressEscort(escort.id)
+        val result = applicationService.hasInProgressEscort(escort.id)
 
         assertTrue(result)
     }
@@ -380,13 +380,13 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationService] 매칭만 완료된 경우 탈퇴 제한 대상이 아님")
     fun t1_4() {
 
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort)
                 .build()
@@ -398,7 +398,7 @@ class ApplicationControllerTest {
         post.match()
 
         // 아직 동행이 시작되지 않았으므로 false
-        var result = applicationService.hasInProgressEscort(escort.id)
+        val result = applicationService.hasInProgressEscort(escort.id)
 
         assertFalse(result)
     }
@@ -407,14 +407,14 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationService] 대기 중인 지원만 있으면 진행 중 동행이 아니다")
     fun t1_5() {
 
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
         // PENDING 지원 생성 (기본 상태)
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort)
                 .build()
@@ -422,7 +422,7 @@ class ApplicationControllerTest {
         applicationRepository.save(application)
 
         // PENDING + OPEN 상태에서는 false
-        var result = applicationService.hasInProgressEscort(escort.id)
+        val result = applicationService.hasInProgressEscort(escort.id)
 
         assertFalse(result)
     }
@@ -431,11 +431,11 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationService] 다른 동행매니저의 진행 중 동행은 조회되지 않는다")
     fun t1_6() {
 
-        var escort1 = userRepository.findByUsername("escort1")
+        val escort1 = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
         // 두 번째 동행매니저 생성
-        var escort2 = User(
+        val escort2 = User(
                 "escort2",
                 passwordEncoder.encode("testPassword"),
                 "escort2@test.com",
@@ -449,11 +449,11 @@ class ApplicationControllerTest {
 
         userRepository.save(escort2)
 
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
         // escort2의 동행을 진행 중 상태로 생성
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort2)
                 .build()
@@ -481,12 +481,12 @@ class ApplicationControllerTest {
                         .cookie(escortAccessTokenCookie)
         ).andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 지원 이후 동행매니저 일시 정지
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
         escort.suspend(1L, "테스트용 일시 정지")
@@ -522,12 +522,12 @@ class ApplicationControllerTest {
                         .cookie(escortAccessTokenCookie)
         ).andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 지원 이후 동행매니저 영구 정지
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
         escort.ban(1L, "테스트용 영구 정지")
@@ -564,7 +564,7 @@ class ApplicationControllerTest {
                 .andExpect(status().isCreated())
 
         // 같은 사용자가 같은 공고에 두 번째 지원
-        var resultActions = mvc
+        val resultActions = mvc
                 .perform(mvcPost("/api/v1/applications/{postId}", testPostId)
                         .cookie(escortAccessTokenCookie))
                 .andDo(print())
@@ -581,7 +581,7 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원하기 - CLIENT가 지원 시 403 반환 (SecurityConfig 에서 ESCORT 만 허용)")
     fun t3() {
 
-        var resultActions = mvc
+        val resultActions = mvc
                 .perform(mvcPost("/api/v1/applications/{postId}", testPostId)
                         .cookie(clientAccessTokenCookie))
                 .andDo(print())
@@ -597,11 +597,11 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원하기 - 모집 중이 아닌 공고 지원 시 400 반환")
     fun t4() {
 
-        var client = userRepository.findByUsername("client1")
+        val client = userRepository.findByUsername("client1")
                 .orElseThrow()
 
         // 이미 매칭 완료된 공고 생성
-        var matchedPost = Post.builder()
+        val matchedPost = Post.builder()
                 .client(client)
                 .title("매칭 완료된 공고")
                 .content("이미 매칭된 공고입니다.")
@@ -623,9 +623,9 @@ class ApplicationControllerTest {
                 .postStatus(PostStatus.MATCHED)
                 .build()
 
-        var matchedPostId = postRepository.save(matchedPost).id
+        val matchedPostId = postRepository.save(matchedPost).id
 
-        var resultActions = mvc
+        val resultActions = mvc
                 .perform(mvcPost("/api/v1/applications/{postId}", matchedPostId)
                         .cookie(escortAccessTokenCookie))
                 .andDo(print())
@@ -643,9 +643,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원하기 - 존재하지 않는 공고 지원 시 404 반환")
     fun t5() {
 
-        var notExistingPostId = 999L
+        val notExistingPostId = 999L
 
-        var resultActions = mvc
+        val resultActions = mvc
                 .perform(mvcPost("/api/v1/applications/{postId}", notExistingPostId)
                         .cookie(escortAccessTokenCookie))
                 .andDo(print())
@@ -670,7 +670,7 @@ class ApplicationControllerTest {
                 .andExpect(status().isCreated())
 
         // 지원 목록 조회
-        var resultActions = mvc
+        val resultActions = mvc
                 .perform(get("/api/v1/applications/posts/{postId}", testPostId)
                         .cookie(clientAccessTokenCookie))
                 .andDo(print())
@@ -696,7 +696,7 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 공고별 지원 목록 조회 - 지원자가 없을 때 빈 배열 반환")
     fun t7() {
 
-        var resultActions = mvc
+        val resultActions = mvc
                 .perform(get("/api/v1/applications/posts/{postId}", testPostId)
                         .cookie(clientAccessTokenCookie))
                 .andDo(print())
@@ -719,13 +719,13 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 공고별 지원 목록 조회 - 페이징 정상 동작")
     fun t7_1() {
 
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
-        var escort1 = userRepository.findByUsername("escort1")
+        val escort1 = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        var escort2 = User(
+        val escort2 = User(
                 "escort2",
                 passwordEncoder.encode("testPassword"),
                 "escort2@test.com",
@@ -737,7 +737,7 @@ class ApplicationControllerTest {
                 "서울"
         )
 
-        var escort3 = User(
+        val escort3 = User(
                 "escort3",
                 passwordEncoder.encode("testPassword"),
                 "escort3@test.com",
@@ -773,7 +773,7 @@ class ApplicationControllerTest {
                         .build()
         )
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 get("/api/v1/applications/posts/{postId}", testPostId)
                         .param("page", "0")
                         .param("size", "2")
@@ -795,9 +795,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 공고별 지원 목록 조회 - 존재하지 않는 공고 조회 시 404 반환")
     fun t8() {
 
-        var notExistingPostId = 999L
+        val notExistingPostId = 999L
 
-        var resultActions = mvc
+        val resultActions = mvc
                 .perform(get("/api/v1/applications/posts/{postId}", notExistingPostId)
                         .cookie(clientAccessTokenCookie))
                 .andDo(print())
@@ -814,7 +814,7 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 공고별 지원 목록 조회 - 다른 의뢰인의 공고 조회 시 403 반환")
     fun t9() {
         // 다른 의뢰인 생성
-        var otherClient = User(
+        val otherClient = User(
                 "client2",
                 passwordEncoder.encode("testPassword"),
                 "client2@test.com",
@@ -828,7 +828,7 @@ class ApplicationControllerTest {
 
         userRepository.save(otherClient)
 
-        var otherClientAccessTokenCookie = mvc.perform(
+        val otherClientAccessTokenCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
                                 .contentType("application/json")
                                 .content("""
@@ -842,7 +842,7 @@ class ApplicationControllerTest {
                 .getResponse()
                 .getCookie("accessToken")!!
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 get("/api/v1/applications/posts/{postId}", testPostId)
                         .cookie(otherClientAccessTokenCookie)
         )
@@ -865,12 +865,12 @@ class ApplicationControllerTest {
                 .andExpect(status().isCreated())
 
         // 방금 생성된 지원 조회
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 의뢰인이 지원 승인
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/accept", application.id)
                         .cookie(clientAccessTokenCookie)
         ).andDo(print())
@@ -886,11 +886,11 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.data.status").value("ACCEPTED"))
 
         // 승인 후 실제 DB 상태 확인
-        var acceptedApplication = applicationRepository
+        val acceptedApplication = applicationRepository
                 .findById(application.id!!)
                 .orElseThrow()
 
-        var matchedPost = postRepository
+        val matchedPost = postRepository
                 .findById(testPostId)
                 .orElseThrow()
 
@@ -920,12 +920,12 @@ class ApplicationControllerTest {
                 .andDo(print())
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 다른 의뢰인 생성
-        var otherClient = User(
+        val otherClient = User(
                 "client2",
                 passwordEncoder.encode("testPassword"),
                 "client2@test.com",
@@ -939,7 +939,7 @@ class ApplicationControllerTest {
 
         userRepository.save(otherClient)
 
-        var otherClientAccessTokenCookie = mvc.perform(
+        val otherClientAccessTokenCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
                                 .contentType("application/json")
                                 .content("""
@@ -953,7 +953,7 @@ class ApplicationControllerTest {
                 .getResponse()
                 .getCookie("accessToken")!!
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/accept", application.id)
                         .cookie(otherClientAccessTokenCookie)
         ).andDo(print())
@@ -975,7 +975,7 @@ class ApplicationControllerTest {
                 .andDo(print())
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
@@ -988,7 +988,7 @@ class ApplicationControllerTest {
                 .andExpect(status().isOk())
 
         // 같은 지원을 다시 승인
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/accept", application.id)
                         .cookie(clientAccessTokenCookie)
         ).andDo(print())
@@ -1005,7 +1005,7 @@ class ApplicationControllerTest {
     fun t13() {
 
         // 두 번째 동행인 생성
-        var escort2 = User(
+        val escort2 = User(
                 "escort2",
                 passwordEncoder.encode("testPassword"),
                 "escort2@test.com",
@@ -1020,7 +1020,7 @@ class ApplicationControllerTest {
         userRepository.save(escort2)
 
         // 동행 매니저 프로필 (프로필이 있고 교육을 이수해야 지원 가능)
-        var escort2Profile = escortProfileRepository.save(EscortProfile(
+        val escort2Profile = escortProfileRepository.save(EscortProfile(
                 escort2,
                 "동행인2입니다.",
                 "오픈은행",
@@ -1029,7 +1029,7 @@ class ApplicationControllerTest {
         ))
         this.escortProfileRepository.verify(escort2Profile.userId, LocalDateTime.now())
 
-        var escort2AccessTokenCookie = mvc.perform(
+        val escort2AccessTokenCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
                                 .contentType("application/json")
                                 .content("""
@@ -1056,15 +1056,15 @@ class ApplicationControllerTest {
                 .andExpect(status().isCreated())
 
         // 두 지원 조회
-        var applications = applicationRepository.findAllByPostIdWithEscort(testPostId)
+        val applications = applicationRepository.findAllByPostIdWithEscort(testPostId)
 
-        var firstApplication = applications.stream()
+        val firstApplication = applications.stream()
                 .filter { application ->
                         application.escort!!.username.equals("escort1") }
                 .findFirst()
                 .orElseThrow()
 
-        var secondApplication = applications.stream()
+        val secondApplication = applications.stream()
                 .filter { application ->
                         application.escort!!.username.equals("escort2") }
                 .findFirst()
@@ -1080,7 +1080,7 @@ class ApplicationControllerTest {
                 .andExpect(status().isOk())
 
         // 승인된 지원 상태 확인
-        var acceptedApplication = applicationRepository
+        val acceptedApplication = applicationRepository
                 .findById(firstApplication.id!!)
                 .orElseThrow()
 
@@ -1090,7 +1090,7 @@ class ApplicationControllerTest {
         )
 
         // 나머지 지원자는 자동 거절됐는지 확인
-        var rejectedApplication = applicationRepository
+        val rejectedApplication = applicationRepository
                 .findById(secondApplication.id!!)
                 .orElseThrow()
 
@@ -1100,7 +1100,7 @@ class ApplicationControllerTest {
         )
 
         // 공고도 매칭 완료됐는지 확인
-        var matchedPost = postRepository
+        val matchedPost = postRepository
                 .findById(testPostId)
                 .orElseThrow()
 
@@ -1110,7 +1110,7 @@ class ApplicationControllerTest {
         )
 
         // 이미 자동 거절된 두 번째 지원을 다시 승인 시도
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/accept",
                         secondApplication.id)
                         .cookie(clientAccessTokenCookie)
@@ -1128,9 +1128,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 승인 - 존재하지 않는 지원 승인 시 404 반환")
     fun t14() {
 
-        var notExistingApplicationId = 999L
+        val notExistingApplicationId = 999L
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/accept", notExistingApplicationId)
                         .cookie(clientAccessTokenCookie)
         ).andDo(print())
@@ -1148,11 +1148,11 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 승인 - 같은 동행인의 시간 겹치는 다른 지원 자동 거절")
     fun t15() {
 
-        var client = userRepository.findByUsername("client1")
+        val client = userRepository.findByUsername("client1")
                 .orElseThrow()
 
         // 기존 testPost와 시간이 겹치는 두 번째 공고 생성
-        var overlappingPost = Post.builder()
+        val overlappingPost = Post.builder()
                 .client(client)
                 .title("시간 겹치는 테스트 공고")
                 .content("동행 시간이 겹치는 공고입니다.")
@@ -1178,7 +1178,7 @@ class ApplicationControllerTest {
                 .reportRequired(false)
                 .build()
 
-        var overlappingPostId = postRepository.save(overlappingPost).id
+        val overlappingPostId = postRepository.save(overlappingPost).id
 
         // 같은 동행인이 첫 번째 공고에 지원
         mvc.perform(
@@ -1195,12 +1195,12 @@ class ApplicationControllerTest {
                 .andExpect(status().isCreated())
 
         // 첫 번째 공고 지원 조회
-        var firstApplication = applicationRepository
+        val firstApplication = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 두 번째 공고 지원 조회
-        var overlappingApplication = applicationRepository
+        val overlappingApplication = applicationRepository
                 .findAllByPostIdWithEscort(overlappingPostId)
                 .get(0)
 
@@ -1214,11 +1214,11 @@ class ApplicationControllerTest {
                 .andExpect(status().isOk())
 
         // DB 상태 다시 조회
-        var acceptedApplication = applicationRepository
+        val acceptedApplication = applicationRepository
                 .findById(firstApplication.id!!)
                 .orElseThrow()
 
-        var rejectedApplication = applicationRepository
+        val rejectedApplication = applicationRepository
                 .findById(overlappingApplication.id!!)
                 .orElseThrow()
 
@@ -1235,7 +1235,7 @@ class ApplicationControllerTest {
         )
 
         // 선정된 공고는 MATCHED
-        var matchedPost = postRepository
+        val matchedPost = postRepository
                 .findById(testPostId)
                 .orElseThrow()
 
@@ -1245,7 +1245,7 @@ class ApplicationControllerTest {
         )
 
         // 다른 공고 자체는 계속 모집 가능
-        var otherPost = postRepository
+        val otherPost = postRepository
                 .findById(overlappingPostId!!)
                 .orElseThrow()
 
@@ -1259,11 +1259,11 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 승인 - 같은 동행인의 시간이 겹치지 않는 다른 지원은 대기 유지")
     fun t16() {
 
-        var client = userRepository.findByUsername("client1")
+        val client = userRepository.findByUsername("client1")
                 .orElseThrow()
 
         // 기존 testPost와 시간이 겹치지 않는 두 번째 공고 생성
-        var nonOverlappingPost = Post.builder()
+        val nonOverlappingPost = Post.builder()
                 .client(client)
                 .title("시간 안 겹치는 테스트 공고")
                 .content("동행 시간이 겹치지 않는 공고입니다.")
@@ -1289,7 +1289,7 @@ class ApplicationControllerTest {
                 .reportRequired(false)
                 .build()
 
-        var nonOverlappingPostId = postRepository.save(nonOverlappingPost).id
+        val nonOverlappingPostId = postRepository.save(nonOverlappingPost).id
 
         // 같은 동행인이 첫 번째 공고에 지원
         mvc.perform(
@@ -1306,12 +1306,12 @@ class ApplicationControllerTest {
                 .andExpect(status().isCreated())
 
         // 첫 번째 공고 지원 조회
-        var firstApplication = applicationRepository
+        val firstApplication = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 두 번째 공고 지원 조회
-        var secondApplication = applicationRepository
+        val secondApplication = applicationRepository
                 .findAllByPostIdWithEscort(nonOverlappingPostId)
                 .get(0)
 
@@ -1325,11 +1325,11 @@ class ApplicationControllerTest {
                 .andExpect(status().isOk())
 
         // DB 상태 다시 조회
-        var acceptedApplication = applicationRepository
+        val acceptedApplication = applicationRepository
                 .findById(firstApplication.id!!)
                 .orElseThrow()
 
-        var pendingApplication = applicationRepository
+        val pendingApplication = applicationRepository
                 .findById(secondApplication.id!!)
                 .orElseThrow()
 
@@ -1346,7 +1346,7 @@ class ApplicationControllerTest {
         )
 
         // 첫 번째 공고는 MATCHED
-        var matchedPost = postRepository
+        val matchedPost = postRepository
                 .findById(testPostId)
                 .orElseThrow()
 
@@ -1356,7 +1356,7 @@ class ApplicationControllerTest {
         )
 
         // 두 번째 공고는 계속 OPEN
-        var otherPost = postRepository
+        val otherPost = postRepository
                 .findById(nonOverlappingPostId!!)
                 .orElseThrow()
 
@@ -1377,7 +1377,7 @@ class ApplicationControllerTest {
                 )
                 .andExpect(status().isCreated())
 
-        var firstApplication = applicationRepository
+        val firstApplication = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
@@ -1390,7 +1390,7 @@ class ApplicationControllerTest {
                 .andExpect(status().isOk())
 
         // 첫 번째 지원이 실제 ACCEPTED인지 확인
-        var acceptedApplication = applicationRepository
+        val acceptedApplication = applicationRepository
                 .findById(firstApplication.id!!)
                 .orElseThrow()
 
@@ -1400,7 +1400,7 @@ class ApplicationControllerTest {
         )
 
         // 두 번째 의뢰인 생성
-        var client2 = User(
+        val client2 = User(
                 "client2",
                 passwordEncoder.encode("testPassword"),
                 "client2@test.com",
@@ -1415,7 +1415,7 @@ class ApplicationControllerTest {
         userRepository.save(client2)
 
         // 두 번째 의뢰인 로그인
-        var client2AccessTokenCookie = mvc.perform(
+        val client2AccessTokenCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
                                 .contentType("application/json")
                                 .content("""
@@ -1430,7 +1430,7 @@ class ApplicationControllerTest {
                 .getCookie("accessToken")!!
 
         // 첫 번째 공고와 시간이 겹치는 두 번째 공고 생성
-        var overlappingPost = Post.builder()
+        val overlappingPost = Post.builder()
                 .client(client2)
                 .title("시간 겹치는 두 번째 공고")
                 .content("이미 승인된 일정과 겹치는 공고입니다.")
@@ -1456,7 +1456,7 @@ class ApplicationControllerTest {
                 .reportRequired(false)
                 .build()
 
-        var overlappingPostId = postRepository.save(overlappingPost).id
+        val overlappingPostId = postRepository.save(overlappingPost).id
 
         val payment = Payment(
             amount = overlappingPost.totalPay,
@@ -1475,12 +1475,12 @@ class ApplicationControllerTest {
                 )
                 .andExpect(status().isCreated())
 
-        var overlappingApplication = applicationRepository
+        val overlappingApplication = applicationRepository
                 .findAllByPostIdWithEscort(overlappingPostId)
                 .get(0)
 
         // 두 번째 의뢰인이 해당 동행인을 선정하려고 시도
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/accept",
                         overlappingApplication.id)
                         .cookie(client2AccessTokenCookie)
@@ -1497,7 +1497,7 @@ class ApplicationControllerTest {
 
 
         // 승인 실패했으므로 두 번째 지원은 PENDING 유지
-        var pendingApplication = applicationRepository
+        val pendingApplication = applicationRepository
                 .findById(overlappingApplication.id!!)
                 .orElseThrow()
 
@@ -1507,7 +1507,7 @@ class ApplicationControllerTest {
         )
 
         // 두 번째 공고 역시 OPEN 유지
-        var stillOpenPost = postRepository
+        val stillOpenPost = postRepository
                 .findById(overlappingPostId!!)
                 .orElseThrow()
 
@@ -1526,12 +1526,12 @@ class ApplicationControllerTest {
                         .cookie(escortAccessTokenCookie))
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 의뢰인이 지원 거절
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/reject", application.id)
                         .cookie(clientAccessTokenCookie)
         ).andDo(print())
@@ -1543,7 +1543,7 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.statusCode").value("200-23"))
                 .andExpect(jsonPath("$.msg").value("지원 거절이 완료되었습니다."))
 
-        var rejectedApplication = applicationRepository
+        val rejectedApplication = applicationRepository
                 .findById(application.id!!)
                 .orElseThrow()
 
@@ -1564,12 +1564,12 @@ class ApplicationControllerTest {
                 )
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 다른 의뢰인 생성
-        var otherClient = User(
+        val otherClient = User(
                 "client2",
                 passwordEncoder.encode("testPassword"),
                 "client2@test.com",
@@ -1584,7 +1584,7 @@ class ApplicationControllerTest {
         userRepository.save(otherClient)
 
         // 다른 의뢰인 로그인
-        var otherClientAccessTokenCookie = mvc.perform(
+        val otherClientAccessTokenCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
                                 .contentType("application/json")
                                 .content("""
@@ -1599,7 +1599,7 @@ class ApplicationControllerTest {
                 .getCookie("accessToken")!!
 
         // 다른 의뢰인이 지원 거절 시도
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/reject",
                         application.id)
                         .cookie(otherClientAccessTokenCookie)
@@ -1614,7 +1614,7 @@ class ApplicationControllerTest {
                         .value("본인 공고의 지원만 거절할 수 있습니다."))
 
         // 실패했으므로 상태는 여전히 PENDING
-        var pendingApplication = applicationRepository
+        val pendingApplication = applicationRepository
                 .findById(application.id!!)
                 .orElseThrow()
 
@@ -1635,7 +1635,7 @@ class ApplicationControllerTest {
                 )
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
@@ -1648,7 +1648,7 @@ class ApplicationControllerTest {
                 .andExpect(status().isOk())
 
         // 같은 지원을 다시 거절
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/reject",
                         application.id)
                         .cookie(clientAccessTokenCookie)
@@ -1663,7 +1663,7 @@ class ApplicationControllerTest {
                         .value("대기 중인 지원만 거절할 수 있습니다."))
 
         // 상태는 그대로 REJECTED
-        var rejectedApplication = applicationRepository
+        val rejectedApplication = applicationRepository
                 .findById(application.id!!)
                 .orElseThrow()
 
@@ -1677,9 +1677,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 거절 - 존재하지 않는 지원 거절 시 404 반환")
     fun t21() {
 
-        var notExistingApplicationId = 999L
+        val notExistingApplicationId = 999L
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/reject",
                         notExistingApplicationId)
                         .cookie(clientAccessTokenCookie)
@@ -1705,12 +1705,12 @@ class ApplicationControllerTest {
                 )
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 동행인이 본인의 지원 취소
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/cancel",
                         application.id)
                         .cookie(escortAccessTokenCookie)
@@ -1725,7 +1725,7 @@ class ApplicationControllerTest {
                         .value("지원 취소가 완료되었습니다."))
 
         // 실제 DB 상태 확인
-        var canceledApplication = applicationRepository
+        val canceledApplication = applicationRepository
                 .findById(application.id!!)
                 .orElseThrow()
 
@@ -1746,7 +1746,7 @@ class ApplicationControllerTest {
                 )
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
@@ -1759,14 +1759,14 @@ class ApplicationControllerTest {
                 .andExpect(status().isOk())
 
         // 취소 전 노쇼 횟수 확인
-        var escortProfile = escortProfileRepository
+        val escortProfile = escortProfileRepository
                 .findById(application.escort!!.id)
                 .orElseThrow()
 
-        var beforeNoShowCount = escortProfile.noShowCount
+        val beforeNoShowCount = escortProfile.noShowCount
 
         // 승인된 동행인이 취소
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/cancel",
                         application.id)
                         .cookie(escortAccessTokenCookie)
@@ -1781,17 +1781,17 @@ class ApplicationControllerTest {
                         .value("지원 취소가 완료되었습니다."))
 
         // 취소 후 지원 상태 확인
-        var canceledApplication = applicationRepository
+        val canceledApplication = applicationRepository
                 .findById(application.id!!)
                 .orElseThrow()
 
         // 취소 후 공고 상태 확인
-        var reopenedPost = postRepository
+        val reopenedPost = postRepository
                 .findById(testPostId)
                 .orElseThrow()
 
         // 취소 후 동행인 프로필 확인
-        var updatedEscortProfile = escortProfileRepository
+        val updatedEscortProfile = escortProfileRepository
                 .findById(application.escort!!.id)
                 .orElseThrow()
 
@@ -1821,14 +1821,14 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 취소 - 승인 후 모집 마감 후 취소")
     fun t24() {
 
-        var client = userRepository.findByUsername("client1")
+        val client = userRepository.findByUsername("client1")
                 .orElseThrow()
 
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
         // 모집 마감 시간이 이미 지난 매칭 공고 생성
-        var expiredMatchedPost = Post.builder()
+        val expiredMatchedPost = Post.builder()
                 .client(client)
                 .title("모집 마감 지난 공고")
                 .content("모집 마감 후 동행인 취소 테스트")
@@ -1858,7 +1858,7 @@ class ApplicationControllerTest {
         postRepository.save(expiredMatchedPost)
 
         // 이미 승인된 지원 생성
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(expiredMatchedPost)
                 .escort(escort)
                 .build()
@@ -1867,14 +1867,14 @@ class ApplicationControllerTest {
         applicationRepository.save(application)
 
         // 취소 전 노쇼 횟수
-        var escortProfile = escortProfileRepository
+        val escortProfile = escortProfileRepository
                 .findById(escort.id)
                 .orElseThrow()
 
-        var beforeNoShowCount = escortProfile.noShowCount
+        val beforeNoShowCount = escortProfile.noShowCount
 
         // 승인된 동행인이 취소
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/cancel",
                         application.id)
                         .cookie(escortAccessTokenCookie)
@@ -1889,17 +1889,17 @@ class ApplicationControllerTest {
                         .value("지원 취소가 완료되었습니다."))
 
         // 취소 후 지원 확인
-        var canceledApplication = applicationRepository
+        val canceledApplication = applicationRepository
                 .findById(application.id!!)
                 .orElseThrow()
 
         // 취소 후 공고 확인
-        var canceledPost = postRepository
+        val canceledPost = postRepository
                 .findById(expiredMatchedPost.id!!)
                 .orElseThrow()
 
         // 취소 후 동행인 프로필 확인
-        var updatedEscortProfile = escortProfileRepository
+        val updatedEscortProfile = escortProfileRepository
                 .findById(escort.id)
                 .orElseThrow()
 
@@ -1936,12 +1936,12 @@ class ApplicationControllerTest {
                 )
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 다른 동행인 생성
-        var otherEscort = User(
+        val otherEscort = User(
                 "escort2",
                 passwordEncoder.encode("testPassword"),
                 "escort2@test.com",
@@ -1956,7 +1956,7 @@ class ApplicationControllerTest {
         userRepository.save(otherEscort)
 
         // 다른 동행인 로그인
-        var otherEscortAccessTokenCookie = mvc.perform(
+        val otherEscortAccessTokenCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
                                 .contentType("application/json")
                                 .content("""
@@ -1971,7 +1971,7 @@ class ApplicationControllerTest {
                 .getCookie("accessToken")!!
 
         // 다른 동행인이 escort1의 지원을 취소 시도
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/cancel",
                         application.id)
                         .cookie(otherEscortAccessTokenCookie)
@@ -1986,7 +1986,7 @@ class ApplicationControllerTest {
                         .value("본인이 지원한 내역만 취소할 수 있습니다."))
 
         // 취소되지 않고 기존 PENDING 상태 유지
-        var unchangedApplication = applicationRepository
+        val unchangedApplication = applicationRepository
                 .findById(application.id!!)
                 .orElseThrow()
 
@@ -2007,7 +2007,7 @@ class ApplicationControllerTest {
                 )
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
@@ -2020,7 +2020,7 @@ class ApplicationControllerTest {
                 .andExpect(status().isOk())
 
         // 같은 지원을 다시 취소
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/cancel",
                         application.id)
                         .cookie(escortAccessTokenCookie)
@@ -2035,7 +2035,7 @@ class ApplicationControllerTest {
                         .value("취소할 수 없는 지원 상태입니다."))
 
         // 상태는 그대로 CANCELED
-        var canceledApplication = applicationRepository
+        val canceledApplication = applicationRepository
                 .findById(application.id!!)
                 .orElseThrow()
 
@@ -2049,9 +2049,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 취소 - 존재하지 않는 지원 취소 시 404 반환")
     fun t27() {
 
-        var notExistingApplicationId = 999L
+        val notExistingApplicationId = 999L
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/cancel",
                         notExistingApplicationId)
                         .cookie(escortAccessTokenCookie)
@@ -2070,13 +2070,13 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 동행 진행 상태 변경 - 전체 진행 순서 정상 기록")
     fun t28() {
 
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort)
                 .build()
@@ -2086,7 +2086,7 @@ class ApplicationControllerTest {
 
         applicationRepository.save(application)
 
-        var progressList = listOf(
+        val progressList = listOf(
                 EscortProgress.DEPARTED,
                 EscortProgress.TO_HOSPITAL,
                 EscortProgress.AT_HOSPITAL,
@@ -2114,7 +2114,7 @@ class ApplicationControllerTest {
 
         // 모든 진행 단계가 실제로 저장됐는지 확인
         for (progress in progressList) {
-            var savedProgress = escortProgressLogRepository
+            val savedProgress = escortProgressLogRepository
                     .findByApplicationAndProgress(application, progress)
                     .orElseThrow()
                     .progress
@@ -2123,7 +2123,7 @@ class ApplicationControllerTest {
         }
 
         // 마지막 진행 상태가 ARRIVED_HOME인지 확인
-        var latestProgress = escortProgressLogRepository
+        val latestProgress = escortProgressLogRepository
                 .findTopByApplicationOrderByOccurredAtDescIdDesc(application)
                 .orElseThrow()
                 .progress
@@ -2133,7 +2133,7 @@ class ApplicationControllerTest {
                 latestProgress
         )
 
-        var progressedPost = postRepository
+        val progressedPost = postRepository
                 .findById(testPostId)
                 .orElseThrow()
 
@@ -2142,7 +2142,7 @@ class ApplicationControllerTest {
                 progressedPost.postStatus
         )
 
-        var departedAt = escortProgressLogRepository
+        val departedAt = escortProgressLogRepository
                 .findByApplicationAndProgress(
                         application,
                         EscortProgress.DEPARTED
@@ -2160,13 +2160,13 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 동행 진행 상태 변경 - 순서 건너뛰기 시 400 반환")
     fun t29() {
 
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort)
                 .build()
@@ -2176,7 +2176,7 @@ class ApplicationControllerTest {
 
         applicationRepository.save(application)
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/progress",
                         application.id)
                         .cookie(escortAccessTokenCookie)
@@ -2199,13 +2199,13 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 동행 진행 상태 변경 - 다른 동행인이 변경 시 403 반환")
     fun t30() {
 
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
-        var escort1 = userRepository.findByUsername("escort1")
+        val escort1 = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort1)
                 .build()
@@ -2216,7 +2216,7 @@ class ApplicationControllerTest {
         applicationRepository.save(application)
 
         // 다른 동행인 생성
-        var escort2 = User(
+        val escort2 = User(
                 "escort2",
                 passwordEncoder.encode("testPassword"),
                 "escort2@test.com",
@@ -2230,7 +2230,7 @@ class ApplicationControllerTest {
 
         userRepository.save(escort2)
 
-        var escort2AccessTokenCookie = mvc.perform(
+        val escort2AccessTokenCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
                                 .contentType("application/json")
                                 .content("""
@@ -2244,7 +2244,7 @@ class ApplicationControllerTest {
                 .getResponse()
                 .getCookie("accessToken")!!
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/progress",
                         application.id)
                         .cookie(escort2AccessTokenCookie)
@@ -2267,20 +2267,20 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 동행 진행 상태 변경 - PENDING 상태에서 변경 시 400 반환")
     fun t31() {
 
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort)
                 .build()
 
         applicationRepository.save(application)
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/progress",
                         application.id)
                         .cookie(escortAccessTokenCookie)
@@ -2303,13 +2303,13 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 동행 진행 상태 변경 - 동행 완료 후 변경 시 400 반환")
     fun t32() {
 
-        var post = postRepository.findById(testPostId)
+        val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort)
                 .build()
@@ -2319,7 +2319,7 @@ class ApplicationControllerTest {
 
         applicationRepository.save(application)
 
-        var progressList = listOf(
+        val progressList = listOf(
                 EscortProgress.DEPARTED,
                 EscortProgress.TO_HOSPITAL,
                 EscortProgress.AT_HOSPITAL,
@@ -2344,7 +2344,7 @@ class ApplicationControllerTest {
         }
 
         // 이미 귀가 완료된 뒤 다시 상태 변경 시도
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/progress",
                         application.id)
                         .cookie(escortAccessTokenCookie)
@@ -2376,12 +2376,12 @@ class ApplicationControllerTest {
                 .andExpect(status().isCreated())
 
         // 생성된 지원 조회
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 의뢰인이 지원자의 프로필 조회
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 get("/api/v1/applications/{applicationId}/escort-profile",
                         application.id)
                         .cookie(clientAccessTokenCookie)
@@ -2416,12 +2416,12 @@ class ApplicationControllerTest {
                 )
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
         // 다른 의뢰인 생성
-        var otherClient = User(
+        val otherClient = User(
                 "client2",
                 passwordEncoder.encode("testPassword"),
                 "client2@test.com",
@@ -2436,7 +2436,7 @@ class ApplicationControllerTest {
         userRepository.save(otherClient)
 
         // 다른 의뢰인 로그인
-        var otherClientAccessTokenCookie = mvc.perform(
+        val otherClientAccessTokenCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
                                 .contentType("application/json")
                                 .content("""
@@ -2451,7 +2451,7 @@ class ApplicationControllerTest {
                 .getCookie("accessToken")!!
 
         // 다른 의뢰인이 지원자 프로필 조회 시도
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 get("/api/v1/applications/{applicationId}/escort-profile",
                         application.id)
                         .cookie(otherClientAccessTokenCookie)
@@ -2468,9 +2468,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원자 프로필 조회 - 존재하지 않는 지원 조회 시 404 반환")
     fun t35() {
 
-        var notExistingApplicationId = 999L
+        val notExistingApplicationId = 999L
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 get("/api/v1/applications/{applicationId}/escort-profile",
                         notExistingApplicationId)
                         .cookie(clientAccessTokenCookie)
@@ -2490,7 +2490,7 @@ class ApplicationControllerTest {
     fun t36() {
 
         // 교육을 이수하지 않은 동행인 생성
-        var unverifiedEscort = User(
+        val unverifiedEscort = User(
                 "escort9",
                 passwordEncoder.encode("testPassword"),
                 "escort9@test.com",
@@ -2506,7 +2506,7 @@ class ApplicationControllerTest {
                 unverifiedEscort, "미이수", "오픈은행", "미이수동행인", "999-9999"
         ))
 
-        var unverifiedCookie = mvc.perform(
+        val unverifiedCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
                                 .contentType("application/json")
                                 .content("""
@@ -2520,7 +2520,7 @@ class ApplicationControllerTest {
                 .getResponse()
                 .getCookie("accessToken")!!
 
-        var resultActions = mvc
+        val resultActions = mvc
                 .perform(mvcPost("/api/v1/applications/{postId}", testPostId)
                         .cookie(unverifiedCookie))
                 .andDo(print())
@@ -2539,10 +2539,10 @@ class ApplicationControllerTest {
      */
     private fun savePost(title: String): Post {
 
-        var client = userRepository.findByUsername("client1")
+        val client = userRepository.findByUsername("client1")
                 .orElseThrow()
 
-        var post = Post.builder()
+        val post = Post.builder()
                 .client(client)
                 .title(title)
                 .content("결제 상태별 승인 테스트")
@@ -2583,7 +2583,7 @@ class ApplicationControllerTest {
     /** 교육까지 이수한 동행인을 추가로 만들고 로그인 쿠키를 돌려준다. */
     private fun saveEscort(username: String): Cookie {
 
-        var escort = User(
+        val escort = User(
                 username,
                 passwordEncoder.encode("testPassword"),
                 username + "@test.com",
@@ -2597,7 +2597,7 @@ class ApplicationControllerTest {
 
         userRepository.save(escort)
 
-        var escortProfile = escortProfileRepository.save(EscortProfile(
+        val escortProfile = escortProfileRepository.save(EscortProfile(
                 escort,
                 username + " 입니다.",
                 "오픈은행",
@@ -2627,7 +2627,7 @@ class ApplicationControllerTest {
     fun t37() {
 
         // 공고 등록 직후와 같은 상태 — 아직 내지 않은 결제 1건
-        var unpaidPost = savePost("결제 전 공고")
+        val unpaidPost = savePost("결제 전 공고")
         savePayment(unpaidPost, PaymentStatus.READY)
 
         // 지원은 허용된다. apply 는 결제 상태를 보지 않는다
@@ -2637,12 +2637,12 @@ class ApplicationControllerTest {
                 .andDo(print())
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(unpaidPost.id)
                 .get(0)
 
         // 승인은 막힌다
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/accept", application.id)
                         .cookie(clientAccessTokenCookie)
         ).andDo(print())
@@ -2672,7 +2672,7 @@ class ApplicationControllerTest {
 
         // 결제를 취소하면 백엔드가 원래 결제를 CANCELED 로 바꾸고
         // 같은 금액의 READY 결제를 새로 만들어 둔다(Payment.cancelPayment). 그 상태를 그대로 만든다.
-        var canceledPaymentPost = savePost("결제 취소된 공고")
+        val canceledPaymentPost = savePost("결제 취소된 공고")
         savePayment(canceledPaymentPost, PaymentStatus.CANCELED)
         savePayment(canceledPaymentPost, PaymentStatus.READY)
 
@@ -2686,11 +2686,11 @@ class ApplicationControllerTest {
                         .cookie(escortAccessTokenCookie))
                 .andExpect(status().isCreated())
 
-        var application = applicationRepository
+        val application = applicationRepository
                 .findAllByPostIdWithEscort(canceledPaymentPost.id)
                 .get(0)
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/accept", application.id)
                         .cookie(clientAccessTokenCookie)
         ).andDo(print())
@@ -2718,7 +2718,7 @@ class ApplicationControllerTest {
                         .cookie(escortAccessTokenCookie))
                 .andExpect(status().isCreated())
 
-        var firstApplication = applicationRepository
+        val firstApplication = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .get(0)
 
@@ -2737,14 +2737,14 @@ class ApplicationControllerTest {
         )
 
         // 두 번째 동행인이 같은 공고에 지원
-        var secondEscortCookie = saveEscort("escort7")
+        val secondEscortCookie = saveEscort("escort7")
 
         mvc.perform(mvcPost("/api/v1/applications/{postId}", testPostId)
                         .cookie(secondEscortCookie))
                 .andDo(print())
                 .andExpect(status().isCreated())
 
-        var secondApplication = applicationRepository
+        val secondApplication = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .stream()
                 .filter { application -> application.escort!!.username.equals("escort7") }
@@ -2753,7 +2753,7 @@ class ApplicationControllerTest {
 
         // 재매칭 — 승인까지 성공해야 한다
         // (acceptedPostId 가 unique 라서, 노쇼 처리가 그 값을 비우지 않으면 여기서 제약 위반으로 막힌다)
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 patch("/api/v1/applications/{applicationId}/accept", secondApplication.id)
                         .cookie(clientAccessTokenCookie)
         ).andDo(print())
@@ -2765,7 +2765,7 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.statusCode").value("200-22"))
                 .andExpect(jsonPath("$.msg").value("지원 승인이 완료되었습니다."))
 
-        var rematched = applicationRepository
+        val rematched = applicationRepository
                 .findById(secondApplication.id!!)
                 .orElseThrow()
 
@@ -2779,7 +2779,7 @@ class ApplicationControllerTest {
         )
 
         // 노쇼 처리된 첫 번째 지원은 그대로 남는다
-        var noShowApplication = applicationRepository
+        val noShowApplication = applicationRepository
                 .findById(firstApplication.id!!)
                 .orElseThrow()
 
@@ -2791,14 +2791,14 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 취소 - 모집 마감 후 노쇼면 공고가 취소되어 재매칭 불가")
     fun t40() {
 
-        var client = userRepository.findByUsername("client1")
+        val client = userRepository.findByUsername("client1")
                 .orElseThrow()
 
-        var escort = userRepository.findByUsername("escort1")
+        val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
         // 모집 마감 시간이 이미 지난 매칭 공고
-        var expiredMatchedPost = Post.builder()
+        val expiredMatchedPost = Post.builder()
                 .client(client)
                 .title("모집 마감 지난 매칭 공고")
                 .content("모집 마감 후 노쇼 재매칭 테스트")
@@ -2823,7 +2823,7 @@ class ApplicationControllerTest {
         postRepository.save(expiredMatchedPost)
         savePayment(expiredMatchedPost, PaymentStatus.DONE)
 
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(expiredMatchedPost)
                 .escort(escort)
                 .build()
@@ -2842,9 +2842,9 @@ class ApplicationControllerTest {
         )
 
         // 다른 동행인은 지원부터 막힌다 — 재매칭되지 않는다
-        var secondEscortCookie = saveEscort("escort8")
+        val secondEscortCookie = saveEscort("escort8")
 
-        var resultActions = mvc.perform(
+        val resultActions = mvc.perform(
                 mvcPost("/api/v1/applications/{postId}", expiredMatchedPost.id)
                         .cookie(secondEscortCookie)
         ).andDo(print())

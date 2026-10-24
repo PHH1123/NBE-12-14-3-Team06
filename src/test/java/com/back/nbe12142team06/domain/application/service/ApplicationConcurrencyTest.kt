@@ -115,7 +115,7 @@ class ApplicationConcurrencyTest {
         // 지원 데이터 삭제
         applicationRepository.deleteAll()
 
-        var seq = TEST_SEQUENCE.incrementAndGet()
+        val seq = TEST_SEQUENCE.incrementAndGet()
 
         var client = User(
                 "concurrencyClient" + seq,
@@ -149,7 +149,7 @@ class ApplicationConcurrencyTest {
 
         saveVerifiedProfile(escort, "1234")
 
-        var post = Post.builder()
+        val post = Post.builder()
                 .client(client)
                 .title("동시성 테스트 공고")
                 .content("동시 지원 테스트")
@@ -209,15 +209,15 @@ class ApplicationConcurrencyTest {
     @DisplayName("동일한 동행인이 같은 공고에 동시에 지원")
     fun concurrentApply() {
 
-        var threadCount = 10
+        val threadCount = 10
 
-        var executorService = Executors.newFixedThreadPool(threadCount)
+        val executorService = Executors.newFixedThreadPool(threadCount)
 
-        var readyLatch = CountDownLatch(threadCount)
+        val readyLatch = CountDownLatch(threadCount)
 
-        var startLatch = CountDownLatch(1)
+        val startLatch = CountDownLatch(1)
 
-        var doneLatch = CountDownLatch(threadCount)
+        val doneLatch = CountDownLatch(threadCount)
 
         for (i in 0 until threadCount) {
 
@@ -253,7 +253,7 @@ class ApplicationConcurrencyTest {
         // 모든 요청 종료까지 대기
         doneLatch.await()
 
-        var count = applicationRepository.count()
+        val count = applicationRepository.count()
 
         System.out.println("저장된 지원 개수 = " + count)
 
@@ -266,7 +266,7 @@ class ApplicationConcurrencyTest {
     @DisplayName("같은 공고의 서로 다른 지원자를 동시에 승인")
     fun concurrentAccept() {
 
-        var seq = TEST_SEQUENCE.incrementAndGet()
+        val seq = TEST_SEQUENCE.incrementAndGet()
 
         var escort2 = User(
                 "concurrencyEscort2_" + seq,
@@ -285,10 +285,10 @@ class ApplicationConcurrencyTest {
         saveVerifiedProfile(escort2, "5678")
 
         // 기존 동행인 조회
-        var escort1 = userRepository.findById(escortId)
+        val escort1 = userRepository.findById(escortId)
                 .orElseThrow()
 
-        var post = postRepository.findById(postId)
+        val post = postRepository.findById(postId)
                 .orElseThrow()
 
         // 같은 공고에 서로 다른 동행인 2명이 지원한 상태 생성
@@ -305,16 +305,16 @@ class ApplicationConcurrencyTest {
         application1 = applicationRepository.save(application1)
         application2 = applicationRepository.save(application2)
 
-        var applicationId1 = application1.id
-        var applicationId2 = application2.id
+        val applicationId1 = application1.id
+        val applicationId2 = application2.id
 
-        var executorService = Executors.newFixedThreadPool(2)
+        val executorService = Executors.newFixedThreadPool(2)
 
-        var readyLatch = CountDownLatch(2)
+        val readyLatch = CountDownLatch(2)
 
-        var startLatch = CountDownLatch(1)
+        val startLatch = CountDownLatch(1)
 
-        var doneLatch = CountDownLatch(2)
+        val doneLatch = CountDownLatch(2)
 
         // 지원자 1 승인
         executorService.submit(Runnable {
@@ -378,10 +378,10 @@ class ApplicationConcurrencyTest {
         doneLatch.await()
 
         // 최종 DB 상태 확인
-        var resultPost = postRepository.findById(postId)
+        val resultPost = postRepository.findById(postId)
                 .orElseThrow()
 
-        var acceptedCount = applicationRepository
+        val acceptedCount = applicationRepository
                         .findAllByPostAndStatus(
                                 resultPost,
                                 ApplicationStatus.ACCEPTED
@@ -402,10 +402,10 @@ class ApplicationConcurrencyTest {
     fun concurrentAcceptAndCancel() {
 
         // 테스트용 지원 1건 생성
-        var escort = userRepository.findById(escortId)
+        val escort = userRepository.findById(escortId)
                 .orElseThrow()
 
-        var post = postRepository.findById(postId)
+        val post = postRepository.findById(postId)
                 .orElseThrow()
 
         var application = Application.builder()
@@ -415,15 +415,15 @@ class ApplicationConcurrencyTest {
 
         application = applicationRepository.save(application)
 
-        var applicationId = application.id
+        val applicationId = application.id
 
-        var executorService = Executors.newFixedThreadPool(2)
+        val executorService = Executors.newFixedThreadPool(2)
 
-        var readyLatch = CountDownLatch(2)
+        val readyLatch = CountDownLatch(2)
 
-        var startLatch = CountDownLatch(1)
+        val startLatch = CountDownLatch(1)
 
-        var doneLatch = CountDownLatch(2)
+        val doneLatch = CountDownLatch(2)
 
         // 승인 요청
         executorService.submit(Runnable {
@@ -483,10 +483,10 @@ class ApplicationConcurrencyTest {
 
         doneLatch.await()
 
-        var resultApplication = applicationRepository.findById(applicationId!!)
+        val resultApplication = applicationRepository.findById(applicationId!!)
                         .orElseThrow()
 
-        var resultPost = postRepository.findById(postId)
+        val resultPost = postRepository.findById(postId)
                         .orElseThrow()
 
         System.out.println(
@@ -515,7 +515,7 @@ class ApplicationConcurrencyTest {
          *    Post = MATCHED
          */
 
-        var validState = (resultApplication.status == ApplicationStatus.CANCELED
+        val validState = (resultApplication.status == ApplicationStatus.CANCELED
                         && resultPost.postStatus == PostStatus.OPEN)
 
                         || (resultApplication.status == ApplicationStatus.NO_SHOW
@@ -536,10 +536,10 @@ class ApplicationConcurrencyTest {
     @DisplayName("같은 진행 상태 변경 요청이 동시에 들어오면 중복 로그가 생성되지 않아야 한다")
     fun concurrentProgressUpdate() {
 
-        var escort = userRepository.findById(escortId)
+        val escort = userRepository.findById(escortId)
                 .orElseThrow()
 
-        var post = postRepository.findById(postId)
+        val post = postRepository.findById(postId)
                 .orElseThrow()
 
         var application = Application.builder()
@@ -554,15 +554,15 @@ class ApplicationConcurrencyTest {
         post.match()
         postRepository.save(post)
 
-        var applicationId = application.id
+        val applicationId = application.id
 
-        var executorService = Executors.newFixedThreadPool(2)
+        val executorService = Executors.newFixedThreadPool(2)
 
-        var readyLatch = CountDownLatch(2)
+        val readyLatch = CountDownLatch(2)
 
-        var startLatch = CountDownLatch(1)
+        val startLatch = CountDownLatch(1)
 
-        var doneLatch = CountDownLatch(2)
+        val doneLatch = CountDownLatch(2)
 
         for (i in 0 until 2) {
 
@@ -597,7 +597,7 @@ class ApplicationConcurrencyTest {
         startLatch.countDown()
         doneLatch.await()
 
-        var progressLogCount = escortProgressLogRepository.count()
+        val progressLogCount = escortProgressLogRepository.count()
 
         System.out.println(
                 "저장된 진행 로그 개수 = " + progressLogCount
@@ -612,9 +612,9 @@ class ApplicationConcurrencyTest {
     @DisplayName("서로 다른 공고에서 같은 동행인을 동시에 승인")
     fun concurrentAcceptSameEscortDifferentPosts() {
 
-        var client = userRepository.findById(clientId).orElseThrow()
-        var escort = userRepository.findById(escortId).orElseThrow()
-        var post1 = postRepository.findById(postId).orElseThrow()
+        val client = userRepository.findById(clientId).orElseThrow()
+        val escort = userRepository.findById(escortId).orElseThrow()
+        val post1 = postRepository.findById(postId).orElseThrow()
 
         // 기존 공고와 시간이 겹치는 두 번째 공고
         var post2 = Post.builder()
@@ -643,30 +643,30 @@ class ApplicationConcurrencyTest {
         // 두 번째 공고도 결제 완료 상태로 설정
         saveDonePayment(post2)
 
-        var application1 = applicationRepository.save(
+        val application1 = applicationRepository.save(
                 Application.builder()
                         .post(post1)
                         .escort(escort)
                         .build())
 
-        var application2 = applicationRepository.save(
+        val application2 = applicationRepository.save(
                 Application.builder()
                         .post(post2)
                         .escort(escort)
                         .build())
 
-        var applicationId1 = application1.id
-        var applicationId2 = application2.id
+        val applicationId1 = application1.id
+        val applicationId2 = application2.id
 
-        var executor = Executors.newFixedThreadPool(2)
-        var readyLatch = CountDownLatch(2)
-        var startLatch = CountDownLatch(1)
-        var doneLatch = CountDownLatch(2)
+        val executor = Executors.newFixedThreadPool(2)
+        val readyLatch = CountDownLatch(2)
+        val startLatch = CountDownLatch(1)
+        val doneLatch = CountDownLatch(2)
 
-        var successCount = AtomicInteger()
-        var failureCount = AtomicInteger()
-        var conflictCount = AtomicInteger()
-        var unexpectedCount = AtomicInteger()
+        val successCount = AtomicInteger()
+        val failureCount = AtomicInteger()
+        val conflictCount = AtomicInteger()
+        val unexpectedCount = AtomicInteger()
 
         for (applicationId in arrayOf(applicationId1, applicationId2)) {
             executor.submit(Runnable {
@@ -708,7 +708,7 @@ class ApplicationConcurrencyTest {
                     "승인 요청이 제한 시간 내에 종료되지 않았습니다."
             )
 
-            var acceptedCount = applicationRepository
+            val acceptedCount = applicationRepository
                     .findAllByEscortAndStatus(
                             escort,
                             ApplicationStatus.ACCEPTED
@@ -734,28 +734,28 @@ class ApplicationConcurrencyTest {
     fun concurrentAcceptAndBan() {
 
         // given: 승인 대기 중인 지원 생성
-        var escort = userRepository.findById(escortId)
+        val escort = userRepository.findById(escortId)
                 .orElseThrow()
 
-        var post = postRepository.findById(postId)
+        val post = postRepository.findById(postId)
                 .orElseThrow()
 
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort)
                 .build()
 
-        var applicationId = applicationRepository.saveAndFlush(application).id
+        val applicationId = applicationRepository.saveAndFlush(application).id
 
-        var executor = Executors.newFixedThreadPool(2)
+        val executor = Executors.newFixedThreadPool(2)
 
-        var readyLatch = CountDownLatch(2)
-        var startLatch = CountDownLatch(1)
-        var doneLatch = CountDownLatch(2)
+        val readyLatch = CountDownLatch(2)
+        val startLatch = CountDownLatch(1)
+        val doneLatch = CountDownLatch(2)
 
-        var acceptError = java.util.concurrent.atomic.AtomicReference<Throwable>()
+        val acceptError = java.util.concurrent.atomic.AtomicReference<Throwable>()
 
-        var suspendError = java.util.concurrent.atomic.AtomicReference<Throwable>()
+        val suspendError = java.util.concurrent.atomic.AtomicReference<Throwable>()
 
         try {
             // 요청 1: 의뢰인이 지원 승인
@@ -800,14 +800,14 @@ class ApplicationConcurrencyTest {
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
             // then: 최종 DB 상태 확인
-            var resultEscort = userRepository.findById(escortId)
+            val resultEscort = userRepository.findById(escortId)
                     .orElseThrow()
 
-            var resultApplication = applicationRepository
+            val resultApplication = applicationRepository
                     .findById(applicationId!!)
                     .orElseThrow()
 
-            var resultPost = postRepository.findById(postId)
+            val resultPost = postRepository.findById(postId)
                     .orElseThrow()
 
             System.out.println("승인 예외 = " + acceptError.get())
@@ -817,7 +817,7 @@ class ApplicationConcurrencyTest {
             System.out.println("공고 상태 = " + resultPost.postStatus)
 
             // 정상적인 충돌 예외 외의 DB 오류는 허용하지 않음
-            var error = acceptError.get()
+            val error = acceptError.get()
             assertTrue(error == null
                             || error is ForbiddenException
                             || error is InvalidException,
@@ -850,25 +850,25 @@ class ApplicationConcurrencyTest {
     @DisplayName("지원 승인과 동행매니저 탈퇴가 동시에 발생해도 상태가 일치한다")
     fun concurrentAcceptAndWithdraw() {
 
-        var escort = userRepository.findById(escortId).orElseThrow()
-        var post = postRepository.findById(postId).orElseThrow()
+        val escort = userRepository.findById(escortId).orElseThrow()
+        val post = postRepository.findById(postId).orElseThrow()
 
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort)
                 .build()
 
-        var applicationId = applicationRepository.saveAndFlush(application).id
+        val applicationId = applicationRepository.saveAndFlush(application).id
 
-        var executor = Executors.newFixedThreadPool(2)
+        val executor = Executors.newFixedThreadPool(2)
 
-        var readyLatch = CountDownLatch(2)
-        var startLatch = CountDownLatch(1)
-        var doneLatch = CountDownLatch(2)
+        val readyLatch = CountDownLatch(2)
+        val startLatch = CountDownLatch(1)
+        val doneLatch = CountDownLatch(2)
 
-        var acceptError = java.util.concurrent.atomic.AtomicReference<Throwable>()
+        val acceptError = java.util.concurrent.atomic.AtomicReference<Throwable>()
 
-        var withdrawError = java.util.concurrent.atomic.AtomicReference<Throwable>()
+        val withdrawError = java.util.concurrent.atomic.AtomicReference<Throwable>()
 
         try {
             executor.submit(Runnable {
@@ -903,15 +903,15 @@ class ApplicationConcurrencyTest {
             assertTrue(doneLatch.await(20, TimeUnit.SECONDS),
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
-            var resultEscort = userRepository
+            val resultEscort = userRepository
                     .findByIdIncludingDeleted(escortId)
                     .orElseThrow()
 
-            var resultApplication = applicationRepository
+            val resultApplication = applicationRepository
                     .findById(applicationId!!)
                     .orElseThrow()
 
-            var resultPost = postRepository
+            val resultPost = postRepository
                     .findById(postId)
                     .orElseThrow()
 
@@ -953,25 +953,25 @@ class ApplicationConcurrencyTest {
     @DisplayName("지원 승인과 공고 취소가 동시에 발생해도 상태가 일치한다")
     fun concurrentAcceptAndPostCancel() {
 
-        var escort = userRepository.findById(escortId).orElseThrow()
-        var post = postRepository.findById(postId).orElseThrow()
+        val escort = userRepository.findById(escortId).orElseThrow()
+        val post = postRepository.findById(postId).orElseThrow()
 
-        var application = Application.builder()
+        val application = Application.builder()
                 .post(post)
                 .escort(escort)
                 .build()
 
-        var applicationId = applicationRepository.saveAndFlush(application).id
+        val applicationId = applicationRepository.saveAndFlush(application).id
 
-        var executor = Executors.newFixedThreadPool(2)
+        val executor = Executors.newFixedThreadPool(2)
 
-        var readyLatch = CountDownLatch(2)
-        var startLatch = CountDownLatch(1)
-        var doneLatch = CountDownLatch(2)
+        val readyLatch = CountDownLatch(2)
+        val startLatch = CountDownLatch(1)
+        val doneLatch = CountDownLatch(2)
 
-        var acceptError = java.util.concurrent.atomic.AtomicReference<Throwable>()
+        val acceptError = java.util.concurrent.atomic.AtomicReference<Throwable>()
 
-        var cancelError = java.util.concurrent.atomic.AtomicReference<Throwable>()
+        val cancelError = java.util.concurrent.atomic.AtomicReference<Throwable>()
 
         try {
             // 요청 1: 의뢰인이 지원 승인
@@ -1008,11 +1008,11 @@ class ApplicationConcurrencyTest {
             assertTrue(doneLatch.await(20, TimeUnit.SECONDS),
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
-            var resultApplication = applicationRepository
+            val resultApplication = applicationRepository
                     .findById(applicationId!!)
                     .orElseThrow()
 
-            var resultPost = postRepository
+            val resultPost = postRepository
                     .findById(postId)
                     .orElseThrow()
 
@@ -1032,7 +1032,7 @@ class ApplicationConcurrencyTest {
                     resultApplication.status,
                     "공고가 취소됐는데 지원이 취소되지 않았습니다.")
 
-            var error = acceptError.get()
+            val error = acceptError.get()
 
             assertTrue(error == null
                             || error is InvalidException
@@ -1049,13 +1049,13 @@ class ApplicationConcurrencyTest {
     @DisplayName("매칭 취소와 다른 지원자 승인 시도가 동시에 발생해도 상태가 일치한다")
     fun concurrentMatchedCancelAndAccept() {
 
-        var client = userRepository.findById(clientId).orElseThrow()
-        var escortA = userRepository.findById(escortId).orElseThrow()
-        var post = postRepository.findById(postId).orElseThrow()
+        val client = userRepository.findById(clientId).orElseThrow()
+        val escortA = userRepository.findById(escortId).orElseThrow()
+        val post = postRepository.findById(postId).orElseThrow()
 
-        var seq = TEST_SEQUENCE.incrementAndGet()
+        val seq = TEST_SEQUENCE.incrementAndGet()
 
-        var escortB = userRepository.save(User(
+        val escortB = userRepository.save(User(
                 "matchedCancelEscort" + seq,
                 passwordEncoder.encode("testPassword"),
                 "matchedCancelEscort" + seq + "@test.com",
@@ -1069,12 +1069,12 @@ class ApplicationConcurrencyTest {
 
         saveVerifiedProfile(escortB, "5678")
 
-        var appA = Application.builder()
+        val appA = Application.builder()
                 .post(post)
                 .escort(escortA)
                 .build()
 
-        var appB = Application.builder()
+        val appB = Application.builder()
                 .post(post)
                 .escort(escortB)
                 .build()
@@ -1083,20 +1083,20 @@ class ApplicationConcurrencyTest {
         appB.reject()
         post.match()
 
-        var appAId = applicationRepository.saveAndFlush(appA).id
-        var appBId = applicationRepository.saveAndFlush(appB).id
+        val appAId = applicationRepository.saveAndFlush(appA).id
+        val appBId = applicationRepository.saveAndFlush(appB).id
 
         postRepository.saveAndFlush(post)
 
-        var executor = Executors.newFixedThreadPool(2)
+        val executor = Executors.newFixedThreadPool(2)
 
-        var readyLatch = CountDownLatch(2)
-        var startLatch = CountDownLatch(1)
-        var doneLatch = CountDownLatch(2)
+        val readyLatch = CountDownLatch(2)
+        val startLatch = CountDownLatch(1)
+        val doneLatch = CountDownLatch(2)
 
-        var acceptError = java.util.concurrent.atomic.AtomicReference<Throwable>()
+        val acceptError = java.util.concurrent.atomic.AtomicReference<Throwable>()
 
-        var cancelError = java.util.concurrent.atomic.AtomicReference<Throwable>()
+        val cancelError = java.util.concurrent.atomic.AtomicReference<Throwable>()
 
         try {
             executor.submit(Runnable {
@@ -1131,13 +1131,13 @@ class ApplicationConcurrencyTest {
             assertTrue(doneLatch.await(20, TimeUnit.SECONDS),
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
-            var resultA = applicationRepository
+            val resultA = applicationRepository
                     .findById(appAId!!).orElseThrow()
 
-            var resultB = applicationRepository
+            val resultB = applicationRepository
                     .findById(appBId!!).orElseThrow()
 
-            var resultPost = postRepository
+            val resultPost = postRepository
                     .findById(postId).orElseThrow()
 
             System.out.println("승인 예외 = " + acceptError.get())
@@ -1171,9 +1171,9 @@ class ApplicationConcurrencyTest {
     @DisplayName("서로 다른 공고에서 지원 승인과 지원 취소가 동시에 발생해도 상태가 일치한다")
     fun concurrentAcceptAndCancelDifferentPosts() {
 
-        var client = userRepository.findById(clientId).orElseThrow()
-        var escort = userRepository.findById(escortId).orElseThrow()
-        var postA = postRepository.findById(postId).orElseThrow()
+        val client = userRepository.findById(clientId).orElseThrow()
+        val escort = userRepository.findById(escortId).orElseThrow()
+        val postA = postRepository.findById(postId).orElseThrow()
 
         // 공고 A와 동행 시간이 겹치는 공고 B 생성
         var postB = Post.builder()
@@ -1198,33 +1198,33 @@ class ApplicationConcurrencyTest {
                 .build()
 
         postB = postRepository.saveAndFlush(postB)
-        var postBId = postB.id
+        val postBId = postB.id
 
         // 공고 B 결제 완료
         saveDonePayment(postB)
 
-        var appA = Application.builder()
+        val appA = Application.builder()
                 .post(postA)
                 .escort(escort)
                 .build()
 
-        var appB = Application.builder()
+        val appB = Application.builder()
                 .post(postB)
                 .escort(escort)
                 .build()
 
-        var appAId = applicationRepository.saveAndFlush(appA).id
-        var appBId = applicationRepository.saveAndFlush(appB).id
+        val appAId = applicationRepository.saveAndFlush(appA).id
+        val appBId = applicationRepository.saveAndFlush(appB).id
 
-        var executor = Executors.newFixedThreadPool(2)
+        val executor = Executors.newFixedThreadPool(2)
 
-        var readyLatch = CountDownLatch(2)
-        var startLatch = CountDownLatch(1)
-        var doneLatch = CountDownLatch(2)
+        val readyLatch = CountDownLatch(2)
+        val startLatch = CountDownLatch(1)
+        val doneLatch = CountDownLatch(2)
 
-        var acceptError = java.util.concurrent.atomic.AtomicReference<Throwable>()
+        val acceptError = java.util.concurrent.atomic.AtomicReference<Throwable>()
 
-        var cancelError = java.util.concurrent.atomic.AtomicReference<Throwable>()
+        val cancelError = java.util.concurrent.atomic.AtomicReference<Throwable>()
 
         try {
             // 요청 1: 공고 A의 지원 승인
@@ -1261,16 +1261,16 @@ class ApplicationConcurrencyTest {
             assertTrue(doneLatch.await(20, TimeUnit.SECONDS),
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
-            var resultA = applicationRepository
+            val resultA = applicationRepository
                     .findById(appAId!!).orElseThrow()
 
-            var resultB = applicationRepository
+            val resultB = applicationRepository
                     .findById(appBId!!).orElseThrow()
 
-            var resultPostA = postRepository
+            val resultPostA = postRepository
                     .findById(postId).orElseThrow()
 
-            var resultPostB = postRepository
+            val resultPostB = postRepository
                     .findById(postBId!!).orElseThrow()
 
             System.out.println("승인 예외 = " + acceptError.get())

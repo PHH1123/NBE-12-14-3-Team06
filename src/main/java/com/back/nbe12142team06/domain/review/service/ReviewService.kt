@@ -25,23 +25,12 @@ import java.util.HashSet
 @Service
 @Transactional(readOnly = true) // 기본은 읽기 전용 트랜잭션으로 설정
 class ReviewService(
-    reviewRepository: ReviewRepository?,
-    applicationRepository: ApplicationRepository?,
-    userRepository: UserRepository?,
-    escortProfileRepository: EscortProfileRepository?,
-    noticeService: NoticeService?,
+    private val reviewRepository: ReviewRepository,
+    private val applicationRepository: ApplicationRepository,
+    private val userRepository: UserRepository,
+    private val escortProfileRepository: EscortProfileRepository,
+    private val noticeService: NoticeService,
 ) {
-    // 기존 Java 생성자는 의존성에 null을 전달해도 즉시 예외를 던지지 않는다.
-    private val reviewRepositoryRef = reviewRepository
-    private val reviewRepository get() = reviewRepositoryRef!!
-    private val applicationRepositoryRef = applicationRepository
-    private val applicationRepository get() = applicationRepositoryRef!!
-    private val userRepositoryRef = userRepository
-    private val userRepository get() = userRepositoryRef!!
-    private val escortProfileRepositoryRef = escortProfileRepository
-    private val escortProfileRepository get() = escortProfileRepositoryRef!!
-    private val noticeServiceRef = noticeService
-    private val noticeService get() = noticeServiceRef!!
 
     private val log = LoggerFactory.getLogger(ReviewService::class.java)
 
