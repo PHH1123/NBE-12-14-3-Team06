@@ -60,12 +60,12 @@ class PaymentService(
         try {
             payment = paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId)
         } catch (e: NotFoundException) {
-            cancel(userId, paymentId, PaymentCancelRequest("서버 에러 발생"))
             log.error("결제 승인 실패", e)
+            rollbackConfirm(paymentId, tossPaymentKey, tossOrderId)
             throw e
         } catch (ex: RuntimeException) {
-            cancel(userId, paymentId, PaymentCancelRequest("서버 에러 발생"))
             log.error("결제 승인 실패", ex)
+            rollbackConfirm(paymentId, tossPaymentKey, tossOrderId)
             throw InternalServerErrorException(41, "결제 승인 도중 서버 에러가 발생했습니다.")
         }
 
@@ -79,6 +79,12 @@ class PaymentService(
         )
 
         return payment
+    }
+
+    private fun rollbackConfirm(paymentId: Long, tossPaymentKey: String, amount: String) {
+        runCatching { tossPaymentClient.callApiCancel("결제 승인 중 서버 에러", tossPaymentKey, amount) }
+            .onFailure { log.error("승인 롤백 실패 - 수동 확인 필요, paymentId: {}", paymentId, it) }
+        paymentPersistenceService.failedConfirm(paymentId)
     }
 
     fun findAll(userId: Long): List<Payment> {
@@ -143,6 +149,10 @@ class PaymentService(
                     post.postStatus == PostStatus.EXPIRED)
         ) {
             throw InvalidException(46, "이미 종료된 동행이거나 매칭되었기 때문에 결제를 취소할 수 없습니다.")
+        }
+
+        if (paymentPersistenceService.cancelPreempt(paymentId) <= 0) {
+            throw InvalidException(44, "이미 취소된 결제입니다.")
         }
 
         val amount = payment.amount
