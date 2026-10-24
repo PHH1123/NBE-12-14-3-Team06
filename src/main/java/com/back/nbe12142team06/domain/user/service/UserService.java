@@ -72,22 +72,22 @@ public class UserService {
     @Transactional
     public User signUp(UserSignUpRequest request) {
         // Admin으로 가입 불가
-        if (request.role() == Role.ADMIN) {
+        if (request.getRole() == Role.ADMIN) {
             throw new InvalidException(1, "잘못된 요청입니다.");
         }
 
         // username 중복 검사
-        if (this.userRepository.existsByUsername(request.username())) {
+        if (this.userRepository.existsByUsername(request.getUsername())) {
             throw new DuplicatedException(DUPLICATED_USERNAME, "이미 사용 중인 아이디입니다.");
         }
 
-        String emailHash = this.blindIndexer.hashEmail(request.email());
+        String emailHash = this.blindIndexer.hashEmail(request.getEmail());
         // email 중복 검사
         if (this.userRepository.existsByEmailHash(emailHash)) {
             throw new DuplicatedException(DUPLICATED_EMAIL, "이미 사용 중인 이메일입니다.");
         }
 
-        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.phoneNum());
+        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.getPhoneNum());
         // phoneNum 중복 검사
         if (this.userRepository.existsByPhoneNumHash(phoneNumHash)) {
             throw new DuplicatedException(DUPLICATED_PHONE_NUM, "이미 사용 중인 전화번호입니다.");
@@ -95,15 +95,15 @@ public class UserService {
 
 
         User user = new User(
-                request.username(),
-                passwordEncoder.encode(request.password()), // 비밀번호 암호화
-                request.email(),
-                request.name(),
-                request.role(),
-                request.gender(),
-                request.birthDate(),
-                request.phoneNum(),
-                request.region()
+                request.getUsername(),
+                passwordEncoder.encode(request.getPassword()), // 비밀번호 암호화
+                request.getEmail(),
+                request.getName(),
+                request.getRole(),
+                request.getGender(),
+                request.getBirthDate(),
+                request.getPhoneNum(),
+                request.getRegion()
         );
 
 
