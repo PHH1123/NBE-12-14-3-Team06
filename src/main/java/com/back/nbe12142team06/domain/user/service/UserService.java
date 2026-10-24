@@ -72,22 +72,22 @@ public class UserService {
     @Transactional
     public User signUp(UserSignUpRequest request) {
         // Admin으로 가입 불가
-        if (request.role() == Role.ADMIN) {
+        if (request.getRole() == Role.ADMIN) {
             throw new InvalidException(1, "잘못된 요청입니다.");
         }
 
         // username 중복 검사
-        if (this.userRepository.existsByUsername(request.username())) {
+        if (this.userRepository.existsByUsername(request.getUsername())) {
             throw new DuplicatedException(DUPLICATED_USERNAME, "이미 사용 중인 아이디입니다.");
         }
 
-        String emailHash = this.blindIndexer.hashEmail(request.email());
+        String emailHash = this.blindIndexer.hashEmail(request.getEmail());
         // email 중복 검사
         if (this.userRepository.existsByEmailHash(emailHash)) {
             throw new DuplicatedException(DUPLICATED_EMAIL, "이미 사용 중인 이메일입니다.");
         }
 
-        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.phoneNum());
+        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.getPhoneNum());
         // phoneNum 중복 검사
         if (this.userRepository.existsByPhoneNumHash(phoneNumHash)) {
             throw new DuplicatedException(DUPLICATED_PHONE_NUM, "이미 사용 중인 전화번호입니다.");
@@ -95,15 +95,15 @@ public class UserService {
 
 
         User user = new User(
-                request.username(),
-                passwordEncoder.encode(request.password()), // 비밀번호 암호화
-                request.email(),
-                request.name(),
-                request.role(),
-                request.gender(),
-                request.birthDate(),
-                request.phoneNum(),
-                request.region()
+                request.getUsername(),
+                passwordEncoder.encode(request.getPassword()), // 비밀번호 암호화
+                request.getEmail(),
+                request.getName(),
+                request.getRole(),
+                request.getGender(),
+                request.getBirthDate(),
+                request.getPhoneNum(),
+                request.getRegion()
         );
 
 
@@ -192,18 +192,18 @@ public class UserService {
         User user = this.userRepository.findById(id)
                 .orElseThrow(() -> new UnauthorizedException(3, "회원 정보를 찾을 수 없습니다. 다시 로그인해주세요."));
 
-        String emailHash = this.blindIndexer.hashEmail(request.email());
-        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.phoneNum());
+        String emailHash = this.blindIndexer.hashEmail(request.getEmail());
+        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.getPhoneNum());
 
         validateDuplicatedEmailAndPhone(id, emailHash, phoneNumHash);
 
         user.updateUser(
-                passwordEncoder.encode(request.password()),
-                request.email(),
-                request.name(),
-                request.birthDate(),
-                request.phoneNum(),
-                request.region()
+                passwordEncoder.encode(request.getPassword()),
+                request.getEmail(),
+                request.getName(),
+                request.getBirthDate(),
+                request.getPhoneNum(),
+                request.getRegion()
         );
 
         return this.userRepository.save(user);
@@ -220,18 +220,18 @@ public class UserService {
             throw new InvalidException(2, "탈퇴한 회원의 정보는 수정할 수 없습니다.");
         }
 
-        String emailHash = this.blindIndexer.hashEmail(request.email());
-        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.phoneNum());
+        String emailHash = this.blindIndexer.hashEmail(request.getEmail());
+        String phoneNumHash = this.blindIndexer.hashPhoneNum(request.getPhoneNum());
 
         validateDuplicatedEmailAndPhone(userId, emailHash, phoneNumHash);
 
         user.updateUser(
                 user.getPassword(),   // 기존 비밀번호 해시 유지
-                request.email(),
-                request.name(),
-                request.birthDate(),
-                request.phoneNum(),
-                request.region()
+                request.getEmail(),
+                request.getName(),
+                request.getBirthDate(),
+                request.getPhoneNum(),
+                request.getRegion()
         );
         return this.userRepository.save(user);
     }
