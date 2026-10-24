@@ -26,9 +26,9 @@ public class NoShowPenaltyService {
     @Transactional
     public void noShow(Application application) {
         // 패널티 데이터 생성
-        NoShowPenalty noShowPenalty = NoShowPenalty.builder()
-                .application(application)
-                .build();
+        NoShowPenalty noShowPenalty = new NoShowPenalty(
+                null, null, null, NoShowPenaltyStatus.PENDING, application, null
+        );
 
         noShowPenaltyRepository.save(noShowPenalty);
         log.info("노쇼 데이터 생성 - NoShowPenaltyId: %s".formatted(noShowPenalty.getId()));
