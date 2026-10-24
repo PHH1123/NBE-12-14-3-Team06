@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.application.entity.Application
 import com.back.nbe12142team06.domain.notification.entity.NotificationContent
 import com.back.nbe12142team06.domain.notification.entity.NotificationUrl
 import com.back.nbe12142team06.domain.notification.service.NoticeService
+import com.back.nbe12142team06.domain.penalty.entity.NoShowPenalty
 import com.back.nbe12142team06.domain.penalty.service.NoShowPenaltyService
 import com.back.nbe12142team06.domain.settlement.client.SettlementClient
 import com.back.nbe12142team06.domain.settlement.client.SettlementClientRequest
@@ -194,15 +195,15 @@ class SettlementService(
         escort: User,
         settledDate: LocalDate
     ): Settlement {
-        var settlementAmount = payoutAmount.multiply(BigDecimal.valueOf(0.9))
+        var settlementAmount = payoutAmount.multiply(BigDecimal(0.9))
         val platformFee = payoutAmount.subtract(settlementAmount)
 
         // 패널티 적용해야 하는지 확인
-        val noShowPenalty = noShowPenaltyService.getNoShowPenalty(escort.id)
+        val noShowPenalty: NoShowPenalty? = noShowPenaltyService.getNoShowPenalty(escort.id)
 
         // 패널티 적용 시 정산 금액 차감
         var penaltyAmount = BigDecimal.ZERO
-        if (noShowPenalty.isPresent) {
+        noShowPenalty?.let {
             penaltyAmount = settlementAmount.multiply(BigDecimal.valueOf(0.1))
             settlementAmount = settlementAmount.subtract(penaltyAmount)
         }
@@ -219,10 +220,10 @@ class SettlementService(
         val savedSettlement = settlementRepository.save(settlement)
 
         // 패널티 데이터 업데이트
-        if (noShowPenalty.isPresent) {
+        noShowPenalty?.let {
             noShowPenaltyService.applyPenalty(
-                escort.id, penaltyAmount,
-                settlementAmount.add(penaltyAmount), settlement, noShowPenalty.get()
+                escortId = escort.id, penaltyAmount,
+                baseAmount = settlementAmount.add(penaltyAmount), settlement, noShowPenalty
             )
         }
 
