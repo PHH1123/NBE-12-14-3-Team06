@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -121,18 +122,15 @@ class ChatServiceTest {
     }
 
     private ChatRoom createChatRoom(User sender, Long id) {
-        return ChatRoom.builder()
-                .id(id)
-                .lastChatContent(sender.getName() + CREATE_ROOM_MESSAGE)
-                .lastChatSentAt(LocalDateTime.now())
-                .build();
+        return new ChatRoom(
+                id, sender.getName() + CREATE_ROOM_MESSAGE, LocalDateTime.now(), true, new ArrayList<>()
+        );
     }
 
     private ChatPart createChatPart(User user, ChatRoom chatRoom) {
-        return ChatPart.builder()
-                .user(user)
-                .chatRoom(chatRoom)
-                .build();
+        return new ChatPart(
+                null, user, chatRoom, user.getRole(), true, LocalDateTime.now()
+        );
     }
 
     @Test
@@ -145,7 +143,7 @@ class ChatServiceTest {
                 .when(userService).myProfile(client.getId());
         doReturn(escort)
                 .when(userService).myProfile(escort.getId());
-        doReturn(Optional.empty())
+        doReturn(null)
                 .when(chatRoomRepository).findByUser(any(), any());
         doAnswer(invocation -> invocation.getArgument(0))
                 .when(chatRoomRepository).save(any());
@@ -159,7 +157,7 @@ class ChatServiceTest {
 
         for (ChatPart chatPart : chatRoom.getChatParts()) {
             assertThat(chatPart.getChatRoom()).isEqualTo(chatRoom);
-            assertThat(chatPart.getIsActive()).isTrue();
+            assertThat(chatPart.isActive()).isTrue();
         }
     }
 
@@ -173,7 +171,7 @@ class ChatServiceTest {
                 .when(userService).myProfile(client1.getId());
         doReturn(client2)
                 .when(userService).myProfile(client2.getId());
-        doReturn(Optional.empty())
+        doReturn(null)
                 .when(chatRoomRepository).findByUser(any(), any());
         doAnswer(invocation -> invocation.getArgument(0))
                 .when(chatRoomRepository).save(any());
@@ -187,7 +185,7 @@ class ChatServiceTest {
 
         for (ChatPart chatPart : chatRoom.getChatParts()) {
             assertThat(chatPart.getChatRoom()).isEqualTo(chatRoom);
-            assertThat(chatPart.getIsActive()).isTrue();
+            assertThat(chatPart.isActive()).isTrue();
         }
     }
 
@@ -220,17 +218,20 @@ class ChatServiceTest {
         ChatPart escortChatPart = createChatPart(escort, chatRoom);
         ChatPart clientChatPart = createChatPart(client, chatRoom);
 
-        doReturn(Optional.of(escortChatPart))
-                .when(chatPartRepository).fetchJoinByUserIdAndChatRoomId(eq(escort.getId()), any());
-        doReturn(Optional.of(clientChatPart))
-                .when(chatPartRepository).fetchJoinByUserIdAndChatRoomId(eq(client.getId()), any());
+        doReturn(escortChatPart)
+                .when(chatPartRepository).fetchJoinByUserIdAndChatRoomId(eq(escort.getId()), anyLong());
+        doReturn(clientChatPart)
+                .when(chatPartRepository).fetchJoinByUserIdAndChatRoomId(eq(client.getId()), anyLong());
         doReturn(List.of(clientChatPart))
-                .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(escort.getId()), any());
+                .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(escort.getId()), anyLong());
         doReturn(List.of(escortChatPart))
-                .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(client.getId()), any());
+                .when(chatPartRepository).findByUserIdNotAndChatRoomId(eq(client.getId()), anyLong());
         doReturn(Optional.of(chatRoom))
-                .when(chatRoomRepository).findById(any());
-        doAnswer(invocation -> invocation.getArgument(0))
+                .when(chatRoomRepository).findById(anyLong());
+        doAnswer(invocation -> {
+            ChatMessage arg = invocation.getArgument(0);
+            return new ChatMessage(1L, arg.getChatPart(), arg.getContent(), arg.getSentAt(), arg.getType());
+        })
                 .when(chatMessageRepository).save(any());
 
         ChatMessage escortChatMessage = chatService.sendMessage(chatRoom.getId(), escort.getId(), ESCORT_CONTENT);

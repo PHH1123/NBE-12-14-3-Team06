@@ -2,7 +2,7 @@ package com.back.nbe12142team06.domain.payment.entity
 
 import com.back.nbe12142team06.domain.post.entity.Post
 import com.back.nbe12142team06.domain.settlement.entity.Settlement
-import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity
+import com.back.nbe12142team06.global.entity.BaseTimeEntity
 import com.back.nbe12142team06.global.exception.InvalidException
 import jakarta.persistence.*
 import jakarta.validation.constraints.DecimalMax
@@ -29,7 +29,7 @@ class Payment(
     paymentKey: String? = null,
     approvedAt: LocalDateTime? = null,
     balanceAmount: BigDecimal = BigDecimal.ZERO,
-) : BaseSoftDeleteTimeEntity() {
+) : BaseTimeEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = id
@@ -134,7 +134,6 @@ class Payment(
     fun cancelPayment(cancelReason: String): Payment {
         this.statusUpdate(PaymentStatus.CANCELED)
         this.balanceAmount = BigDecimal.ZERO
-        this.deletedAt = LocalDateTime.now()
         updateCanceledAt()
         this.cancelReason = cancelReason
         return Payment(

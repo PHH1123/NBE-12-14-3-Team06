@@ -179,7 +179,7 @@ class NoShowPenaltyServiceTest {
         em.flush();
 
         // 생성 직후에는 PENDING 이라 적용 대상으로 조회된다
-        NoShowPenalty pendingPenalty = noShowPenaltyService.getNoShowPenalty(escortId).orElseThrow();
+        NoShowPenalty pendingPenalty = noShowPenaltyService.getNoShowPenalty(escortId);
         assertThat(pendingPenalty.getStatus()).isEqualTo(NoShowPenaltyStatus.PENDING);
 
         Settlement settlement = settlementRepository.save(createSettlement(application, application.getEscort()));
@@ -196,7 +196,7 @@ class NoShowPenaltyServiceTest {
         assertThat(appliedPenalty.getSettlement().getId()).isEqualTo(settlement.getId());
 
         // 이후 정산에서는 다시 적용 대상으로 잡히지 않는다 (findByEscortIdAndStatus 가 PENDING 만 조회)
-        assertThat(noShowPenaltyService.getNoShowPenalty(escortId)).isEmpty();
+        assertThat(noShowPenaltyService.getNoShowPenalty(escortId)).isNull();
     }
 
     @Test

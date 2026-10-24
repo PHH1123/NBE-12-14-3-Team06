@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 
@@ -97,12 +98,9 @@ class NoticeServiceTest {
     }
 
     private Notification createNotification(User receiver, String content, String url, Long id) {
-        return Notification.builder()
-                .id(id)
-                .content(content)
-                .url(url)
-                .receiver(receiver)
-                .build();
+        return new Notification(
+                id, content, url, false, receiver
+        );
     }
 
     @Test
@@ -164,9 +162,9 @@ class NoticeServiceTest {
         Notification notification2 = createNotification(client, "알림2", null, null);
 
         doReturn(new PageImpl<>(new ArrayList<>(List.of(notification2, notification1))))
-                .when(notificationRepository).findByReceiverId(any(), any());
+                .when(notificationRepository).findByReceiverId(anyLong(), any());
 
-        Page<Notification> notifications = noticeService.readList(null, null);
+        Page<Notification> notifications = noticeService.readList(0L, PageRequest.of(0, 10));
         List<Notification> notificationList = notifications.getContent();
 
         assertThat(notificationList.size()).isEqualTo(2);
@@ -182,10 +180,10 @@ class NoticeServiceTest {
         User client = createClient();
         Notification notification = createNotification(client, "알림1", null, null);
 
-        doReturn(Optional.of(notification))
-                .when(notificationRepository).findByIdAndDeletedAtIsNull(any());
+        doReturn(notification)
+                .when(notificationRepository).findByIdAndDeletedAtIsNull(anyLong());
 
-        Notification readNotification = noticeService.read(client.getId(), null);
+        Notification readNotification = noticeService.read(client.getId(), 0L);
 
         assertThat(readNotification.getContent()).isEqualTo("알림1");
         assertThat(readNotification.isRead()).isTrue();
@@ -197,12 +195,12 @@ class NoticeServiceTest {
         User client = createClient();
         Notification notification = createNotification(client, "알림1", null, null);
 
-        doReturn(Optional.of(notification))
-                .when(notificationRepository).findByIdAndDeletedAtIsNull(any());
+        doReturn(notification)
+                .when(notificationRepository).findByIdAndDeletedAtIsNull(anyLong());
 
         assertThat(notification.getDeletedAt()).isNull();
 
-        notification = noticeService.removeNotification(client.getId(), null);
+        notification = noticeService.removeNotification(client.getId(), 0L);
 
         assertThat(notification.getDeletedAt()).isNotNull();
     }
