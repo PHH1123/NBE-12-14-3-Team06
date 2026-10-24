@@ -278,10 +278,12 @@ class PaymentService(
         val payments = paymentPersistenceService.findDeletedAll()
         var succeedCount = 0
         var failedCount = 0
+        var cancelCount = 0
 
         for (payment in payments) {
             if (payment.paymentKey == null) {
                 paymentPersistenceService.paymentCancelDb(payment.requiredId, "미결제 공고 삭제", false)
+                cancelCount++
                 continue
             }
 
@@ -310,7 +312,7 @@ class PaymentService(
             log.info("결제 취소 성공 - paymentId: {}, cancelAmount: {}", payment.id, payment.balanceAmount)
         }
 
-        return intArrayOf(succeedCount + failedCount, succeedCount, failedCount)
+        return intArrayOf(succeedCount + failedCount + cancelCount, succeedCount, failedCount, cancelCount)
     }
 
     fun validNotPaid(userId: Long): Boolean {

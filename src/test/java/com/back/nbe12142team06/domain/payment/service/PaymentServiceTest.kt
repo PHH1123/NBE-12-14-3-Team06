@@ -161,6 +161,7 @@ class PaymentServiceTest {
         assertThat(counts[0]).isEqualTo(1)
         assertThat(counts[1]).isEqualTo(1)
         assertThat(counts[2]).isEqualTo(0)
+        assertThat(counts[3]).isEqualTo(0)
         assertThat(payment.paymentStatus).isEqualTo(PaymentStatus.CANCELED)
     }
 
@@ -180,6 +181,7 @@ class PaymentServiceTest {
         assertThat(counts[0]).isEqualTo(1)
         assertThat(counts[1]).isEqualTo(0)
         assertThat(counts[2]).isEqualTo(1)
+        assertThat(counts[3]).isEqualTo(0)
     }
 
     @Test
@@ -198,6 +200,7 @@ class PaymentServiceTest {
         assertThat(counts[0]).isEqualTo(1)
         assertThat(counts[1]).isEqualTo(0)
         assertThat(counts[2]).isEqualTo(1)
+        assertThat(counts[3]).isEqualTo(0)
     }
 
     @Test
@@ -645,10 +648,11 @@ class PaymentServiceTest {
         verify(paymentPersistenceService, times(1))
             .paymentCancelDb(eq(payment.requiredId), eq("미결제 공고 삭제"), eq(false))
 
-        // 이 건은 성공/실패 어디에도 세지 않아서 집계가 0건으로 남는다 (스케줄러 로그가 실제 처리 건수보다 작게 찍힘)
-        assertThat(counts[0]).isEqualTo(0)
+        // 외부 API 를 타지 않은 건은 성공/실패가 아니라 '취소' 집계로 따로 센다
+        assertThat(counts[0]).isEqualTo(1)
         assertThat(counts[1]).isEqualTo(0)
         assertThat(counts[2]).isEqualTo(0)
+        assertThat(counts[3]).isEqualTo(1)
     }
 
     @Test

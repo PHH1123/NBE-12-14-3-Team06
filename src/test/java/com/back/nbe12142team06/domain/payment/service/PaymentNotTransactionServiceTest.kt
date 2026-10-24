@@ -220,12 +220,41 @@ class PaymentNotTransactionServiceTest {
         assertThat(counts[0]).isEqualTo(2)
         assertThat(counts[1]).isEqualTo(1)
         assertThat(counts[2]).isEqualTo(1)
+        assertThat(counts[3]).isEqualTo(0)
 
         // 성공 건은 CANCELED 로 커밋되고, 실패 건은 다음 스케줄링에서 다시 시도되도록 DELETED 로 남는다
         assertThat(paymentRepository.findById(succeedPayment.requiredId).get().paymentStatus)
             .isEqualTo(PaymentStatus.CANCELED)
         assertThat(paymentRepository.findById(failedPayment.requiredId).get().paymentStatus)
             .isEqualTo(PaymentStatus.DELETED)
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 취소 스케줄러는 미결제 삭제 건을 취소 집계로 센다")
+    fun cancelSchedulerCountsUnpaidSeparately() {
+        val client = userRepository.save(createClient())
+        val paidPost = postRepository.save(createPost(client))
+        val unpaidPost = postRepository.save(createPost(client))
+        val paidPayment = paymentRepository.save(createPayment(paidPost, PaymentStatus.DELETED, "pk-paid"))
+        // 결제 전에 공고가 삭제된 건은 토스에 취소할 결제가 없다
+        val unpaidPayment = paymentRepository.save(createPayment(unpaidPost, PaymentStatus.DELETED))
+
+        doReturn(ResponseEntity.ok(TossConfirmResponse("카드", paidPayment.amount.toString())))
+            .whenever(tossPaymentClient).callApiCancel(any(), eq("pk-paid"), any())
+
+        val counts = paymentService.cancelPostAndPaymentCallApi()
+
+        // 총 2건 = 외부 API 성공 1건 + 미결제 취소 1건
+        assertThat(counts[0]).isEqualTo(2)
+        assertThat(counts[1]).isEqualTo(1)
+        assertThat(counts[2]).isEqualTo(0)
+        assertThat(counts[3]).isEqualTo(1)
+
+        verify(tossPaymentClient, times(1)).callApiCancel(any(), any(), any())
+        assertThat(paymentRepository.findById(paidPayment.requiredId).get().paymentStatus)
+            .isEqualTo(PaymentStatus.CANCELED)
+        assertThat(paymentRepository.findById(unpaidPayment.requiredId).get().paymentStatus)
+            .isEqualTo(PaymentStatus.CANCELED)
     }
 
     @Test
