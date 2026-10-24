@@ -152,7 +152,7 @@ class PaymentControllerTest {
 
         savedPayment1Id = post1.paymentId!!
         savedPayment2Id = post2.paymentId!!
-        savedPost1Id = post1.id!!
+        savedPost1Id = post1.id
         savedPost2Id = post2.id!!
 
         // user1로 로그인해 인증 쿠키 확보

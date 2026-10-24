@@ -40,6 +40,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.handler
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -331,5 +332,91 @@ class SettlementControllerTest {
         assertThat(counts[0]).isEqualTo(1)
         assertThat(counts[1]).isEqualTo(1)
         assertThat(counts[2]).isEqualTo(0)
+    }
+
+    // savedUser2 의 정산 건을 하나 더 만든다 (목록 페이징·기간 필터 확인용)
+    private fun saveExtraSettlement(settledDate: LocalDate): Long {
+        val application = applicationRepository.save(
+            Application.builder()
+                .post(savedPost1)
+                .escort(savedUser2)
+                .status(ApplicationStatus.REJECTED)
+                .build()
+        )
+        return settlementRepository.save(
+            Settlement(
+                id = null,
+                payoutAmount = BigDecimal.valueOf(90_000),
+                platformFee = BigDecimal.valueOf(10_000),
+                penaltyAmount = BigDecimal.ZERO,
+                settlementStatus = SettlementStatus.PENDING,
+                settledDate = settledDate,
+                application = application,
+                escort = savedUser2
+            )
+        ).requiredId
+    }
+
+    @Test
+    @DisplayName("[SettlementController] 정산 목록 조회 - 페이지 크기와 정렬 적용")
+    fun settlementListWithPaging() {
+        saveExtraSettlement(LocalDate.now())
+
+        val resultActions = mvc.perform(
+            get("/api/v1/settlements")
+                .cookie(accessTokenCookie2)
+                .param("page", "0")
+                .param("size", "1")
+                .param("sort", "DESC")
+        ).andDo(print())
+
+        // 정산일 내림차순이라 예정일이 내일인 init() 정산이 먼저 온다
+        resultActions
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content.length()").value(1))
+            .andExpect(jsonPath("$.data.content[0].id").value(savedSettlement1Id))
+            .andExpect(jsonPath("$.data.totalElements").value(2))
+    }
+
+    @Test
+    @DisplayName("[SettlementController] 정산 목록 조회 - 조회 기간을 벗어난 정산은 빠진다")
+    fun settlementListWithPeriod() {
+        val oldSettlementId = saveExtraSettlement(LocalDate.now().minusDays(10))
+
+        val resultActions = mvc.perform(
+            get("/api/v1/settlements")
+                .cookie(accessTokenCookie2)
+                .param("startDate", LocalDate.now().minusDays(15).toString())
+                .param("endDate", LocalDate.now().minusDays(5).toString())
+        ).andDo(print())
+
+        // 10일 전 정산만 들어오고, 예정일이 내일인 정산은 빠진다
+        resultActions
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content.length()").value(1))
+            .andExpect(jsonPath("$.data.content[0].id").value(oldSettlementId))
+    }
+
+    @Test
+    @DisplayName("[SettlementController] 의뢰인이 정산 목록을 조회하면 403-1")
+    fun settlementListWithClientRole() {
+        val clientCookie = login("testUsername", "testPassword")
+
+        mvc.perform(
+            get("/api/v1/settlements")
+                .cookie(clientCookie)
+        )
+            .andDo(print())
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.statusCode").value("403-1"))
+    }
+
+    @Test
+    @DisplayName("[SettlementController] 로그인 없이 정산 목록을 조회하면 401-113")
+    fun settlementListWithoutLogin() {
+        mvc.perform(get("/api/v1/settlements"))
+            .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.statusCode").value("401-113"))
     }
 }
