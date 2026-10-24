@@ -95,8 +95,19 @@ class SettlementService(
 
     // 정산 외부 API 로직(목으로 대체)
     @Transactional(readOnly = true)
-    fun findAll(userId: Long, startDate: LocalDate, endDate: LocalDate, pageable: Pageable): Page<SettlementResponse> {
-        val idPage: Page<Long> = settlementRepository.findIdsByUserAndDate(userId, startDate, endDate, pageable)
+    fun findAll(
+        userId: Long,
+        startDate: LocalDate?,
+        endDate: LocalDate?,
+        pageable: Pageable
+    ): Page<SettlementResponse> {
+
+        val idPage: Page<Long> = settlementRepository.findIdsByUserAndDate(
+            userId = userId,
+            startDate = startDate ?: LocalDate.now().minusDays(1),
+            endDate = (endDate ?: LocalDate.now()).plusDays(1),
+            pageable = pageable
+        )
 
         if (idPage.isEmpty) {
             return Page.empty(pageable)
