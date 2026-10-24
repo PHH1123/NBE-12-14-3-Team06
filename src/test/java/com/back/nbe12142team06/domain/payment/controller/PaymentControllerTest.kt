@@ -333,7 +333,7 @@ class PaymentControllerTest {
 
         assertThat(canceledPayment.paymentStatus).isEqualTo(PaymentStatus.CANCELED)
         assertThat(canceledPayment.cancelReason).isEqualTo("결제 취소 사유")
-        assertThat(canceledPayment.deletedAt).isCloseTo(LocalDateTime.now(), within(1, ChronoUnit.MINUTES))
+        assertThat(canceledPayment.canceledAt).isCloseTo(LocalDateTime.now(), within(1, ChronoUnit.MINUTES))
         assertThat(canceledPayment.balanceAmount).isEqualByComparingTo(BigDecimal.ZERO)
     }
 
