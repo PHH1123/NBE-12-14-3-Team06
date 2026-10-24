@@ -130,4 +130,13 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
     """
     )
     fun existsUnpaidExtraByUserId(@Param("userId") userId: Long): Boolean
+
+    @Modifying(clearAutomatically = true)
+    @Query(
+        "update Payment p set p.canceledAt=:now " +
+                "where p.id=:paymentId and p.canceledAt is null " +
+                "and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED)"
+    )
+    fun paymentCanceling(@Param("paymentId") paymentId: Long,
+                         @Param("now") now: LocalDateTime): Int
 }

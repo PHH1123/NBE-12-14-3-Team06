@@ -17,7 +17,7 @@ class PaymentScheduler(
         val counts = paymentService.cancelPostAndPaymentCallApi()
 
         if (counts[0] > 0) {
-            log.info("공고 삭제 - 결제 취소 스케줄링 총 {}건, 성공 {}건, 실패 {}건", counts[0], counts[1], counts[2])
+            log.info("공고 삭제 - 결제 취소 스케줄링 총 {}건, 성공 {}건, 실패 {}건, 취소 {}건", counts[0], counts[1], counts[2], counts[3])
         }
     }
 }
