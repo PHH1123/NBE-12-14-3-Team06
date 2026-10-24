@@ -1,6 +1,7 @@
 package com.back.nbe12142team06.domain.payment.service
 
 import com.back.nbe12142team06.domain.application.entity.Application
+import com.back.nbe12142team06.domain.notification.service.NoticeService
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest
 import com.back.nbe12142team06.domain.payment.dto.PaymentConfirmRequest
@@ -24,8 +25,11 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.argThat
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -53,11 +57,14 @@ class PaymentServiceTest {
     @field:MockitoBean private lateinit var tossPaymentClient: TossPaymentClient
     @field:MockitoSpyBean private lateinit var paymentPersistenceService: PaymentPersistenceService
     @field:MockitoBean private lateinit var settlementService: SettlementService
+    @field:MockitoBean private lateinit var noticeService: NoticeService
 
     private fun createPayment(post: Post, status: PaymentStatus, id: Long? = 1L): Payment {
         val hourlyPaySnapshot = 15_000
         val hours = BigDecimal.TEN
         val amount = hours.multiply(BigDecimal.valueOf(hourlyPaySnapshot.toLong()))
+        // 결제 대기 상태에는 결제 수단·승인 정보가 아직 없다
+        val isReady = status == PaymentStatus.READY
 
         return Payment(
             id = id,
@@ -65,12 +72,12 @@ class PaymentServiceTest {
             hourlyPaySnapshot = hourlyPaySnapshot,
             hours = hours,
             post = post,
-            method = "CARD",
+            method = if (isReady) null else "CARD",
             paymentStatus = status,
-            orderId = UUID.randomUUID().toString(),
-            paymentKey = UUID.randomUUID().toString(),
-            approvedAt = LocalDateTime.now().minusDays(2),
-            balanceAmount = amount
+            orderId = if (isReady) null else UUID.randomUUID().toString(),
+            paymentKey = if (isReady) null else UUID.randomUUID().toString(),
+            approvedAt = if (isReady) null else LocalDateTime.now().minusDays(2),
+            balanceAmount = if (isReady) BigDecimal.ZERO else amount
         )
     }
 
@@ -291,7 +298,13 @@ class PaymentServiceTest {
             LocalDate.now()
         )
 
-        verify(paymentPersistenceService, times(1)).paymentPartialCancelDb(any(), any(), any())
+        // 결제 150,000원 - 실제 동행 4시간(60,000원) = 차액 90,000원만 부분 취소
+        verify(paymentPersistenceService, times(1)).paymentPartialCancelDb(
+            eq(payment.requiredId),
+            any(),
+            argThat<BigDecimal> { compareTo(BigDecimal.valueOf(90_000L)) == 0 }
+        )
+        verify(noticeService, times(1)).send(eq(client.id), any(), anyOrNull())
     }
 
     @Test
@@ -310,7 +323,14 @@ class PaymentServiceTest {
             LocalDate.now()
         )
 
-        verify(paymentPersistenceService, times(1)).createPayment(any())
+        // 실제 동행 12시간(180,000원) - 기존 결제 150,000원 = 30,000원 추가 결제 생성
+        verify(paymentPersistenceService, times(1)).createPayment(
+            argThat<Payment> {
+                amount.compareTo(BigDecimal.valueOf(30_000L)) == 0 &&
+                        paymentStatus == PaymentStatus.READY
+            }
+        )
+        verify(noticeService, times(1)).send(eq(client.id), any(), anyOrNull())
     }
 
     @Test
@@ -330,7 +350,7 @@ class PaymentServiceTest {
 
         assertThatThrownBy {
             paymentService.confirm(
-                PaymentConfirmRequest(payment.paymentKey!!, payment.orderId!!, payment.amount.toString()),
+                PaymentConfirmRequest("tempPaymentKey", "tempOrderId", payment.amount.toString()),
                 payment.requiredId, client.id
             )
         }

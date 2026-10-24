@@ -191,35 +191,6 @@ class PaymentControllerTest {
         assertThat(payment.approvedAt).isCloseTo(LocalDateTime.now(), within(1, ChronoUnit.MINUTES))
     }
 
-    /*
-    @Test
-    @DisplayName("[PaymentController] 결제 승인 - DB 정지")
-    fun requestConfirmFailDbStop() {
-
-        val paymentKey = "temp"
-        val orderId = "temp"
-        val amount = "10000"
-
-        val resultActions = mvc.perform(
-            post("/api/v1/payments/$savedPayment1Id/confirm")
-                .cookie(accessTokenCookie1)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                        "paymentKey": "$paymentKey",
-                        "orderId": "$orderId",
-                        "amount": "$amount"
-                    }
-                    """.trimIndent()
-                )
-        ).andDo(print())
-
-        resultActions
-            .andExpect(status().isInternalServerError())
-    }
-     */
-
     @Test
     @DisplayName("[PaymentController] 결제 승인 - 잘못 요청된 유저")
     fun requestConfirmFailUserId() {

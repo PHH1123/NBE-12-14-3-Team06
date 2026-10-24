@@ -57,6 +57,8 @@ class PaymentConcurrencyTest {
         val hourlyPaySnapshot = 15_000
         val hours = BigDecimal.TEN
         val amount = hours.multiply(BigDecimal.valueOf(hourlyPaySnapshot.toLong()))
+        // 결제 대기 상태에는 결제 수단·승인 정보가 아직 없다
+        val isReady = status == PaymentStatus.READY
 
         return Payment(
             id = null,
@@ -64,12 +66,12 @@ class PaymentConcurrencyTest {
             hourlyPaySnapshot = hourlyPaySnapshot,
             hours = hours,
             post = post,
-            method = "CARD",
+            method = if (isReady) null else "CARD",
             paymentStatus = status,
-            orderId = UUID.randomUUID().toString(),
-            paymentKey = UUID.randomUUID().toString(),
-            approvedAt = LocalDateTime.now().minusDays(2),
-            balanceAmount = amount
+            orderId = if (isReady) null else UUID.randomUUID().toString(),
+            paymentKey = if (isReady) null else UUID.randomUUID().toString(),
+            approvedAt = if (isReady) null else LocalDateTime.now().minusDays(2),
+            balanceAmount = if (isReady) BigDecimal.ZERO else amount
         )
     }
 
@@ -109,7 +111,7 @@ class PaymentConcurrencyTest {
         val savedPayment = paymentRepository.save(createPayment(savedPost, PaymentStatus.READY))
 
         val request = PaymentConfirmRequest(
-            savedPayment.paymentKey!!, savedPayment.orderId!!, savedPayment.amount.toString()
+            "tempPaymentKey", "tempOrderId", savedPayment.amount.toString()
         )
 
         doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", savedPayment.amount.toString())))
