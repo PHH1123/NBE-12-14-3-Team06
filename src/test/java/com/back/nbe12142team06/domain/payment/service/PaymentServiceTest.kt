@@ -9,27 +9,33 @@ import com.back.nbe12142team06.domain.payment.dto.PaymentConfirmRequest
 import com.back.nbe12142team06.domain.payment.entity.Payment
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository
+import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse
 import com.back.nbe12142team06.domain.post.entity.Post
+import com.back.nbe12142team06.domain.post.entity.PostStatus
 import com.back.nbe12142team06.domain.settlement.service.SettlementService
 import com.back.nbe12142team06.domain.user.entity.User
 import com.back.nbe12142team06.domain.user.enums.Gender
 import com.back.nbe12142team06.domain.user.enums.Role
 import com.back.nbe12142team06.global.exception.InvalidException
+import com.back.nbe12142team06.global.exception.NotFoundException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argThat
+import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.whenever
+import org.springframework.http.ResponseEntity
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -323,6 +329,329 @@ class PaymentServiceTest {
         // then
         verify(tossPaymentClient, times(1)).callApiCancel(any(), any(), any())
         verify(paymentPersistenceService, times(1)).paymentCancelDb(any(), any(), any())
+    }
+
+    // 승인 성공까지 가기 위한 공통 스텁 (결제 조회 → 상태 선점 → 외부 승인 API)
+    private fun stubConfirmFlow(payment: Payment) {
+        doReturn(payment).whenever(paymentPersistenceService).findById(any(), any())
+        doReturn(1).whenever(paymentRepository).paymentInProgress(any())
+        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", payment.amount.toString())))
+            .whenever(tossPaymentClient).callApiConfirm(any(), any(), any())
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 결제 승인 성공 시 의뢰인에게 알림 발송")
+    fun confirmSendsNotice() {
+        val client = createClient()
+        val post = createPost(client)
+        val payment = createPayment(post, PaymentStatus.READY)
+        stubConfirmFlow(payment)
+        doReturn(payment).whenever(paymentPersistenceService).paymentSaveDb(any(), any(), any(), any())
+
+        paymentService.confirm(
+            PaymentConfirmRequest("pk", "order", payment.amount.toString()), payment.requiredId, client.id
+        )
+
+        verify(noticeService, times(1)).send(
+            eq(client.id),
+            argThat<String> { contains(post.title) },
+            anyOrNull()
+        )
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 승인 후 DB 반영에서 결제를 못 찾으면 복구를 시도한다")
+    fun confirmRecoversWhenPaymentNotFound() {
+        val client = createClient()
+        val post = createPost(client)
+        val payment = createPayment(post, PaymentStatus.READY)
+        stubConfirmFlow(payment)
+        doThrow(NotFoundException(41, "결제 정보를 찾을 수 없습니다."))
+            .whenever(paymentPersistenceService).paymentSaveDb(any(), any(), any(), any())
+
+        // 현재 동작: 복구용 cancel 이 IN_PROGRESS 결제를 취소하려다 막혀서
+        // 원래 예외(NotFoundException) 대신 아래 예외가 호출자에게 전달된다.
+        // PaymentService.confirm 의 복구 경로를 고치면 이 테스트도 함께 바꿔야 한다.
+        assertThatThrownBy {
+            paymentService.confirm(
+                PaymentConfirmRequest("pk", "order", payment.amount.toString()), payment.requiredId, client.id
+            )
+        }
+            .isInstanceOf(InvalidException::class.java)
+            .hasMessage("결제 완료 상태가 아닙니다.")
+
+        verify(tossPaymentClient, never()).callApiCancel(any(), any(), any())
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 승인 후 DB 반영에서 서버 에러가 나면 복구를 시도한다")
+    fun confirmRecoversWhenDbFails() {
+        val client = createClient()
+        val post = createPost(client)
+        val payment = createPayment(post, PaymentStatus.READY)
+        stubConfirmFlow(payment)
+        doThrow(RuntimeException("DB 저장 실패"))
+            .whenever(paymentPersistenceService).paymentSaveDb(any(), any(), any(), any())
+
+        // 현재 동작: InternalServerErrorException(41) 로 감싸기 전에 복구용 cancel 이 먼저 막힌다 (위 테스트와 같은 원인)
+        assertThatThrownBy {
+            paymentService.confirm(
+                PaymentConfirmRequest("pk", "order", payment.amount.toString()), payment.requiredId, client.id
+            )
+        }
+            .isInstanceOf(InvalidException::class.java)
+            .hasMessage("결제 완료 상태가 아닙니다.")
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 토스 결제 키가 없는 결제는 취소할 수 없다")
+    fun cancelWithoutPaymentKey() {
+        val client = createClient()
+        val post = createPost(client)
+        val payment = Payment(
+            id = 1L,
+            amount = BigDecimal.valueOf(150_000),
+            hourlyPaySnapshot = 15_000,
+            hours = BigDecimal.TEN,
+            post = post,
+            method = "CARD",
+            paymentStatus = PaymentStatus.DONE,
+            orderId = "tossOrderId",
+            paymentKey = null,
+            approvedAt = LocalDateTime.now().minusDays(1),
+            balanceAmount = BigDecimal.valueOf(150_000)
+        )
+
+        assertThatThrownBy {
+            paymentService.cancel(payment, PaymentCancelRequest("사유"), payment.amount, false, false)
+        }
+            .isInstanceOf(InvalidException::class.java)
+            .hasMessage("토스 페이먼트 키가 등록되지 않았습니다.")
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 취소 금액이 잔액보다 작으면 부분 취소로 처리한다")
+    fun cancelLessThanBalanceGoesPartial() {
+        val client = createClient()
+        val post = createPost(client)
+        val payment = createPayment(post, PaymentStatus.DONE)
+
+        doReturn(payment).whenever(paymentPersistenceService).paymentPartialCancelDb(any(), any(), any())
+
+        paymentService.cancel(payment, PaymentCancelRequest("사유"), BigDecimal.valueOf(50_000), false, false)
+
+        verify(paymentPersistenceService, times(1)).paymentPartialCancelDb(
+            eq(payment.requiredId), eq("사유"), argThat<BigDecimal> { compareTo(BigDecimal.valueOf(50_000L)) == 0 }
+        )
+        verify(paymentPersistenceService, never()).paymentCancelDb(any(), any(), any())
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 매칭된 공고의 결제는 취소할 수 없다")
+    fun cancelByUserRejectedWhenPostMatched() {
+        val client = createClient()
+        val post = Post.builder()
+            .id(1L)
+            .title("정형외과 동행 구합니다")
+            .content("내용")
+            .region("서울")
+            .hospitalName("서울성모병원")
+            .hospitalAddress("서울 서초구 반포대로 222")
+            .hospitalLat(BigDecimal.valueOf(37.5012743))
+            .hospitalLng(BigDecimal.valueOf(127.0051893))
+            .pickupAddress("서울 서초구 잠원동 10-1")
+            .pickupLat(BigDecimal.valueOf(37.5160000))
+            .pickupLng(BigDecimal.valueOf(127.0200000))
+            .hourlyPay(15_000)
+            .recruitStartAt(LocalDateTime.now().plusDays(1))
+            .recruitEndAt(LocalDateTime.now().plusDays(6))
+            .escortStartAt(LocalDateTime.now().plusDays(7))
+            .escortEndAt(LocalDateTime.now().plusDays(7).plusHours(10))
+            .client(client)
+            .postStatus(PostStatus.MATCHED)
+            .build()
+        val payment = createPayment(post, PaymentStatus.DONE)
+
+        doReturn(payment).whenever(paymentPersistenceService).findById(any(), any())
+
+        assertThatThrownBy { paymentService.cancel(client.id, payment.requiredId, PaymentCancelRequest("사유")) }
+            .isInstanceOf(InvalidException::class.java)
+            .hasMessage("이미 종료된 동행이거나 매칭되었기 때문에 결제를 취소할 수 없습니다.")
+
+        verify(tossPaymentClient, never()).callApiCancel(any(), any(), any())
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 의뢰인 결제 취소 시 지원자를 모두 거절하고 알림을 보낸다")
+    fun cancelByUserRejectsApplicationsAndSendsNotice() {
+        val client = createClient()
+        val post = createPost(client)
+        val payment = createPayment(post, PaymentStatus.DONE)
+
+        doReturn(payment).whenever(paymentPersistenceService).findById(any(), any())
+        doReturn(payment).whenever(paymentPersistenceService).paymentCancelDb(any(), any(), any())
+
+        val canceledPayment = paymentService.cancel(client.id, payment.requiredId, PaymentCancelRequest("사유"))
+
+        assertThat(canceledPayment).isSameAs(payment)
+        verify(tossPaymentClient, times(1)).callApiCancel(eq("사유"), any(), any())
+        verify(paymentPersistenceService, times(1)).paymentCancelDb(eq(payment.requiredId), eq("사유"), eq(true))
+        verify(paymentPersistenceService, times(1)).rejectApplication(post)
+        verify(noticeService, times(1)).send(eq(client.id), argThat<String> { contains(post.title) }, anyOrNull())
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 공고 기반 취소는 결제 건마다 취소를 호출한다")
+    fun cancelPostWithMultiplePayments() {
+        val client = createClient()
+        val post = createPost(client)
+        val firstPayment = createPayment(post, PaymentStatus.DONE)
+        val secondPayment = createPayment(post, PaymentStatus.DONE)
+
+        doReturn(listOf(firstPayment, secondPayment)).whenever(paymentPersistenceService).findByPostId(any())
+        doReturn(firstPayment).whenever(paymentPersistenceService).paymentCancelDb(any(), any(), any())
+
+        paymentService.cancel(post)
+
+        verify(tossPaymentClient, times(2)).callApiCancel(any(), any(), any())
+        // 공고 기반 취소는 재결제 건을 만들지 않는다
+        verify(paymentPersistenceService, times(2)).paymentCancelDb(any(), any(), eq(false))
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 결제 완료 건이 없으면 미결제 금액만 공고 금액으로 맞춘다")
+    fun validPaymentWithoutPaidPayment() {
+        val client = createClient()
+        val post = createPost(client)
+
+        doReturn(emptyList<Payment>()).whenever(paymentPersistenceService).findByPostId(any())
+        doNothing().whenever(paymentPersistenceService).updateAmountForModifyPost(any(), any())
+
+        val payoutAmount = paymentService.validPayment(post)
+
+        assertThat(payoutAmount).isEqualByComparingTo(post.totalPay)
+        verify(paymentPersistenceService, times(1)).updateAmountForModifyPost(eq(post.id!!), eq(post))
+        verify(paymentPersistenceService, never()).createPayment(any())
+        verify(paymentPersistenceService, never()).paymentPartialCancelDb(any(), any(), any())
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 결제 금액과 동행 금액이 같으면 추가 결제도 취소도 하지 않는다")
+    fun validPaymentWithExactAmount() {
+        val client = createClient()
+        val post = createPost(client)
+        val payment = createPayment(post, PaymentStatus.DONE)
+
+        doReturn(listOf(payment)).whenever(paymentPersistenceService).findByPostId(any())
+
+        val payoutAmount = paymentService.validPayment(post)
+
+        assertThat(payoutAmount).isEqualByComparingTo(BigDecimal.valueOf(150_000))
+        verify(paymentPersistenceService, never()).createPayment(any())
+        verify(paymentPersistenceService, never()).paymentPartialCancelDb(any(), any(), any())
+        verify(noticeService, never()).send(any(), any(), anyOrNull())
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 동행 완료 시 정산 데이터를 생성한다")
+    fun validPaymentCreatesSettlement() {
+        val client = createClient()
+        val post = createPost(client)
+        val payment = createPayment(post, PaymentStatus.DONE)
+        val escort = createEscort()
+        val application = Application.builder().escort(escort).build()
+        val settledDate = LocalDate.now()
+
+        doReturn(listOf(payment)).whenever(paymentPersistenceService).findByPostId(any())
+
+        paymentService.validPayment(post, application, settledDate)
+
+        verify(settlementService, times(1)).createSettlement(
+            argThat<BigDecimal> { compareTo(BigDecimal.valueOf(150_000L)) == 0 },
+            eq(application),
+            eq(escort),
+            eq(settledDate)
+        )
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 공고 금액으로 미결제 결제를 생성한다")
+    fun createPaymentFromPost() {
+        val client = createClient()
+        val post = createPost(client, 4)
+        val payment = createPayment(post, PaymentStatus.READY)
+
+        doReturn(payment).whenever(paymentPersistenceService).createPayment(any())
+
+        paymentService.createPayment(post)
+
+        verify(paymentPersistenceService, times(1)).createPayment(
+            argThat<Payment> {
+                amount.compareTo(BigDecimal.valueOf(60_000L)) == 0 &&
+                        hours.compareTo(BigDecimal.valueOf(4L)) == 0 &&
+                        hourlyPaySnapshot == 15_000 &&
+                        paymentStatus == PaymentStatus.READY
+            }
+        )
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 미결제 공고 삭제 건은 외부 API 없이 DB만 취소한다")
+    fun cancelPostAndPaymentCallApiWithoutPaymentKey() {
+        val client = createClient()
+        val post = createPost(client)
+        val payment = Payment(
+            id = 1L,
+            amount = BigDecimal.valueOf(150_000),
+            hourlyPaySnapshot = 15_000,
+            hours = BigDecimal.TEN,
+            post = post,
+            paymentStatus = PaymentStatus.DELETED
+        )
+
+        doReturn(listOf(payment)).whenever(paymentPersistenceService).findDeletedAll()
+        doReturn(payment).whenever(paymentPersistenceService).paymentCancelDb(any(), any(), any())
+
+        val counts = paymentService.cancelPostAndPaymentCallApi()
+
+        verify(tossPaymentClient, never()).callApiCancel(any(), any(), any())
+        verify(paymentPersistenceService, times(1))
+            .paymentCancelDb(eq(payment.requiredId), eq("미결제 공고 삭제"), eq(false))
+
+        // 이 건은 성공/실패 어디에도 세지 않아서 집계가 0건으로 남는다 (스케줄러 로그가 실제 처리 건수보다 작게 찍힘)
+        assertThat(counts[0]).isEqualTo(0)
+        assertThat(counts[1]).isEqualTo(0)
+        assertThat(counts[2]).isEqualTo(0)
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 미결제 결제가 없으면 결제 완료로 본다")
+    fun validNotPaid() {
+        doReturn(emptyList<Payment>()).whenever(paymentRepository).findNotPaidByUserId(any())
+        assertThat(paymentService.validNotPaid(1L)).isTrue()
+
+        val payment = createPayment(createPost(createClient()), PaymentStatus.READY)
+        doReturn(listOf(payment)).whenever(paymentRepository).findNotPaidByUserId(any())
+        assertThat(paymentService.validNotPaid(1L)).isFalse()
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 동행 완료 후 미결제 추가 결제 여부를 조회한다")
+    fun hasUnpaidExtraPayment() {
+        doReturn(true).whenever(paymentRepository).existsUnpaidExtraByUserId(any())
+
+        assertThat(paymentService.hasUnpaidExtraPayment(1L)).isTrue()
+        verify(paymentRepository, times(1)).existsUnpaidExtraByUserId(1L)
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 공고별 미결제 결제가 없으면 조회 실패")
+    fun findByPostIdAndReadyNotFound() {
+        doReturn(null).whenever(paymentRepository).findByPostIdAndUserIdAndReady(any(), any())
+
+        assertThatThrownBy { paymentService.findByPostIdAndReady(1L, 1L) }
+            .isInstanceOf(NotFoundException::class.java)
+            .hasMessage("결제 정보를 찾을 수 없습니다.")
     }
 
     // deprecated, 비즈니스 로직과 다른 테스트

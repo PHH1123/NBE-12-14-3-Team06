@@ -26,6 +26,7 @@ import org.assertj.core.api.Assertions.within
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.kotlin.any
@@ -40,6 +41,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
@@ -77,6 +79,8 @@ class PaymentControllerTest {
     private var savedUser2Id: Long = 0
     private var savedPayment1Id: Long = 0
     private var savedPayment2Id: Long = 0
+    private var savedPost1Id: Long = 0
+    private var savedPost2Id: Long = 0
     private lateinit var accessTokenCookie1: Cookie
     private lateinit var accessTokenCookie2: Cookie
 
@@ -148,6 +152,8 @@ class PaymentControllerTest {
 
         savedPayment1Id = post1.paymentId!!
         savedPayment2Id = post2.paymentId!!
+        savedPost1Id = post1.id!!
+        savedPost2Id = post2.id!!
 
         // user1로 로그인해 인증 쿠키 확보
         accessTokenCookie1 = login(username, password)
@@ -351,5 +357,198 @@ class PaymentControllerTest {
         }
             .isInstanceOf(InvalidException::class.java)
             .hasMessage("결제 취소에 실패했습니다.")
+    }
+
+    private fun confirmRequestBody(paymentKey: String, orderId: String, amount: String): String =
+        """
+        {
+            "paymentKey": "$paymentKey",
+            "orderId": "$orderId",
+            "amount": "$amount"
+        }
+        """.trimIndent()
+
+    @Test
+    @DisplayName("[PaymentController] POST 결제 승인 - 성공 응답 규약")
+    fun requestConfirmApi() {
+        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000")))
+            .whenever(tossPaymentClient).callApiConfirm(any(), any(), any())
+
+        val resultActions = mvc.perform(
+            post("/api/v1/payments/$savedPayment2Id/confirm")
+                .cookie(accessTokenCookie1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(confirmRequestBody("pk_test", "order_test", "60000"))
+        ).andDo(print())
+
+        resultActions
+            .andExpect(handler().handlerType(PaymentController::class.java))
+            .andExpect(handler().methodName("requestConfirm"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value("200-41"))
+            .andExpect(jsonPath("$.msg").value("결제 승인에 성공했습니다."))
+            .andExpect(jsonPath("$.data.paymentKey").value("pk_test"))
+            .andExpect(jsonPath("$.data.orderId").value("order_test"))
+            .andExpect(jsonPath("$.data.amount").value("60000"))
+
+        assertThat(paymentRepository.findById(savedPayment2Id).get().paymentStatus)
+            .isEqualTo(PaymentStatus.DONE)
+    }
+
+    @Test
+    @DisplayName("[PaymentController] POST 결제 승인 - 다른 회원의 결제면 403-41")
+    fun requestConfirmApiFailOtherMember() {
+        val resultActions = mvc.perform(
+            post("/api/v1/payments/$savedPayment1Id/confirm")
+                .cookie(accessTokenCookie2)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(confirmRequestBody("pk_test", "order_test", "60000"))
+        ).andDo(print())
+
+        resultActions
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.statusCode").value("403-41"))
+            .andExpect(jsonPath("$.msg").value("사용자의 결제 정보가 아닙니다."))
+
+        verify(tossPaymentClient, never()).callApiConfirm(any(), any(), any())
+    }
+
+    @Test
+    @DisplayName("[PaymentController] POST 결제 승인 - 없는 결제면 404-41")
+    fun requestConfirmApiFailInvalidPaymentId() {
+        val resultActions = mvc.perform(
+            post("/api/v1/payments/10000/confirm")
+                .cookie(accessTokenCookie1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(confirmRequestBody("pk_test", "order_test", "60000"))
+        ).andDo(print())
+
+        resultActions
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.statusCode").value("404-41"))
+            .andExpect(jsonPath("$.msg").value("결제 정보를 찾을 수 없습니다."))
+    }
+
+    @Test
+    @DisplayName("[PaymentController] POST 결제 승인 - 요청 금액이 다르면 400-42")
+    fun requestConfirmApiFailAmountMismatch() {
+        val resultActions = mvc.perform(
+            post("/api/v1/payments/$savedPayment2Id/confirm")
+                .cookie(accessTokenCookie1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(confirmRequestBody("pk_test", "order_test", "10000"))
+        ).andDo(print())
+
+        resultActions
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.statusCode").value("400-42"))
+            .andExpect(jsonPath("$.msg").value("결제 금액 정보가 유효하지 않습니다."))
+
+        // 금액 검증에서 막혔으므로 외부 승인 API 는 호출되지 않는다
+        verify(tossPaymentClient, never()).callApiConfirm(any(), any(), any())
+    }
+
+    @Test
+    @DisplayName("[PaymentController] DELETE 결제 취소 - 성공 응답 규약")
+    fun requestCancelApi() {
+        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000")))
+            .whenever(tossPaymentClient).callApiCancel(any(), any(), any())
+
+        val resultActions = mvc.perform(
+            delete("/api/v1/payments/$savedPayment1Id")
+                .cookie(accessTokenCookie1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"cancelReason": "병원 예약이 취소되었습니다."}""")
+        ).andDo(print())
+
+        resultActions
+            .andExpect(handler().handlerType(PaymentController::class.java))
+            .andExpect(handler().methodName("cancelPayment"))
+            .andExpect(status().isNoContent())
+            .andExpect(jsonPath("$.statusCode").value("204-41"))
+            .andExpect(jsonPath("$.msg").value("결제 취소 성공했습니다."))
+
+        assertThat(paymentRepository.findById(savedPayment1Id).get().paymentStatus)
+            .isEqualTo(PaymentStatus.CANCELED)
+    }
+
+    @Test
+    @DisplayName("[PaymentController] DELETE 결제 취소 - 다른 회원의 결제면 403-41")
+    fun requestCancelApiFailOtherMember() {
+        val resultActions = mvc.perform(
+            delete("/api/v1/payments/$savedPayment1Id")
+                .cookie(accessTokenCookie2)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"cancelReason": "남의 결제 취소"}""")
+        ).andDo(print())
+
+        resultActions
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.statusCode").value("403-41"))
+
+        verify(tossPaymentClient, never()).callApiCancel(any(), any(), any())
+    }
+
+    @Test
+    @DisplayName("[PaymentController] 공고별 결제 조회 - 미결제 결제를 돌려준다")
+    fun getPaymentByPost() {
+        val resultActions = mvc.perform(
+            get("/api/v1/payments/posts/$savedPost2Id")
+                .cookie(accessTokenCookie1)
+        ).andDo(print())
+
+        resultActions
+            .andExpect(handler().handlerType(PaymentController::class.java))
+            .andExpect(handler().methodName("getPaymentByPost"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value("200-45"))
+            .andExpect(jsonPath("$.msg").value("결제 정보를 불러왔습니다."))
+            .andExpect(jsonPath("$.data.id").value(savedPayment2Id))
+            .andExpect(jsonPath("$.data.postId").value(savedPost2Id))
+            .andExpect(jsonPath("$.data.paymentStatus").value("READY"))
+    }
+
+    @Test
+    @DisplayName("[PaymentController] 공고별 결제 조회 - 미결제 결제가 없으면 404-41")
+    fun getPaymentByPostFailAlreadyPaid() {
+        // post1 의 결제는 이미 DONE 이라 미결제 건이 없다
+        val resultActions = mvc.perform(
+            get("/api/v1/payments/posts/$savedPost1Id")
+                .cookie(accessTokenCookie1)
+        ).andDo(print())
+
+        resultActions
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.statusCode").value("404-41"))
+            .andExpect(jsonPath("$.msg").value("결제 정보를 찾을 수 없습니다."))
+    }
+
+    @Test
+    @DisplayName("[PaymentController] 로그인 없이 결제 목록 조회 - 401-113")
+    fun paymentListWithoutLogin() {
+        mvc.perform(get("/api/v1/payments"))
+            .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.statusCode").value("401-113"))
+    }
+
+    @Test
+    @DisplayName("[PaymentController] 동행인이 결제 목록 조회 - 403-1")
+    fun paymentListWithEscortRole() {
+        userService.signUp(
+            UserSignUpRequest(
+                "escortUsername", "testPassword", "escort@test.test", "박동행", Role.ESCORT,
+                Gender.MALE, LocalDate.of(1995, 5, 20), "010-7777-7777", "서울시"
+            )
+        )
+        val escortCookie = login("escortUsername", "testPassword")
+
+        mvc.perform(
+            get("/api/v1/payments")
+                .cookie(escortCookie)
+        )
+            .andDo(print())
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.statusCode").value("403-1"))
     }
 }
