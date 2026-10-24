@@ -139,11 +139,11 @@ class NoticeServiceSendUnitTest {
 
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         NotificationEvent event = eventCaptor.getValue();
-        assertThat(event.notification()).isSameAs(saved);
-        assertThat(event.notification().getId()).isEqualTo(1L);
-        assertThat(event.receiverId()).isEqualTo(client.getId());
-        assertThat(event.content()).isEqualTo(content);
-        assertThat(event.url()).isEqualTo(url);
+        assertThat(event.notification).isSameAs(saved);
+        assertThat(event.notification.getId()).isEqualTo(1L);
+        assertThat(event.receiverId).isEqualTo(client.getId());
+        assertThat(event.content).isEqualTo(content);
+        assertThat(event.url).isEqualTo(url);
     }
 
     @Test
@@ -161,7 +161,7 @@ class NoticeServiceSendUnitTest {
         assertThat(notificationCaptor.getValue().getUrl()).isNull();
 
         verify(eventPublisher).publishEvent(eventCaptor.capture());
-        assertThat(eventCaptor.getValue().url()).isNull();
+        assertThat(eventCaptor.getValue().url).isNull();
     }
 
     @Test
