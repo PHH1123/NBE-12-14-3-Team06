@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.kotlin.any
-import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
@@ -40,7 +39,6 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -255,7 +253,7 @@ class PaymentNotTransactionServiceTest {
     }
 
     @Test
-    @DisplayName("[PaymentService] 결제 취소 2번 동시 요청 - 현재는 중복 취소가 막히지 않는다")
+    @DisplayName("[PaymentService] 결제 취소 2번 동시 요청 - 한 건만 취소된다")
     fun cancelConcurrency() {
         val client = userRepository.save(createClient())
         val post = postRepository.save(createPost(client))
@@ -263,13 +261,8 @@ class PaymentNotTransactionServiceTest {
         val paymentId = payment.requiredId
         val userId = client.id
 
-        // 두 요청이 모두 상태 검증을 통과했는지 외부 API 호출 지점에서 확인한다.
-        // 중복 취소 가드가 생기면 한쪽은 여기까지 오지 못해 대기가 깨지고 이 테스트가 실패한다.
-        val barrier = CyclicBarrier(2)
-        doAnswer {
-            barrier.await(3, TimeUnit.SECONDS)
-            ResponseEntity.ok(TossConfirmResponse("카드", payment.amount.toString()))
-        }.whenever(tossPaymentClient).callApiCancel(any(), any(), any())
+        doReturn(ResponseEntity.ok(TossConfirmResponse("카드", payment.amount.toString())))
+            .whenever(tossPaymentClient).callApiCancel(any(), any(), any())
 
         val executor = Executors.newFixedThreadPool(2)
         val latch = CountDownLatch(1)
@@ -288,10 +281,12 @@ class PaymentNotTransactionServiceTest {
         executor.shutdown()
         assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue()
 
-        // 결제 상태(DONE -> CANCELED)만으로 막고 있어서, 동시 요청은 둘 다 외부 취소 API 까지 도달한다.
-        // 중복 환불 요청이 나가는 셈이므로 확인 후 가드(선점 update 등)를 넣고 이 단정을 1회로 바꿔야 한다.
-        verify(tossPaymentClient, times(2)).callApiCancel(any(), any(), any())
-        assertThat(failedCount.get()).isEqualTo(0)
+        // 취소 선점(update ... where status in (DONE, PARTIAL_CANCELED))에서 한 건만 통과하므로
+        // 환불 요청도 한 번만 나가야 한다
+        verify(tossPaymentClient, times(1)).callApiCancel(any(), any(), any())
+        assertThat(failedCount.get()).isEqualTo(1)
         assertThat(paymentRepository.findById(paymentId).get().paymentStatus).isEqualTo(PaymentStatus.CANCELED)
+        // 재결제용 READY 결제도 한 건만 생긴다
+        assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.id!!, PaymentStatus.READY)).hasSize(1)
     }
 }

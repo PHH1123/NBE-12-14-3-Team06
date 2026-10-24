@@ -333,9 +333,11 @@ class PaymentControllerTest {
         doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000")))
             .whenever(tossPaymentClient).callApiCancel(any(), any(), any())
 
-        val canceledPayment = paymentService.cancel(
-            savedUser1Id, savedPayment1Id, PaymentCancelRequest(cancelReason)
-        )
+        paymentService.cancel(savedUser1Id, savedPayment1Id, PaymentCancelRequest(cancelReason))
+
+        // 취소 선점(@Modifying clearAutomatically) 이 영속성 컨텍스트를 비우므로
+        // 반환된 엔티티가 아니라 DB 에 반영된 결제를 다시 읽어 확인한다
+        val canceledPayment = paymentRepository.findById(savedPayment1Id).get()
 
         assertThat(canceledPayment.paymentStatus).isEqualTo(PaymentStatus.CANCELED)
         assertThat(canceledPayment.cancelReason).isEqualTo("결제 취소 사유")

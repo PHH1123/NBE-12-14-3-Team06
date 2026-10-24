@@ -16,6 +16,7 @@ import com.back.nbe12142team06.domain.settlement.service.SettlementService
 import com.back.nbe12142team06.domain.user.entity.User
 import com.back.nbe12142team06.domain.user.enums.Gender
 import com.back.nbe12142team06.domain.user.enums.Role
+import com.back.nbe12142team06.global.exception.InternalServerErrorException
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.exception.NotFoundException
 import org.assertj.core.api.Assertions.assertThat
@@ -369,18 +370,20 @@ class PaymentServiceTest {
         doThrow(NotFoundException(41, "결제 정보를 찾을 수 없습니다."))
             .whenever(paymentPersistenceService).paymentSaveDb(any(), any(), any(), any())
 
-        // 현재 동작: 복구용 cancel 이 IN_PROGRESS 결제를 취소하려다 막혀서
-        // 원래 예외(NotFoundException) 대신 아래 예외가 호출자에게 전달된다.
-        // PaymentService.confirm 의 복구 경로를 고치면 이 테스트도 함께 바꿔야 한다.
         assertThatThrownBy {
             paymentService.confirm(
                 PaymentConfirmRequest("pk", "order", payment.amount.toString()), payment.requiredId, client.id
             )
         }
-            .isInstanceOf(InvalidException::class.java)
-            .hasMessage("결제 완료 상태가 아닙니다.")
+            .isInstanceOf(NotFoundException::class.java)
+            .hasMessage("결제 정보를 찾을 수 없습니다.")
 
-        verify(tossPaymentClient, never()).callApiCancel(any(), any(), any())
+        // 토스는 이미 승인된 상태이므로 결제 금액만큼 환불을 요청하고 결제 데이터를 지운다
+        verify(tossPaymentClient, times(1)).callApiCancel(any(), any(), eq(payment.amount.toString()))
+        verify(paymentPersistenceService, times(1)).failedConfirm(payment.requiredId)
+        // 복구는 비즈니스 취소 경로를 타지 않는다 (지원자 거절·취소 알림이 없어야 한다)
+        verify(paymentPersistenceService, never()).rejectApplication(any())
+        verify(noticeService, never()).send(any(), any(), anyOrNull())
     }
 
     @Test
@@ -393,14 +396,17 @@ class PaymentServiceTest {
         doThrow(RuntimeException("DB 저장 실패"))
             .whenever(paymentPersistenceService).paymentSaveDb(any(), any(), any(), any())
 
-        // 현재 동작: InternalServerErrorException(41) 로 감싸기 전에 복구용 cancel 이 먼저 막힌다 (위 테스트와 같은 원인)
         assertThatThrownBy {
             paymentService.confirm(
                 PaymentConfirmRequest("pk", "order", payment.amount.toString()), payment.requiredId, client.id
             )
         }
-            .isInstanceOf(InvalidException::class.java)
-            .hasMessage("결제 완료 상태가 아닙니다.")
+            .isInstanceOf(InternalServerErrorException::class.java)
+            .hasMessage("결제 승인 도중 서버 에러가 발생했습니다.")
+
+        verify(tossPaymentClient, times(1)).callApiCancel(any(), any(), eq(payment.amount.toString()))
+        verify(paymentPersistenceService, times(1)).failedConfirm(payment.requiredId)
+        verify(noticeService, never()).send(any(), any(), anyOrNull())
     }
 
     @Test
@@ -490,6 +496,8 @@ class PaymentServiceTest {
 
         doReturn(payment).whenever(paymentPersistenceService).findById(any(), any())
         doReturn(payment).whenever(paymentPersistenceService).paymentCancelDb(any(), any(), any())
+        // 취소 선점 성공 (다른 요청이 선점하지 않은 상태)
+        doReturn(1).whenever(paymentRepository).paymentCanceling(any(), any())
 
         val canceledPayment = paymentService.cancel(client.id, payment.requiredId, PaymentCancelRequest("사유"))
 
@@ -498,6 +506,25 @@ class PaymentServiceTest {
         verify(paymentPersistenceService, times(1)).paymentCancelDb(eq(payment.requiredId), eq("사유"), eq(true))
         verify(paymentPersistenceService, times(1)).rejectApplication(post)
         verify(noticeService, times(1)).send(eq(client.id), argThat<String> { contains(post.title) }, anyOrNull())
+    }
+
+    @Test
+    @DisplayName("[PaymentService] 다른 요청이 먼저 취소를 선점하면 거부된다")
+    fun cancelByUserRejectedWhenPreemptFails() {
+        val client = createClient()
+        val post = createPost(client)
+        val payment = createPayment(post, PaymentStatus.DONE)
+
+        doReturn(payment).whenever(paymentPersistenceService).findById(any(), any())
+        // 선점 update 가 0건 = 이미 다른 요청이 취소를 시작했거나 끝냈다
+        doReturn(0).whenever(paymentRepository).paymentCanceling(any(), any())
+
+        assertThatThrownBy { paymentService.cancel(client.id, payment.requiredId, PaymentCancelRequest("사유")) }
+            .isInstanceOf(InvalidException::class.java)
+            .hasMessage("이미 취소된 결제입니다.")
+
+        // 선점에서 막혔으므로 환불 요청이 나가지 않는다
+        verify(tossPaymentClient, never()).callApiCancel(any(), any(), any())
     }
 
     @Test

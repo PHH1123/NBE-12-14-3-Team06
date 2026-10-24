@@ -61,11 +61,11 @@ class PaymentService(
             payment = paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId)
         } catch (e: NotFoundException) {
             log.error("결제 승인 실패", e)
-            rollbackConfirm(paymentId, tossPaymentKey, tossOrderId)
+            rollbackConfirm(paymentId, tossPaymentKey, amount)
             throw e
         } catch (ex: RuntimeException) {
             log.error("결제 승인 실패", ex)
-            rollbackConfirm(paymentId, tossPaymentKey, tossOrderId)
+            rollbackConfirm(paymentId, tossPaymentKey, amount)
             throw InternalServerErrorException(41, "결제 승인 도중 서버 에러가 발생했습니다.")
         }
 

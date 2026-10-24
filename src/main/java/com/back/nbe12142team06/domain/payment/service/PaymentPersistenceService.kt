@@ -84,7 +84,7 @@ class PaymentPersistenceService(
     }
 
     @Transactional
-    fun cancelPreempt(paymentId: Long): Int = paymentRepository.paymentCanceling(paymentId)
+    fun cancelPreempt(paymentId: Long): Int = paymentRepository.paymentCanceling(paymentId, LocalDateTime.now())
 
     @Transactional
     fun createPayment(payment: Payment): Payment {

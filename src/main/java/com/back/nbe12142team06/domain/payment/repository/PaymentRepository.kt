@@ -133,8 +133,10 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
 
     @Modifying(clearAutomatically = true)
     @Query(
-        "update Payment p set p.paymentStatus=PaymentStatus.CANCELED " +
-                "where p.id=:paymentId and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED)"
+        "update Payment p set p.canceledAt=:now " +
+                "where p.id=:paymentId and p.canceledAt is null " +
+                "and p.paymentStatus in (PaymentStatus.DONE, PaymentStatus.PARTIAL_CANCELED)"
     )
-    fun paymentCanceling(@Param("paymentId") paymentId: Long): Int
+    fun paymentCanceling(@Param("paymentId") paymentId: Long,
+                         @Param("now") now: LocalDateTime): Int
 }
