@@ -66,27 +66,28 @@ public class SettlementServiceAdminTest {
     private Settlement createSettlement(Long id, BigDecimal payoutAmount, BigDecimal platformFee, BigDecimal penaltyAmount,
                                         SettlementStatus status, LocalDate settledDate,
                                         Application application, User escort) {
-        return Settlement.builder()
-                .id(id)
-                .payoutAmount(payoutAmount)
-                .platformFee(platformFee)
-                .penaltyAmount(penaltyAmount)
-                .settlementStatus(status)
-                .settledDate(settledDate)
-                .application(application)
-                .escort(escort)
-                .build();
+        return new Settlement(
+                id,
+                payoutAmount,
+                platformFee,
+                penaltyAmount,
+                status,
+                settledDate,
+                application,
+                escort
+        );
     }
 
     private Settlement createSettlement(BigDecimal payoutAmount, BigDecimal platformFee,
-                                        BigDecimal penaltyAmount, SettlementStatus status) {
+                                        BigDecimal penaltyAmount, SettlementStatus status,
+                                        Application application, User escort) {
         return createSettlement(null, payoutAmount, platformFee, penaltyAmount,
-                status, LocalDate.now(), null, null);
+                status, LocalDate.now(), application, escort);
     }
 
-    private Settlement createSettlement(BigDecimal payoutAmount, SettlementStatus status, User escort) {
+    private Settlement createSettlement(BigDecimal payoutAmount, SettlementStatus status, Application application, User escort) {
         return createSettlement(null, payoutAmount, payoutAmount.divide(BigDecimal.valueOf(9.0)), BigDecimal.ZERO,
-                status, LocalDate.now(), null, escort);
+                status, LocalDate.now(), application, escort);
     }
 
     private Post createPost(User client, Long id, int hour) {
@@ -176,29 +177,41 @@ public class SettlementServiceAdminTest {
                 "123-000000-123");
     }
 
+    private Application saveApplication(User client, User escort) {
+        Post post = createPost(client, null, 4);
+        postRepository.save(post);
+        Application application = createApplication(escort, post);
+        return applicationRepository.save(application);
+    }
+
     @Test
     @DisplayName("[SettlementService] 관리자 기간별 정산 금액 및 건수 조회")
     void getSettlementByPeriod() {
+        User escort = createEscort();
+        User client = createClient();
+        userRepository.save(escort);
+        userRepository.save(client);
+
         // 정산 완료 - 지급 135_000 / 수수료 15_000 / 기부 0
         Settlement settlement1 = createSettlement(
                 BigDecimal.valueOf(135_000), BigDecimal.valueOf(15_000),
-                BigDecimal.ZERO, SettlementStatus.COMPLETED);
+                BigDecimal.ZERO, SettlementStatus.COMPLETED, saveApplication(client, escort), escort);
         // 정산 완료 - 지급 121_500 / 수수료 15_000 / 기부 13_500
         Settlement settlement2 = createSettlement(
                 BigDecimal.valueOf(121_500), BigDecimal.valueOf(15_000),
-                BigDecimal.valueOf(13_500), SettlementStatus.COMPLETED);
+                BigDecimal.valueOf(13_500), SettlementStatus.COMPLETED, saveApplication(client, escort), escort);
         // 정산 전 - 미정산 135_000
         Settlement settlement3 = createSettlement(
                 BigDecimal.valueOf(135_000), BigDecimal.valueOf(15_000),
-                BigDecimal.ZERO, SettlementStatus.PENDING);
+                BigDecimal.ZERO, SettlementStatus.PENDING, saveApplication(client, escort), escort);
         // 정산 실패 - 미정산 90_000
         Settlement settlement4 = createSettlement(
                 BigDecimal.valueOf(90_000), BigDecimal.valueOf(10_000),
-                BigDecimal.ZERO, SettlementStatus.FAILED);
+                BigDecimal.ZERO, SettlementStatus.FAILED, saveApplication(client, escort), escort);
         // 정산 중 - 오류 45_000
         Settlement settlement5 = createSettlement(
                 BigDecimal.valueOf(45_000), BigDecimal.valueOf(5_000),
-                BigDecimal.ZERO, SettlementStatus.PROCESSING);
+                BigDecimal.ZERO, SettlementStatus.PROCESSING, saveApplication(client, escort), escort);
 
         settlementRepository.save(settlement1);
         settlementRepository.save(settlement2);
@@ -208,7 +221,7 @@ public class SettlementServiceAdminTest {
 
         List<Settlement> settlements =
                 settlementService.getAnalytics(LocalDate.now().minusDays(7), LocalDate.now().plusDays(1));
-        SettlementAnalyticsResponse result = new SettlementAnalyticsResponse(settlements);
+        SettlementAnalyticsResponse result = SettlementAnalyticsResponse.from(settlements);
 
         assertThat(result.totalSettlementAmount()).isEqualTo(526_500L);
         assertThat(result.settlementCount()).isEqualTo(5L);
@@ -228,12 +241,14 @@ public class SettlementServiceAdminTest {
     @DisplayName("[SettlementService] 관리자 기간별 정산 목록 조회")
     void settlementList() {
         User escort = createEscort();
-        escort = userRepository.save(escort);
+        User client = createClient();
+        userRepository.save(escort);
+        userRepository.save(client);
 
-        Settlement settlement1 = createSettlement(BigDecimal.valueOf(135_000), SettlementStatus.COMPLETED, escort);
-        Settlement settlement2 = createSettlement(BigDecimal.valueOf(121_500), SettlementStatus.PENDING, escort);
-        Settlement settlement3 = createSettlement(BigDecimal.valueOf(90_000), SettlementStatus.FAILED, escort);
-        Settlement settlement4 = createSettlement(BigDecimal.valueOf(45_000), SettlementStatus.PROCESSING, escort);
+        Settlement settlement1 = createSettlement(BigDecimal.valueOf(135_000), SettlementStatus.COMPLETED, saveApplication(client, escort), escort);
+        Settlement settlement2 = createSettlement(BigDecimal.valueOf(121_500), SettlementStatus.PENDING, saveApplication(client, escort), escort);
+        Settlement settlement3 = createSettlement(BigDecimal.valueOf(90_000), SettlementStatus.FAILED, saveApplication(client, escort), escort);
+        Settlement settlement4 = createSettlement(BigDecimal.valueOf(45_000), SettlementStatus.PROCESSING, saveApplication(client, escort), escort);
 
         settlement1 = settlementRepository.save(settlement1);
         settlementRepository.save(settlement2);
