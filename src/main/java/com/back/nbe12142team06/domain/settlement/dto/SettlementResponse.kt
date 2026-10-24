@@ -21,7 +21,7 @@ data class SettlementResponse(
         platformFee = settlement.platformFee.toInt(),
         penaltyAmount = settlement.penaltyAmount.toInt(),
         status = settlement.settlementStatus,
-        settledAt = settlement.settledDate!!,
+        settledAt = settlement.settledDate,
         post = PostDto(settlement.application.post!!)
     )
 }

@@ -26,6 +26,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -122,8 +123,8 @@ class SettlementService(
 
     @Transactional(readOnly = true)
     fun findSettlement(userId: Long, settlementId: Long): SettlementResponse {
-        val settlement: Settlement = (settlementRepository.findByIdOrNull(settlementId)
-            ?: throw NotFoundException(71, "정산 데이터를 찾을 수 없습니다.")) as Settlement
+        val settlement: Settlement = settlementRepository.findByIdOrNull(settlementId)
+            ?: throw NotFoundException(71, "정산 데이터를 찾을 수 없습니다.")
 
         if (settlement.escort.id != userId) {
             throw ForbiddenException(71, "정산 요청할 권한이 없습니다.")
@@ -163,13 +164,15 @@ class SettlementService(
                 settlementPersistenceService.updateSettlement(accountDto.id, SettlementStatus.FAILED)
                 failedCount++
                 log.error("정산 실패 - 금융 결제원 API 요청 실패, settlementId: {}", accountDto.id)
+                continue
             }
 
             try {
                 settlementPersistenceService.updateSettlement(accountDto.id, SettlementStatus.COMPLETED)
             } catch (e: RuntimeException) {
-                log.error("정산 DB 변경 실패, 정산은 성공 - settlementId: {}", accountDto.id)
-                throw InternalServerErrorException(71, "정산 데이터 저장 중 DB 에러가 발생했습니다.")
+                log.error("정산 DB 변경 실패, 송금은 성공 - settlementId: {}", accountDto.id)
+                failedCount++
+                continue
             }
 
             successCount++
@@ -195,8 +198,8 @@ class SettlementService(
         escort: User,
         settledDate: LocalDate
     ): Settlement {
-        var settlementAmount = payoutAmount.multiply(BigDecimal(0.9))
-        val platformFee = payoutAmount.subtract(settlementAmount)
+        var settlementAmount = payoutAmount.multiply(BigDecimal.valueOf(0.9)).setScale(0, RoundingMode.DOWN)
+        val platformFee = payoutAmount.subtract(settlementAmount).setScale(0, RoundingMode.DOWN)
 
         // 패널티 적용해야 하는지 확인
         val noShowPenalty: NoShowPenalty? = noShowPenaltyService.getNoShowPenalty(escort.id)
@@ -204,7 +207,7 @@ class SettlementService(
         // 패널티 적용 시 정산 금액 차감
         var penaltyAmount = BigDecimal.ZERO
         noShowPenalty?.let {
-            penaltyAmount = settlementAmount.multiply(BigDecimal.valueOf(0.1))
+            penaltyAmount = settlementAmount.multiply(BigDecimal.valueOf(0.1)).setScale(0, RoundingMode.DOWN)
             settlementAmount = settlementAmount.subtract(penaltyAmount)
         }
 
