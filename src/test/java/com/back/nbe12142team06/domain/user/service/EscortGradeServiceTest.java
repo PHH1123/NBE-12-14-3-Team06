@@ -72,6 +72,14 @@ public class EscortGradeServiceTest {
         escort.updateGrade(storedGrade);
         return escortProfileRepository.save(escort);
     }
+    // 등급 계산만 확인할 때 쓰는 프로필 (DB 에 저장하지 않는다. 회원은 생성자 조건을 채우기 위한 값)
+    private EscortProfile newProfile() {
+        User user = new User(
+                "calcEscort", "Password123!", "calc@test.com", "테스트",
+                Role.ESCORT, Gender.MALE, LocalDate.of(1990, 1, 1),
+                "010-0000-0000", "서울");
+        return new EscortProfile(user, "소개", "은행", "예금주", "계좌번호");
+    }
 
     // 실제 서비스(PostService, ApplicationService)처럼 "트랜잭션 안에서 조회한 프로필"로 refreshGrade 를 호출한다.
     // 저장이 끝난 뒤의 객체를 그대로 넘기면 영속성 컨텍스트 밖의 객체라 변경 감지가 되지 않는다.
@@ -93,7 +101,7 @@ public class EscortGradeServiceTest {
     @Test
     @DisplayName("완료5회 +  노쇼0회 = 새싹")
     void 완료5회노쇼0회_새싹SPROUT(){
-        EscortProfile escort = new EscortProfile(null, "소개", "은행", "예금주", "계좌번호");
+        EscortProfile escort = newProfile();
         ReflectionTestUtils.setField(escort, "completedCount", 5);
 
         EscortGrade grade = escort.calculateGrade();
@@ -130,7 +138,7 @@ public class EscortGradeServiceTest {
     })
     @DisplayName("완료/노쇼 횟수에 따라 등급이 계산된다")
     void 횟수별_등급_계산(int completedCount, int noShowCount, EscortGrade expected) {
-        EscortProfile escort = new EscortProfile(null, "소개", "은행", "예금주", "계좌번호");
+        EscortProfile escort = newProfile();
         ReflectionTestUtils.setField(escort, "completedCount", completedCount);
         ReflectionTestUtils.setField(escort, "noShowCount", noShowCount);
 
@@ -140,7 +148,7 @@ public class EscortGradeServiceTest {
     @Test
     @DisplayName("새로 만든 동행인의 저장된 등급은 씨앗이다")
     void 새_동행인은_씨앗() {
-        EscortProfile escort = new EscortProfile(null, "소개", "은행", "예금주", "계좌번호");
+        EscortProfile escort = newProfile();
 
         assertThat(escort.getGrade()).isEqualTo(EscortGrade.SEED);
     }
