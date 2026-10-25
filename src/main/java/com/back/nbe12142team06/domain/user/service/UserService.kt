@@ -212,7 +212,7 @@ class UserService(
             throw DuplicatedException(5, "이미 의뢰인 프로필이 존재합니다.")
         }
 
-        // createClientProfile()
+
         val profile = ClientProfile(
             user,
             request.emergencyContactName!!,   // @NotBlank 검증 통과
@@ -275,7 +275,7 @@ class UserService(
 
         // 프로필 생성 및 회원 연결
         val savedProfile = escortProfileRepository.save(
-            EscortProfile(user, request.intro, request.bankName, request.accountHolder, request.accountNumber)
+            EscortProfile(user, request.intro!!, request.bankName!!, request.accountHolder!!, request.accountNumber!!)  // @NotBlank 검증 통과
         )
 
         // 모든 교육 영상에 대한 진행 상황 생성
@@ -296,8 +296,7 @@ class UserService(
     fun updateEscortProfile(escortId: Long, request: EscortProfileModifyRequest): EscortProfile {
         val escortProfile = findEscortProfileWithUser(escortId)
 
-        escortProfile.updateProfile(request.intro, request.bankName, request.accountHolder, request.accountNumber)
-
+        escortProfile.updateProfile(request.intro!!, request.bankName!!, request.accountHolder!!, request.accountNumber!!)  // @NotBlank 검증 통과
         return escortProfileRepository.save(escortProfile)
     }
 

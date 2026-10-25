@@ -32,7 +32,8 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.util.ReflectionTestUtils
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.springframework.transaction.annotation.Transactional
@@ -128,7 +129,7 @@ class ApplicationControllerTest {
         // 테스트용 동행인 프로필 생성 (교육 이수 완료 상태)
         val escortProfile = EscortProfile(escort, "ㅎㅎ", "은행은행", escort.name, "1234")
         escortProfileRepository.save(escortProfile)
-        this.escortProfileRepository.verify(escortProfile.userId, LocalDateTime.now())
+        this.escortProfileRepository.verify(escortProfile.userId!!, LocalDateTime.now())
 
         // 테스트용 공고
         var post = Post.builder()
@@ -1027,7 +1028,7 @@ class ApplicationControllerTest {
                 "동행인2",
                 "123-0000000-222"
         ))
-        this.escortProfileRepository.verify(escort2Profile.userId, LocalDateTime.now())
+        this.escortProfileRepository.verify(escort2Profile.userId!!, LocalDateTime.now())
 
         val escort2AccessTokenCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
@@ -2605,7 +2606,7 @@ class ApplicationControllerTest {
                 "123-0000000-333"
         ))
 
-        this.escortProfileRepository.verify(escortProfile.userId, LocalDateTime.now())
+        this.escortProfileRepository.verify(escortProfile.userId!!, LocalDateTime.now())
 
         return mvc.perform(
                         mvcPost("/api/v1/auth/login")

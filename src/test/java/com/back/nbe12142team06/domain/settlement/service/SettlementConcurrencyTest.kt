@@ -91,7 +91,7 @@ class SettlementConcurrencyTest {
             EscortProfile(escort, "자기소개", "오픈은행", "동행매니저이름", "000-1234567-000")
         )
         transactionTemplate.executeWithoutResult {
-            escortProfileRepository.verify(savedProfile.userId, LocalDateTime.now())
+            escortProfileRepository.verify(savedProfile.userId!!, LocalDateTime.now())
         }
     }
 
