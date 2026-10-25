@@ -1,11 +1,12 @@
 package com.back.nbe12142team06.domain.chat.repository
 
 import com.back.nbe12142team06.domain.chat.entity.ChatPart
+import com.back.nbe12142team06.domain.chat.entity.ChatPartId
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
-interface ChatPartRepository : JpaRepository<ChatPart, Long> {
+interface ChatPartRepository : JpaRepository<ChatPart, ChatPartId> {
     fun findByUserIdAndChatRoomId(userId: Long, chatRoomId: Long): ChatPart?
 
     @Query(
