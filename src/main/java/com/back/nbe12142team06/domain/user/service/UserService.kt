@@ -212,12 +212,14 @@ class UserService(
             throw DuplicatedException(5, "이미 의뢰인 프로필이 존재합니다.")
         }
 
+        // createClientProfile()
         val profile = ClientProfile(
             user,
-            request.emergencyContactName,
-            request.emergencyContactPhone,
+            request.emergencyContactName!!,   // @NotBlank 검증 통과
+            request.emergencyContactPhone!!,
             careNoteOrDefault(request.careNote),
         )
+
         return clientProfileRepository.save(profile)
     }
 
@@ -231,8 +233,8 @@ class UserService(
         val clientProfile = findClientProfile(id)
 
         clientProfile.updateProfile(
-            request.emergencyContactName,
-            request.emergencyContactPhone,
+            request.emergencyContactName!!,   // @NotBlank 검증 통과
+            request.emergencyContactPhone!!,
             careNoteOrDefault(request.careNote),
         )
         return clientProfileRepository.save(clientProfile)
