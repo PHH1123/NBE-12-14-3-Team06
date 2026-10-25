@@ -207,15 +207,13 @@ interface ApplicationRepository : JpaRepository<Application, Long> {
     ): Int
 
     @Query(
-        "select a from Application a " +
-            "join a.post p " +
-            "join a.escort e " +
-            "where p.id=:postId and e.id=:escortId"
+        "select count(a) > 0 from Application a " +
+            "where a.post.id=:postId and a.escort.id=:escortId"
     )
-    fun findByPostIdAndEscortId(
+    fun existsByPostIdAndEscortId(
         @Param("postId") postId: Long?,
         @Param("escortId") escortId: Long?,
-    ): List<Application>
+    ): Boolean
 
     // 이 공고에 승인(ACCEPTED)된 동행인인지
     fun existsByPostIdAndEscortIdAndStatus(

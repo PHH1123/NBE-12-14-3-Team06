@@ -54,9 +54,10 @@ class RideControllerTest {
     private var savedPost1Id: Long = 0
     private var savedRide1Id: Long = 0
 
-    // 1: 공고를 쓴 의뢰인, 2: 그 공고에 승인된 동행 매니저
+    // 1: 공고를 쓴 의뢰인, 2: 그 공고에 승인된 동행 매니저, 3: 이 공고와 무관한 동행 매니저
     private lateinit var accessTokenCookie1: Cookie
     private lateinit var accessTokenCookie2: Cookie
+    private lateinit var accessTokenCookie3: Cookie
 
     @BeforeEach
     fun init() {
@@ -87,6 +88,16 @@ class RideControllerTest {
             )
         )
 
+        // 이 공고에 지원하지 않은 동행 매니저
+        userService.signUp(
+            UserSignUpRequest(
+                username + "3", password + "3", email + "3", name + "3", Role.ESCORT,
+                Gender.valueOf(gender),
+                LocalDate.parse(birthDate, DateTimeFormatter.ISO_LOCAL_DATE),
+                "010-9999-9993", region
+            )
+        )
+
         // 공고를 쓰면 이동 정보(병원 이동·귀가 이동)가 함께 만들어진다
         val post1 = postService.write(user1.id!!, postWriteRequest())
         paymentRepository.testStatusDoneAndPutPaymentKey(post1.id!!, UUID.randomUUID().toString())
@@ -104,6 +115,7 @@ class RideControllerTest {
         // user로 로그인해 인증 쿠키 확보
         accessTokenCookie1 = login(username, password)
         accessTokenCookie2 = login(username + "2", password + "2")
+        accessTokenCookie3 = login(username + "3", password + "3")
     }
 
     private fun postWriteRequest() = PostWriteRequest(
@@ -190,9 +202,9 @@ class RideControllerTest {
     }
 
     @Test
-    @DisplayName("[RideController] 이동 상세 정보 - 권한 부족")
-    fun rideDetailsFailForbidden() {
-        // 상세 조회는 의뢰인만 볼 수 있어서, 승인된 동행 매니저도 막힌다
+    @DisplayName("[RideController] 이동 상세 정보 - 동행 매니저 조회 성공")
+    fun rideDetailsEscortSuccess() {
+        // 그 공고에 지원한 동행 매니저도 상세를 볼 수 있어야 한다
         val resultActions = mvc.perform(
             get("/api/v1/rides/$savedRide1Id")
                 .cookie(accessTokenCookie2)
@@ -201,8 +213,76 @@ class RideControllerTest {
         resultActions
             .andExpect(handler().handlerType(RideController::class.java))
             .andExpect(handler().methodName("getRide"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value("200-82"))
+            .andExpect(jsonPath("$.data.direction").value("TO_HOSPITAL"))
+            .andExpect(jsonPath("$.data.status").value("ACCEPTED"))
+    }
+
+    @Test
+    @DisplayName("[RideController] 이동 상세 정보 - 권한 부족")
+    fun rideDetailsFailForbidden() {
+        // 공고와 무관한 동행 매니저는 막힌다
+        val resultActions = mvc.perform(
+            get("/api/v1/rides/$savedRide1Id")
+                .cookie(accessTokenCookie3)
+        ).andDo(print())
+
+        resultActions
+            .andExpect(handler().handlerType(RideController::class.java))
+            .andExpect(handler().methodName("getRide"))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.statusCode").value("403-81"))
             .andExpect(jsonPath("$.msg").value("이동 정보를 조회할 권한이 없습니다."))
+    }
+
+    @Test
+    @DisplayName("[RideController] 해당 공고 이동 목록 - 의뢰인 조회 성공")
+    fun listByPostClientSuccess() {
+        val resultActions = mvc.perform(
+            get("/api/v1/rides/posts/$savedPost1Id")
+                .cookie(accessTokenCookie1)
+        ).andDo(print())
+
+        // 공고 작성 때 병원 이동·귀가 이동 2건이 만들어진다
+        resultActions
+            .andExpect(handler().handlerType(RideController::class.java))
+            .andExpect(handler().methodName("getListByPostId"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value("200-81"))
+            .andExpect(jsonPath("$.data.length()").value(2))
+            .andExpect(jsonPath("$.data[0].direction").value("TO_HOSPITAL"))
+            .andExpect(jsonPath("$.data[1].direction").value("TO_HOME"))
+    }
+
+    @Test
+    @DisplayName("[RideController] 해당 공고 이동 목록 - 권한 부족")
+    fun listByPostFailForbidden() {
+        // 공고와 무관한 동행 매니저는 목록도 볼 수 없다
+        val resultActions = mvc.perform(
+            get("/api/v1/rides/posts/$savedPost1Id")
+                .cookie(accessTokenCookie3)
+        ).andDo(print())
+
+        resultActions
+            .andExpect(handler().handlerType(RideController::class.java))
+            .andExpect(handler().methodName("getListByPostId"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.statusCode").value("403-81"))
+            .andExpect(jsonPath("$.msg").value("이동 정보를 조회할 권한이 없습니다."))
+    }
+
+    @Test
+    @DisplayName("[RideController] 로그인 없이 호출하면 401")
+    fun rideApiRequiresLogin() {
+        mvc.perform(get("/api/v1/rides/$savedRide1Id"))
+            .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.statusCode").value("401-113"))
+
+        mvc.perform(get("/api/v1/rides/posts/$savedPost1Id"))
+            .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.statusCode").value("401-113"))
     }
 }

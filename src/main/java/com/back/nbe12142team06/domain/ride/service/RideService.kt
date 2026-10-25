@@ -65,9 +65,10 @@ class RideService(
         }
 
         // 동행 매니저 검증
-        if (!isValid) {
-            applicationRepository.findByPostIdAndEscortId(postId, userId)
-                .ifEmpty { throw ForbiddenException(81, "이동 정보를 조회할 권한이 없습니다.") }
+        if (!isValid &&
+            !applicationRepository.existsByPostIdAndEscortId(postId, userId)
+        ) {
+            throw ForbiddenException(81, "이동 정보를 조회할 권한이 없습니다.")
         }
 
         return rides.map { ride -> RideResponse.from(ride) }
@@ -78,7 +79,9 @@ class RideService(
         (rideRepository.findByIdOrNull(rideId)
             ?: throw NotFoundException(82, "이동 정보를 찾을 수 없습니다."))
             .also {
-                if (!it.validClient(userId)) {
+                if (!it.validClient(userId) &&
+                    !applicationRepository.existsByPostIdAndEscortId(it.post.id, userId)
+                ) {
                     throw ForbiddenException(81, "이동 정보를 조회할 권한이 없습니다.")
                 }
             }
