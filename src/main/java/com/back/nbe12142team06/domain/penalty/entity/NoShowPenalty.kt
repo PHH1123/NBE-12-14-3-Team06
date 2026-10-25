@@ -3,6 +3,7 @@ package com.back.nbe12142team06.domain.penalty.entity
 import com.back.nbe12142team06.domain.application.entity.Application
 import com.back.nbe12142team06.domain.settlement.entity.Settlement
 import com.back.nbe12142team06.global.entity.BaseTimeEntity
+import com.back.nbe12142team06.global.exception.InvalidException
 import jakarta.persistence.*
 import java.math.BigDecimal
 
@@ -50,6 +51,9 @@ class NoShowPenalty(
 
     // 노쇼 정보 수정
     fun updateNoShow(amount: BigDecimal, baseAmount: BigDecimal, settlement: Settlement) {
+        if (!this.status.canNoShowPenalty(NoShowPenaltyStatus.APPLIED)) {
+            throw InvalidException(141, "이미 패널티가 적용되었습니다.")
+        }
         this.amount = amount
         this.baseAmount = baseAmount
         this.status = NoShowPenaltyStatus.APPLIED

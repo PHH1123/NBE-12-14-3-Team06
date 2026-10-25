@@ -454,4 +454,56 @@ class SettlementServiceUnitTest {
 
         verify(settlementClient, never()).settlementRequest(any())
     }
+
+    @Test
+    @DisplayName("[SettlementService] 정산 생성 - 패널티도 원 단위로 버림한다")
+    fun createSettlementPenaltyWithRemainder() {
+        val escort = createUser("escort01", Role.ESCORT, escortId)
+        val penalty: NoShowPenalty = mock()
+        doAnswer { it.arguments[0] as Settlement }.whenever(settlementRepository).save(any())
+        doReturn(penalty).whenever(noShowPenaltyService).getNoShowPenalty(escortId)
+
+        // 11,352원 × 1.1시간 = 12,487.2원 → 90%는 11,238.48원, 그 10%는 1,123.8원
+        val settlement = settlementService.createSettlement(
+            BigDecimal("12487.2"), createApplication(escort), escort, LocalDate.now()
+        )
+
+        // 패널티도 지급액과 같은 기준(원 단위 버림)으로 떼야 1원이 새지 않는다
+        assertThat(settlement.penaltyAmount).isEqualByComparingTo(BigDecimal.valueOf(1_123))
+        assertThat(settlement.penaltyAmount.scale()).isEqualTo(0)
+        assertThat(settlement.payoutAmount).isEqualByComparingTo(BigDecimal.valueOf(10_115))
+        assertThat(settlement.platformFee).isEqualByComparingTo(BigDecimal.valueOf(1_249))
+
+        // 패널티 기준 금액은 패널티를 떼기 전 지급액(11,238)이다
+        verify(noShowPenaltyService, times(1)).applyPenalty(
+            eq(escortId),
+            argThat<BigDecimal> { compareTo(BigDecimal.valueOf(1_123)) == 0 },
+            argThat<BigDecimal> { compareTo(BigDecimal.valueOf(11_238)) == 0 },
+            eq(settlement),
+            eq(penalty)
+        )
+    }
+
+    @Test
+    @DisplayName("[SettlementService] 정산 생성 - 지급액 + 수수료 + 패널티는 결제 금액을 넘지 않는다")
+    fun createSettlementAmountInvariantWithPenalty() {
+        val escort = createUser("escort01", Role.ESCORT, escortId)
+        val penalty: NoShowPenalty = mock()
+        doAnswer { it.arguments[0] as Settlement }.whenever(settlementRepository).save(any())
+        doReturn(penalty).whenever(noShowPenaltyService).getNoShowPenalty(escortId)
+
+        // 딱 나뉘는 금액과 원 미만이 남는 금액 모두 결제 금액을 초과해서는 안 된다
+        listOf(BigDecimal.valueOf(150_000) to 150_000, BigDecimal("12487.2") to 12_487).forEach { (payout, paid) ->
+            val settlement = settlementService.createSettlement(
+                payout, createApplication(escort), escort, LocalDate.now()
+            )
+            val total = settlement.payoutAmount
+                .add(settlement.platformFee)
+                .add(settlement.penaltyAmount)
+
+            assertThat(total).isLessThanOrEqualTo(BigDecimal.valueOf(paid.toLong()))
+            // 버려지는 금액은 원 미만 단위뿐이다
+            assertThat(BigDecimal.valueOf(paid.toLong()).subtract(total)).isLessThan(BigDecimal.ONE)
+        }
+    }
 }
