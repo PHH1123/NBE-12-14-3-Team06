@@ -95,12 +95,6 @@ class RideService(
         return rides
     }
 
-    // 이동 완료 (관리자 전용으로 돌릴 수 있음)
-    @Transactional
-    fun arrive(userId: Long, rideId: Long): Ride = findById(userId, rideId).also {
-        it.updateStatus(RideStatus.COMPLETED)
-    }
-
     @Transactional
     fun createRide(post: Post, toHospital: RideSelect, toHome: RideSelect) {
         rideRepository.save(
