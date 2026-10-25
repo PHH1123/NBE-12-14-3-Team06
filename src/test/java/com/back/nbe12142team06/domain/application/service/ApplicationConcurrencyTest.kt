@@ -24,6 +24,8 @@ import com.back.nbe12142team06.domain.user.service.UserService
 import com.back.nbe12142team06.global.exception.DuplicatedException
 import com.back.nbe12142team06.global.exception.ForbiddenException
 import com.back.nbe12142team06.global.exception.InvalidException
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -32,18 +34,13 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.support.TransactionTemplate
-
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -917,14 +914,14 @@ class ApplicationConcurrencyTest {
 
             System.out.println("승인 예외 = " + acceptError.get())
             System.out.println("탈퇴 예외 = " + withdrawError.get())
-            System.out.println("회원 삭제 여부 = " + resultEscort.isDeleted())
+            System.out.println("회원 삭제 여부 = " + resultEscort.isDeleted)
             System.out.println("지원 상태 = " + resultApplication.status)
             System.out.println("공고 상태 = " + resultPost.postStatus)
 
             // 탈퇴가 정상 완료된 경우에는 활성 매칭이 남아서는 안 된다.
             if (withdrawError.get() == null) {
 
-                assertTrue(resultEscort.isDeleted(),
+                assertTrue(resultEscort.isDeleted,
                         "탈퇴가 성공했는데 회원이 삭제 상태가 아닙니다.")
 
                 assertEquals(ApplicationStatus.CANCELED,

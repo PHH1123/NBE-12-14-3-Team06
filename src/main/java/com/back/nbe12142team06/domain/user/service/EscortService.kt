@@ -25,13 +25,7 @@ class EscortService(
         if (previousGrade == newGrade) return false
 
         escort.updateGrade(newGrade)
-        escortGradeHistoryRepository.save(
-            EscortGradeHistory.builder()
-                .escortProfile(escort)
-                .previousGrade(previousGrade)
-                .newGrade(newGrade)
-                .build()
-        )
+        escortGradeHistoryRepository.save(EscortGradeHistory(escort, previousGrade, newGrade))
 
         return true
     }

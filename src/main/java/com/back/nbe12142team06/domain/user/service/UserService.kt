@@ -78,16 +78,17 @@ class UserService(
             throw DuplicatedException(DUPLICATED_PHONE_NUM, "이미 사용 중인 전화번호입니다.")
         }
 
+        // 요청 값은 @Valid 검증(@NotBlank, @NotNull)을 통과했으므로 null 이 아니다
         val user = User(
-            request.username,
+            request.username!!,
             passwordEncoder.encode(request.password),  // 비밀번호 암호화
-            request.email,
-            request.name,
-            request.role,
-            request.gender,
-            request.birthDate,
-            request.phoneNum,
-            request.region,
+            request.email!!,
+            request.name!!,
+            request.role!!,
+            request.gender!!,
+            request.birthDate!!,
+            request.phoneNum!!,
+            request.region!!,
         )
 
         // 동시성 자체는 유니크로 막혀 있는데 그 때 500번이 나가버리기 때문에 이를 409로 감싸기만 했습니다.
@@ -165,13 +166,14 @@ class UserService(
 
         validateDuplicatedEmailAndPhone(id, request.email, request.phoneNum)
 
+        // 요청 값은 @Valid 검증을 통과했으므로 null 이 아니다
         user.updateUser(
             passwordEncoder.encode(request.password),
-            request.email,
-            request.name,
-            request.birthDate,
-            request.phoneNum,
-            request.region,
+            request.email!!,
+            request.name!!,
+            request.birthDate!!,
+            request.phoneNum!!,
+            request.region!!,
         )
         return userRepository.save(user)
     }
@@ -212,12 +214,14 @@ class UserService(
             throw DuplicatedException(5, "이미 의뢰인 프로필이 존재합니다.")
         }
 
+
         val profile = ClientProfile(
             user,
-            request.emergencyContactName,
-            request.emergencyContactPhone,
+            request.emergencyContactName!!,   // @NotBlank 검증 통과
+            request.emergencyContactPhone!!,
             careNoteOrDefault(request.careNote),
         )
+
         return clientProfileRepository.save(profile)
     }
 
@@ -231,8 +235,8 @@ class UserService(
         val clientProfile = findClientProfile(id)
 
         clientProfile.updateProfile(
-            request.emergencyContactName,
-            request.emergencyContactPhone,
+            request.emergencyContactName!!,   // @NotBlank 검증 통과
+            request.emergencyContactPhone!!,
             careNoteOrDefault(request.careNote),
         )
         return clientProfileRepository.save(clientProfile)
@@ -273,7 +277,7 @@ class UserService(
 
         // 프로필 생성 및 회원 연결
         val savedProfile = escortProfileRepository.save(
-            EscortProfile(user, request.intro, request.bankName, request.accountHolder, request.accountNumber)
+            EscortProfile(user, request.intro!!, request.bankName!!, request.accountHolder!!, request.accountNumber!!)  // @NotBlank 검증 통과
         )
 
         // 모든 교육 영상에 대한 진행 상황 생성
@@ -294,8 +298,7 @@ class UserService(
     fun updateEscortProfile(escortId: Long, request: EscortProfileModifyRequest): EscortProfile {
         val escortProfile = findEscortProfileWithUser(escortId)
 
-        escortProfile.updateProfile(request.intro, request.bankName, request.accountHolder, request.accountNumber)
-
+        escortProfile.updateProfile(request.intro!!, request.bankName!!, request.accountHolder!!, request.accountNumber!!)  // @NotBlank 검증 통과
         return escortProfileRepository.save(escortProfile)
     }
 
@@ -327,13 +330,14 @@ class UserService(
 
         validateDuplicatedEmailAndPhone(userId, request.email, request.phoneNum)
 
+        // 요청 값은 @Valid 검증을 통과했으므로 null 이 아니다
         user.updateUser(
             user.password,  // 기존 비밀번호 해시 유지
-            request.email,
-            request.name,
-            request.birthDate,
-            request.phoneNum,
-            request.region,
+            request.email!!,
+            request.name!!,
+            request.birthDate!!,
+            request.phoneNum!!,
+            request.region!!,
         )
         return userRepository.save(user)
     }
@@ -366,7 +370,7 @@ class UserService(
     @Transactional
     fun suspendUser(adminId: Long, userId: Long, reason: String?): UserStatusHistory {
         val user = findPenaltyTarget(userId)
-        val history = userStatusHistoryRepository.save(user.suspend(adminId, reason))
+        val history = userStatusHistoryRepository.save(user.suspend(adminId, reason!!))
 
         // 공고 취소, 지원 취소
         cancelAllByUser(user)
@@ -379,7 +383,7 @@ class UserService(
     @Transactional
     fun banUser(adminId: Long, userId: Long, reason: String?): UserStatusHistory {
         val user = findPenaltyTarget(userId)
-        val history = userStatusHistoryRepository.save(user.ban(adminId, reason))
+        val history = userStatusHistoryRepository.save(user.ban(adminId, reason!!))
 
         // 공고 취소, 지원 취소
         cancelAllByUser(user)
@@ -392,7 +396,7 @@ class UserService(
     @Transactional
     fun releaseUser(adminId: Long, userId: Long, reason: String?): UserStatusHistory {
         val user = findUser(userId)
-        val history = userStatusHistoryRepository.save(user.release(adminId, reason))
+        val history = userStatusHistoryRepository.save(user.release(adminId, reason!!))
 
         log.info("[회원 정지 해제] adminId={}, userId={}", adminId, userId)
         return history
