@@ -1,10 +1,9 @@
 package com.back.nbe12142team06.domain.notification.service
 
 import com.back.nbe12142team06.domain.notification.entity.Notification
-import com.back.nbe12142team06.domain.notification.event.NotificationEvent
+import com.back.nbe12142team06.domain.notification.event.NoticeRequestedEvent
 import com.back.nbe12142team06.domain.notification.repository.EmitterRepository
 import com.back.nbe12142team06.domain.notification.repository.NotificationRepository
-import com.back.nbe12142team06.domain.user.repository.UserRepository
 import com.back.nbe12142team06.global.exception.ForbiddenException
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.exception.NotFoundException
@@ -12,7 +11,6 @@ import lombok.RequiredArgsConstructor
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
-import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
@@ -23,8 +21,7 @@ import java.io.IOException
 class NoticeService(
     private val notificationRepository: NotificationRepository,
     private val emitterRepository: EmitterRepository,
-    private val eventPublisher: ApplicationEventPublisher,
-    private val userRepository: UserRepository
+    private val eventPublisher: ApplicationEventPublisher
 ) {
 
     fun connect(userId: Long): SseEmitter {
@@ -45,20 +42,14 @@ class NoticeService(
         return sseEmitter
     }
 
-    @Async
     @Transactional
-    fun send(receiverId: Long, content: String, url: String?) =
+    fun send(receiverId: Long, content: String, url: String?) {
         eventPublisher.publishEvent(
-            NotificationEvent(
-                content, url, receiverId, notificationRepository.save(
-                    Notification(
-                        content = content,
-                        url = url,
-                        receiver = userRepository.getReferenceById(receiverId)
-                    )
-                )
+            NoticeRequestedEvent(
+                content, url, receiverId
             )
         )
+    }
 
     private fun sendToClient(sseEmitter: SseEmitter, emitterId: String, data: Any) {
         try {
@@ -78,12 +69,11 @@ class NoticeService(
         notificationRepository.findByReceiverId(userId, pageable)
 
     @Transactional
-    fun readList(userId: Long, pageable: Pageable): Page<Notification> =
-        notificationRepository.findByReceiverId(userId, pageable).also {
-            it.content.forEach { notification ->
-                notification.read()
-            }
-        }
+    fun readList(userId: Long, pageable: Pageable): Page<Notification> {
+        notificationRepository.readAllByUserId(userId)
+
+        return notificationRepository.findByReceiverId(userId, pageable)
+    }
 
     @Transactional
     fun read(userId: Long, notificationId: Long): Notification {
