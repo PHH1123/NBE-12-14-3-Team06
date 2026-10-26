@@ -8,7 +8,6 @@ import javax.crypto.SecretKey
 
 object JwtProvider {
     // 토큰 발급
-    @JvmStatic
     fun toString(
         secret: String,
         expireSeconds: Long,
@@ -27,7 +26,6 @@ object JwtProvider {
 
 
     // 검증 후 페이로드 추출
-    @JvmStatic
     fun payload(
         jwt: String,
         secretPattern: String

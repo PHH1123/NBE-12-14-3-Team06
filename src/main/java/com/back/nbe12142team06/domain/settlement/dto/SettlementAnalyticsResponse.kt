@@ -18,7 +18,6 @@ data class SettlementAnalyticsResponse(
     val errorSettlementCount: Long,
 ) {
     companion object {
-        @JvmStatic
         fun from(settlementList: List<Settlement>): SettlementAnalyticsResponse {
 
             val completed = settlementList.filter { it.settlementStatus == SettlementStatus.COMPLETED }

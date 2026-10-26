@@ -68,12 +68,10 @@ class UserStatusHistory internal constructor() {  // JPA용 기본 생성자
         private const val SUSPENSION_DAYS = 7L
 
         // 회원가입
-        @JvmStatic
         fun signup(user: User) =
             UserStatusHistory(user, UserStatus.ACTIVE, "회원가입")
 
         // 기간 정지 (정지 해제 시각은 정각 단위로 맞춘다)
-        @JvmStatic
         fun suspend(user: User, adminId: Long?, reason: String) =
             UserStatusHistory(
                 user, UserStatus.SUSPENDED, reason, adminId,
@@ -81,17 +79,14 @@ class UserStatusHistory internal constructor() {  // JPA용 기본 생성자
             )
 
         // 영구 정지
-        @JvmStatic
         fun ban(user: User, adminId: Long?, reason: String) =
             UserStatusHistory(user, UserStatus.BANNED, reason, adminId)
 
         // 관리자 해제
-        @JvmStatic
         fun release(user: User, adminId: Long?, reason: String) =
             UserStatusHistory(user, UserStatus.ACTIVE, reason, adminId)
 
         // 기간 정지 기간 만료 시 해제
-        @JvmStatic
         fun expire(user: User) =
             UserStatusHistory(user, UserStatus.ACTIVE, "기간 정지 만료")
     }

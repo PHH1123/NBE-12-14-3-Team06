@@ -34,7 +34,6 @@ data class PostDto(
     val canViewSensitive: Boolean,  // 민감정보 권한
 ) {
     // Java 호출부(new PostDto(post), (post, canViewSensitive))도 그대로 쓸 수 있게 오버로드를 만든다
-    @JvmOverloads
     constructor(post: Post, canViewSensitive: Boolean = true, isOwner: Boolean = false) : this(
         post.id,
         post.client.id,

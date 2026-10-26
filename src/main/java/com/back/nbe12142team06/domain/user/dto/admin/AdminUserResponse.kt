@@ -26,7 +26,6 @@ data class AdminUserResponse(
     val deleted: Boolean,
 ) {
     // userStatusHistory: 현재 정지 이력 (활성 회원이면 null)
-    @JvmOverloads
     constructor(user: User, userStatusHistory: UserStatusHistory? = null) : this(
         user.id,
         user.username,

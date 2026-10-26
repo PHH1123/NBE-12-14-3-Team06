@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing
 @EnableJpaAuditing
 class Nbe12142Team06Application {
     companion object {
-        @JvmStatic
         fun main(args: Array<String>) {
             SpringApplication.run(Nbe12142Team06Application::class.java, *args)
         }
