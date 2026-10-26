@@ -7,7 +7,6 @@ import com.back.nbe12142team06.domain.notification.repository.NotificationReposi
 import com.back.nbe12142team06.global.exception.ForbiddenException
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.exception.NotFoundException
-import lombok.RequiredArgsConstructor
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -17,7 +16,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.io.IOException
 
 @Service
-@RequiredArgsConstructor
 class NoticeService(
     private val notificationRepository: NotificationRepository,
     private val emitterRepository: EmitterRepository,

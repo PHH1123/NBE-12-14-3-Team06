@@ -5,7 +5,6 @@ import com.back.nbe12142team06.domain.user.entity.User
 import com.back.nbe12142team06.global.entity.BaseSoftDeleteTimeEntity
 import com.back.nbe12142team06.global.exception.InvalidException
 import jakarta.persistence.*
-import lombok.*
 import java.math.BigDecimal
 import java.time.LocalDate
 

@@ -5,7 +5,6 @@ import com.back.nbe12142team06.domain.user.enums.Role
 import com.back.nbe12142team06.domain.user.service.AuthTokenService
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.security.SecurityUser
-import lombok.RequiredArgsConstructor
 import org.springframework.messaging.Message
 import org.springframework.messaging.MessageChannel
 import org.springframework.messaging.MessagingException
@@ -16,7 +15,6 @@ import org.springframework.messaging.support.MessageHeaderAccessor
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.stereotype.Component
 import java.security.Principal
-import java.util.function.Supplier
 
 @Component
 class StompAuthInterceptor(

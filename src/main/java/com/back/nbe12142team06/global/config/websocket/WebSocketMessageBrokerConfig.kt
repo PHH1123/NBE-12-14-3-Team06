@@ -1,6 +1,5 @@
 package com.back.nbe12142team06.global.config.websocket
 
-import lombok.RequiredArgsConstructor
 import org.springframework.context.annotation.Configuration
 import org.springframework.messaging.simp.config.ChannelRegistration
 import org.springframework.messaging.simp.config.MessageBrokerRegistry

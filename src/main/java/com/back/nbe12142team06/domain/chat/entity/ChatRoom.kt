@@ -3,10 +3,6 @@ package com.back.nbe12142team06.domain.chat.entity
 import com.back.nbe12142team06.domain.user.entity.User
 import com.back.nbe12142team06.global.entity.BaseTimeEntity
 import jakarta.persistence.*
-import lombok.AllArgsConstructor
-import lombok.Builder
-import lombok.Getter
-import lombok.NoArgsConstructor
 import java.time.LocalDateTime
 
 @Entity

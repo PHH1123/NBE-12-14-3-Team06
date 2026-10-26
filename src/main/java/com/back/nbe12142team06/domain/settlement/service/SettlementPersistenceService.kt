@@ -5,7 +5,6 @@ import com.back.nbe12142team06.domain.settlement.entity.Settlement
 import com.back.nbe12142team06.domain.settlement.entity.SettlementStatus
 import com.back.nbe12142team06.domain.settlement.repository.SettlementRepository
 import com.back.nbe12142team06.global.exception.NotFoundException
-import lombok.RequiredArgsConstructor
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service

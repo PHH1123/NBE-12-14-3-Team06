@@ -36,10 +36,6 @@ allOpen {
     annotation("jakarta.persistence.Embeddable")
 }
 
-kotlinLombok {
-    lombokConfigurationFile(file("lombok.config"))
-}
-
 repositories {
     mavenCentral()
 }
@@ -75,8 +71,6 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     // 개발 편의
-    compileOnly("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     // 테스트
@@ -87,8 +81,6 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("com.h2database:h2") // 테스트 전용 인메모리 DB (실제 dev MySQL과 분리, docker 없이도 실행 가능)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testAnnotationProcessor("org.projectlombok:lombok")
-    testCompileOnly("org.projectlombok:lombok")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0") // 코틀린 편의 모키토 프레임워크
 
     // 모니터링

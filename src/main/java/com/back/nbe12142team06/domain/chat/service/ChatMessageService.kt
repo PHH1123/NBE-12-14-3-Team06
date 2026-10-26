@@ -9,15 +9,12 @@ import com.back.nbe12142team06.domain.chat.event.ChatMessageEvent
 import com.back.nbe12142team06.domain.chat.repository.ChatMessageRepository
 import com.back.nbe12142team06.domain.chat.repository.ChatRoomRepository
 import com.back.nbe12142team06.global.exception.NotFoundException
-import lombok.RequiredArgsConstructor
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
-import java.util.function.Supplier
 
 @Service
 @Transactional(readOnly = true)
