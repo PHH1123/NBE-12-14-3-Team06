@@ -15,7 +15,7 @@ import java.util.*
 interface UserRepository : JpaRepository<User, Long> {
 
     // username으로 튜플 검색
-    fun findByUsername(username: String?): Optional<User>
+    fun findByUsername(username: String?): User?
 
     // DB에 해당 username이 존재하는지 확인
     fun existsByUsername(username: String?): Boolean
@@ -34,11 +34,11 @@ interface UserRepository : JpaRepository<User, Long> {
 
     // [ADMIN] 탈퇴 회원 포함 단건 조회 (@SQLRestriction 을 피하려고 네이티브 쿼리 사용)
     @Query(value = "SELECT * FROM users WHERE id = :id", nativeQuery = true)
-    fun findByIdIncludingDeleted(@Param("id") id: Long): Optional<User>
+    fun findByIdIncludingDeleted(@Param("id") id: Long): User?
 
     // [ADMIN] 탈퇴 회원 포함 단건 조회 + 비관적 잠금 (관리자 탈퇴용)
     @Query(value = "SELECT * FROM users WHERE id = :id FOR UPDATE", nativeQuery = true)
-    fun findByIdIncludingDeletedWithLock(@Param("id") id: Long): Optional<User>
+    fun findByIdIncludingDeletedWithLock(@Param("id") id: Long): User?
 
     // [ADMIN] 탈퇴 회원 포함 목록 조회
     @Query(

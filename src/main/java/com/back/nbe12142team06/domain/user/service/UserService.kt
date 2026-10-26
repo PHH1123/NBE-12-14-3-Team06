@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -107,9 +108,9 @@ class UserService(
     @Transactional
     fun login(request: UserLoginRequest): User {
         val user = userRepository.findByUsername(request.username)
-            .orElseThrow {
+            ?: run {
                 log.warn("[로그인 실패] 존재하지 않는 아이디 username={}", request.username)
-                UnauthorizedException(1, "아이디 또는 비밀번호가 올바르지 않습니다.")
+                throw UnauthorizedException(1, "아이디 또는 비밀번호가 올바르지 않습니다.")
             }
 
         try {
@@ -308,7 +309,7 @@ class UserService(
     @Transactional(readOnly = true)
     fun findByIdIncludingDeleted(userId: Long): User =
         userRepository.findByIdIncludingDeleted(userId)
-            .orElseThrow { NotFoundException(1, "회원 정보를 찾을 수 없습니다.") }
+            ?: throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
 
     // [ADMIN] 회원 목록 조회 (탈퇴한 회원 정보도 가능)
     @Transactional(readOnly = true)
@@ -346,7 +347,7 @@ class UserService(
     @Transactional
     fun deleteUser(adminId: Long, userId: Long) {
         val user = userRepository.findByIdIncludingDeletedWithLock(userId)
-            .orElseThrow { NotFoundException(1, "회원 정보를 찾을 수 없습니다.") }
+            ?: throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
 
         // 관리자는 자신에 대한 탈퇴 불가
         if (adminId == userId) {
@@ -431,20 +432,20 @@ class UserService(
 
     // 로그인한 본인 조회 (없으면 재로그인 유도)
     private fun findMe(id: Long): User =
-        userRepository.findById(id)
-            .orElseThrow { UnauthorizedException(3, "회원 정보를 찾을 수 없습니다. 다시 로그인해주세요.") }
+        userRepository.findByIdOrNull(id)
+            ?: throw UnauthorizedException(3, "회원 정보를 찾을 수 없습니다. 다시 로그인해주세요.")
 
     private fun findUser(userId: Long): User =
-        userRepository.findById(userId)
-            .orElseThrow { NotFoundException(1, "회원 정보를 찾을 수 없습니다.") }
+        userRepository.findByIdOrNull(userId)
+            ?: throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
 
     private fun findClientProfile(clientId: Long): ClientProfile =
-        clientProfileRepository.findById(clientId)
-            .orElseThrow { NotFoundException(2, "의뢰인 프로필이 존재하지 않습니다.") }
+        clientProfileRepository.findByIdOrNull(clientId)
+            ?: throw NotFoundException(2, "의뢰인 프로필이 존재하지 않습니다.")
 
     private fun findEscortProfileWithUser(escortId: Long): EscortProfile =
         escortProfileRepository.findByIdWithUser(escortId)
-            .orElseThrow { NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.") }
+            ?: throw NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.")
 
     // 정지 대상 회원 조회 (잠금) + 관리자 정지 불가 검사
     private fun findPenaltyTarget(userId: Long): User {

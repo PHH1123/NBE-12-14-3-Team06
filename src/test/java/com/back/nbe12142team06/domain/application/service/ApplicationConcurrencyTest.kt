@@ -928,8 +928,7 @@ class ApplicationConcurrencyTest {
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
             val resultEscort = userRepository
-                    .findByIdIncludingDeleted(escortId)
-                    .orElseThrow()
+                    .findByIdIncludingDeleted(escortId)!!
 
             val resultApplication = applicationRepository
                     .findById(applicationId!!)

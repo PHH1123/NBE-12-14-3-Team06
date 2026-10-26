@@ -4,11 +4,8 @@ import com.back.nbe12142team06.domain.review.entity.Review
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
-import java.util.Optional
 
 interface ReviewRepository : JpaRepository<Review, Long> {
-
-    fun findByApplicationId(applicationId: Long): Optional<Review>
 
     fun existsByApplicationId(applicationId: Long): Boolean
 

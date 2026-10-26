@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -223,8 +224,7 @@ class ApplicationControllerTest {
     fun t1_1() {
 
         // given: 정상 회원을 일시 정지 상태로 변경
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
         escort.suspend(1L, "테스트용 일시 정지")
         userRepository.saveAndFlush(escort)
@@ -254,8 +254,7 @@ class ApplicationControllerTest {
     fun applyBeforeRecruitStart() {
 
         // given: 모집 시작일을 내일로 변경
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
         ReflectionTestUtils.setField(
                 post,
@@ -288,8 +287,7 @@ class ApplicationControllerTest {
     fun applyAfterRecruitEnd() {
 
         // given: 모집 마감일을 1분 전으로 변경
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
         ReflectionTestUtils.setField(
                 post,
@@ -322,8 +320,7 @@ class ApplicationControllerTest {
     fun t1_2() {
 
         // given: 로그인한 동행매니저를 영구 정지
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
         escort.ban(1L, "테스트용 영구 정지")
         userRepository.saveAndFlush(escort)
@@ -352,11 +349,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationService] 진행 중인 동행이 있으면 탈퇴 제한 대상")
     fun t1_3() {
 
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
         // 승인된 지원 생성
         val application = Application(post, escort)
@@ -378,11 +373,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationService] 매칭만 완료된 경우 탈퇴 제한 대상이 아님")
     fun t1_4() {
 
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
         val application = Application(post, escort)
 
@@ -402,11 +395,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationService] 대기 중인 지원만 있으면 진행 중 동행이 아니다")
     fun t1_5() {
 
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
         // PENDING 지원 생성 (기본 상태)
         val application = Application(post, escort)
@@ -423,8 +414,7 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationService] 다른 동행매니저의 진행 중 동행은 조회되지 않는다")
     fun t1_6() {
 
-        val escort1 = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort1 = userRepository.findByUsername("escort1")!!
 
         // 두 번째 동행매니저 생성
         val escort2 = User(
@@ -441,8 +431,7 @@ class ApplicationControllerTest {
 
         userRepository.save(escort2)
 
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
         // escort2의 동행을 진행 중 상태로 생성
         val application = Application(post, escort2)
@@ -475,8 +464,7 @@ class ApplicationControllerTest {
                 .get(0)
 
         // 지원 이후 동행매니저 일시 정지
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
         escort.suspend(1L, "테스트용 일시 정지")
         userRepository.saveAndFlush(escort)
@@ -493,12 +481,12 @@ class ApplicationControllerTest {
 
         // then: 지원과 공고 상태는 변경되지 않아야 함
         assertEquals(ApplicationStatus.PENDING,
-                applicationRepository.findById(application.id!!)
-                        .orElseThrow().status)
+                applicationRepository.findByIdOrNull(application.id!!)!!
+                    .status)
 
         assertEquals(PostStatus.OPEN,
-                postRepository.findById(testPostId)
-                        .orElseThrow().postStatus)
+                postRepository.findByIdOrNull(testPostId)!!
+                    .postStatus)
     }
 
     @Test
@@ -516,8 +504,7 @@ class ApplicationControllerTest {
                 .get(0)
 
         // 지원 이후 동행매니저 영구 정지
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
         escort.ban(1L, "테스트용 영구 정지")
         userRepository.saveAndFlush(escort)
@@ -534,12 +521,12 @@ class ApplicationControllerTest {
 
         // then: 지원은 PENDING, 공고는 OPEN 유지
         assertEquals(ApplicationStatus.PENDING,
-                applicationRepository.findById(application.id!!)
-                        .orElseThrow().status)
+                applicationRepository.findByIdOrNull(application.id!!)!!
+                        .status)
 
         assertEquals(PostStatus.OPEN,
-                postRepository.findById(testPostId)
-                        .orElseThrow().postStatus)
+                postRepository.findByIdOrNull(testPostId)!!
+                        .postStatus)
     }
 
     @Test
@@ -586,8 +573,7 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원하기 - 모집 중이 아닌 공고 지원 시 400 반환")
     fun t4() {
 
-        val client = userRepository.findByUsername("client1")
-                .orElseThrow()
+        val client = userRepository.findByUsername("client1")!!
 
         // 이미 매칭 완료된 공고 생성
         val matchedPost = Post(
@@ -708,11 +694,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 공고별 지원 목록 조회 - 페이징 정상 동작")
     fun t7_1() {
 
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
-        val escort1 = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort1 = userRepository.findByUsername("escort1")!!
 
         val escort2 = User(
                 "escort2",
@@ -867,12 +851,10 @@ class ApplicationControllerTest {
 
         // 승인 후 실제 DB 상태 확인
         val acceptedApplication = applicationRepository
-                .findById(application.id!!)
-                .orElseThrow()
+                .findByIdOrNull(application.id!!)!!
 
         val matchedPost = postRepository
-                .findById(testPostId)
-                .orElseThrow()
+                .findByIdOrNull(testPostId)!!
 
         assertEquals(
                 ApplicationStatus.ACCEPTED,
@@ -1038,17 +1020,13 @@ class ApplicationControllerTest {
         // 두 지원 조회
         val applications = applicationRepository.findAllByPostIdWithEscort(testPostId)
 
-        val firstApplication = applications.stream()
-                .filter { application ->
-                        application.escort.username.equals("escort1") }
-                .findFirst()
-                .orElseThrow()
+        val firstApplication = applications.first { application ->
+            application.escort.username == "escort1"
+        }
 
-        val secondApplication = applications.stream()
-                .filter { application ->
-                        application.escort.username.equals("escort2") }
-                .findFirst()
-                .orElseThrow()
+        val secondApplication = applications.first { application ->
+            application.escort.username == "escort2"
+        }
 
         // 첫 번째 동행인 승인
         mvc.perform(
@@ -1061,8 +1039,7 @@ class ApplicationControllerTest {
 
         // 승인된 지원 상태 확인
         val acceptedApplication = applicationRepository
-                .findById(firstApplication.id!!)
-                .orElseThrow()
+                .findByIdOrNull(firstApplication.id!!)!!
 
         assertEquals(
                 ApplicationStatus.ACCEPTED,
@@ -1071,8 +1048,7 @@ class ApplicationControllerTest {
 
         // 나머지 지원자는 자동 거절됐는지 확인
         val rejectedApplication = applicationRepository
-                .findById(secondApplication.id!!)
-                .orElseThrow()
+                .findByIdOrNull(secondApplication.id!!)!!
 
         assertEquals(
                 ApplicationStatus.REJECTED,
@@ -1081,8 +1057,7 @@ class ApplicationControllerTest {
 
         // 공고도 매칭 완료됐는지 확인
         val matchedPost = postRepository
-                .findById(testPostId)
-                .orElseThrow()
+                .findByIdOrNull(testPostId)!!
 
         assertEquals(
                 PostStatus.MATCHED,
@@ -1128,8 +1103,7 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 승인 - 같은 동행인의 시간 겹치는 다른 지원 자동 거절")
     fun t15() {
 
-        val client = userRepository.findByUsername("client1")
-                .orElseThrow()
+        val client = userRepository.findByUsername("client1")!!
 
         // 기존 testPost와 시간이 겹치는 두 번째 공고 생성
         val overlappingPost = Post(
@@ -1176,13 +1150,11 @@ class ApplicationControllerTest {
 
         // 첫 번째 공고 지원 조회
         val firstApplication = applicationRepository
-                .findAllByPostIdWithEscort(testPostId)
-                .get(0)
+            .findAllByPostIdWithEscort(testPostId)[0]
 
         // 두 번째 공고 지원 조회
         val overlappingApplication = applicationRepository
-                .findAllByPostIdWithEscort(overlappingPostId)
-                .get(0)
+            .findAllByPostIdWithEscort(overlappingPostId)[0]
 
         // 첫 번째 공고에서 동행인 선정
         mvc.perform(
@@ -1195,12 +1167,10 @@ class ApplicationControllerTest {
 
         // DB 상태 다시 조회
         val acceptedApplication = applicationRepository
-                .findById(firstApplication.id!!)
-                .orElseThrow()
+                .findByIdOrNull(firstApplication.id!!)!!
 
         val rejectedApplication = applicationRepository
-                .findById(overlappingApplication.id!!)
-                .orElseThrow()
+                .findByIdOrNull(overlappingApplication.id!!)!!
 
         // 선택된 지원은 ACCEPTED
         assertEquals(
@@ -1216,8 +1186,7 @@ class ApplicationControllerTest {
 
         // 선정된 공고는 MATCHED
         val matchedPost = postRepository
-                .findById(testPostId)
-                .orElseThrow()
+                .findByIdOrNull(testPostId)!!
 
         assertEquals(
                 PostStatus.MATCHED,
@@ -1226,8 +1195,7 @@ class ApplicationControllerTest {
 
         // 다른 공고 자체는 계속 모집 가능
         val otherPost = postRepository
-                .findById(overlappingPostId!!)
-                .orElseThrow()
+                .findByIdOrNull(overlappingPostId!!)!!
 
         assertEquals(
                 PostStatus.OPEN,
@@ -1239,8 +1207,7 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 승인 - 같은 동행인의 시간이 겹치지 않는 다른 지원은 대기 유지")
     fun t16() {
 
-        val client = userRepository.findByUsername("client1")
-                .orElseThrow()
+        val client = userRepository.findByUsername("client1")!!
 
         // 기존 testPost와 시간이 겹치지 않는 두 번째 공고 생성
         val nonOverlappingPost = Post(
@@ -1306,12 +1273,10 @@ class ApplicationControllerTest {
 
         // DB 상태 다시 조회
         val acceptedApplication = applicationRepository
-                .findById(firstApplication.id!!)
-                .orElseThrow()
+                .findByIdOrNull(firstApplication.id!!)!!
 
         val pendingApplication = applicationRepository
-                .findById(secondApplication.id!!)
-                .orElseThrow()
+                .findByIdOrNull(secondApplication.id!!)!!
 
         // 첫 번째 지원은 ACCEPTED
         assertEquals(
@@ -1327,8 +1292,7 @@ class ApplicationControllerTest {
 
         // 첫 번째 공고는 MATCHED
         val matchedPost = postRepository
-                .findById(testPostId)
-                .orElseThrow()
+                .findByIdOrNull(testPostId)!!
 
         assertEquals(
                 PostStatus.MATCHED,
@@ -1337,8 +1301,7 @@ class ApplicationControllerTest {
 
         // 두 번째 공고는 계속 OPEN
         val otherPost = postRepository
-                .findById(nonOverlappingPostId!!)
-                .orElseThrow()
+                .findByIdOrNull(nonOverlappingPostId!!)!!
 
         assertEquals(
                 PostStatus.OPEN,
@@ -1371,8 +1334,7 @@ class ApplicationControllerTest {
 
         // 첫 번째 지원이 실제 ACCEPTED인지 확인
         val acceptedApplication = applicationRepository
-                .findById(firstApplication.id!!)
-                .orElseThrow()
+                .findByIdOrNull(firstApplication.id!!)!!
 
         assertEquals(
                 ApplicationStatus.ACCEPTED,
@@ -1478,8 +1440,7 @@ class ApplicationControllerTest {
 
         // 승인 실패했으므로 두 번째 지원은 PENDING 유지
         val pendingApplication = applicationRepository
-                .findById(overlappingApplication.id!!)
-                .orElseThrow()
+                .findByIdOrNull(overlappingApplication.id!!)!!
 
         assertEquals(
                 ApplicationStatus.PENDING,
@@ -1488,8 +1449,7 @@ class ApplicationControllerTest {
 
         // 두 번째 공고 역시 OPEN 유지
         val stillOpenPost = postRepository
-                .findById(overlappingPostId!!)
-                .orElseThrow()
+                .findByIdOrNull(overlappingPostId!!)!!
 
         assertEquals(
                 PostStatus.OPEN,
@@ -1524,8 +1484,7 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.msg").value("지원 거절이 완료되었습니다."))
 
         val rejectedApplication = applicationRepository
-                .findById(application.id!!)
-                .orElseThrow()
+                .findByIdOrNull(application.id!!)!!
 
         assertEquals(
                 ApplicationStatus.REJECTED,
@@ -1595,8 +1554,7 @@ class ApplicationControllerTest {
 
         // 실패했으므로 상태는 여전히 PENDING
         val pendingApplication = applicationRepository
-                .findById(application.id!!)
-                .orElseThrow()
+                .findByIdOrNull(application.id!!)!!
 
         assertEquals(
                 ApplicationStatus.PENDING,
@@ -1644,8 +1602,7 @@ class ApplicationControllerTest {
 
         // 상태는 그대로 REJECTED
         val rejectedApplication = applicationRepository
-                .findById(application.id!!)
-                .orElseThrow()
+                .findByIdOrNull(application.id!!)!!
 
         assertEquals(
                 ApplicationStatus.REJECTED,
@@ -1706,8 +1663,7 @@ class ApplicationControllerTest {
 
         // 실제 DB 상태 확인
         val canceledApplication = applicationRepository
-                .findById(application.id!!)
-                .orElseThrow()
+                .findByIdOrNull(application.id!!)!!
 
         assertEquals(
                 ApplicationStatus.CANCELED,
@@ -1740,8 +1696,7 @@ class ApplicationControllerTest {
 
         // 취소 전 노쇼 횟수 확인
         val escortProfile = escortProfileRepository
-                .findById(application.escort.id)
-                .orElseThrow()
+                .findByIdOrNull(application.escort.id)!!
 
         val beforeNoShowCount = escortProfile.noShowCount
 
@@ -1762,18 +1717,15 @@ class ApplicationControllerTest {
 
         // 취소 후 지원 상태 확인
         val canceledApplication = applicationRepository
-                .findById(application.id!!)
-                .orElseThrow()
+                .findByIdOrNull(application.id!!)!!
 
         // 취소 후 공고 상태 확인
         val reopenedPost = postRepository
-                .findById(testPostId)
-                .orElseThrow()
+                .findByIdOrNull(testPostId)!!
 
         // 취소 후 동행인 프로필 확인
         val updatedEscortProfile = escortProfileRepository
-                .findById(application.escort.id)
-                .orElseThrow()
+                .findByIdOrNull(application.escort.id)!!
 
         // 승인된 지원은 NO_SHOW 처리
         assertEquals(
@@ -1801,11 +1753,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 취소 - 승인 후 모집 마감 후 취소")
     fun t24() {
 
-        val client = userRepository.findByUsername("client1")
-                .orElseThrow()
+        val client = userRepository.findByUsername("client1")!!
 
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
         // 모집 마감 시간이 이미 지난 매칭 공고 생성
         val expiredMatchedPost = Post(
@@ -1845,8 +1795,7 @@ class ApplicationControllerTest {
 
         // 취소 전 노쇼 횟수
         val escortProfile = escortProfileRepository
-                .findById(escort.id)
-                .orElseThrow()
+                .findByIdOrNull(escort.id)!!
 
         val beforeNoShowCount = escortProfile.noShowCount
 
@@ -1867,18 +1816,15 @@ class ApplicationControllerTest {
 
         // 취소 후 지원 확인
         val canceledApplication = applicationRepository
-                .findById(application.id!!)
-                .orElseThrow()
+                .findByIdOrNull(application.id!!)!!
 
         // 취소 후 공고 확인
         val canceledPost = postRepository
-                .findById(expiredMatchedPost.id!!)
-                .orElseThrow()
+                .findByIdOrNull(expiredMatchedPost.id!!)!!
 
         // 취소 후 동행인 프로필 확인
         val updatedEscortProfile = escortProfileRepository
-                .findById(escort.id)
-                .orElseThrow()
+                .findByIdOrNull(escort.id)!!
 
         // 승인된 지원은 NO_SHOW
         assertEquals(
@@ -1964,8 +1910,7 @@ class ApplicationControllerTest {
 
         // 취소되지 않고 기존 PENDING 상태 유지
         val unchangedApplication = applicationRepository
-                .findById(application.id!!)
-                .orElseThrow()
+                .findByIdOrNull(application.id!!)!!
 
         assertEquals(
                 ApplicationStatus.PENDING,
@@ -2013,8 +1958,7 @@ class ApplicationControllerTest {
 
         // 상태는 그대로 CANCELED
         val canceledApplication = applicationRepository
-                .findById(application.id!!)
-                .orElseThrow()
+                .findByIdOrNull(application.id!!)!!
 
         assertEquals(
                 ApplicationStatus.CANCELED,
@@ -2047,11 +1991,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 동행 진행 상태 변경 - 전체 진행 순서 정상 기록")
     fun t28() {
 
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
         val application = Application(post, escort)
 
@@ -2106,8 +2048,7 @@ class ApplicationControllerTest {
         )
 
         val progressedPost = postRepository
-                .findById(testPostId)
-                .orElseThrow()
+                .findByIdOrNull(testPostId)!!
 
         assertEquals(
                 PostStatus.IN_PROGRESS,
@@ -2131,11 +2072,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 동행 진행 상태 변경 - 순서 건너뛰기 시 400 반환")
     fun t29() {
 
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
         val application = Application(post, escort)
 
@@ -2167,11 +2106,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 동행 진행 상태 변경 - 다른 동행인이 변경 시 403 반환")
     fun t30() {
 
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
-        val escort1 = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort1 = userRepository.findByUsername("escort1")!!
 
         val application = Application(post, escort1)
 
@@ -2232,11 +2169,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 동행 진행 상태 변경 - PENDING 상태에서 변경 시 400 반환")
     fun t31() {
 
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
         val application = Application(post, escort)
 
@@ -2265,11 +2200,9 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 동행 진행 상태 변경 - 동행 완료 후 변경 시 400 반환")
     fun t32() {
 
-        val post = postRepository.findById(testPostId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(testPostId)!!
 
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+        val escort = userRepository.findByUsername("escort1")!!
 
         val application = Application(post, escort)
 
@@ -2498,8 +2431,7 @@ class ApplicationControllerTest {
      */
     private fun savePost(title: String): Post {
 
-        val client = userRepository.findByUsername("client1")
-                .orElseThrow()
+        val client = userRepository.findByUsername("client1")!!
 
         val post = Post(
                 client = client,
@@ -2616,12 +2548,12 @@ class ApplicationControllerTest {
         // 승인 직전 상태가 그대로 남아 있어야 한다 (지원은 대기, 공고는 모집 중)
         assertEquals(
                 ApplicationStatus.PENDING,
-                applicationRepository.findById(application.id!!).orElseThrow().status
+                applicationRepository.findByIdOrNull(application.id!!)!!.status
         )
 
         assertEquals(
                 PostStatus.OPEN,
-                postRepository.findById(unpaidPost.id!!).orElseThrow().postStatus
+                postRepository.findByIdOrNull(unpaidPost.id!!)!!.postStatus
         )
     }
 
@@ -2664,7 +2596,7 @@ class ApplicationControllerTest {
         // 매칭이 되지 않으므로 동행 진행 → 동행 완료 → 정산까지 이어질 수 없다
         assertEquals(
                 PostStatus.OPEN,
-                postRepository.findById(canceledPaymentPost.id!!).orElseThrow().postStatus
+                postRepository.findByIdOrNull(canceledPaymentPost.id!!)!!.postStatus
         )
     }
 
@@ -2692,7 +2624,7 @@ class ApplicationControllerTest {
 
         assertEquals(
                 PostStatus.OPEN,
-                postRepository.findById(testPostId).orElseThrow().postStatus
+                postRepository.findByIdOrNull(testPostId)!!.postStatus
         )
 
         // 두 번째 동행인이 같은 공고에 지원
@@ -2704,11 +2636,8 @@ class ApplicationControllerTest {
                 .andExpect(status().isCreated())
 
         val secondApplication = applicationRepository
-                .findAllByPostIdWithEscort(testPostId)
-                .stream()
-                .filter { application -> application.escort.username.equals("escort7") }
-                .findFirst()
-                .orElseThrow()
+            .findAllByPostIdWithEscort(testPostId).first { application -> application.escort.username == "escort7" }
+
 
         // 재매칭 — 승인까지 성공해야 한다
         // (acceptedPostId 가 unique 라서, 노쇼 처리가 그 값을 비우지 않으면 여기서 제약 위반으로 막힌다)
@@ -2725,8 +2654,8 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.msg").value("지원 승인이 완료되었습니다."))
 
         val rematched = applicationRepository
-                .findById(secondApplication.id!!)
-                .orElseThrow()
+                .findByIdOrNull(secondApplication.id!!)!!
+
 
         assertEquals(ApplicationStatus.ACCEPTED, rematched.status)
         assertEquals(testPostId, rematched.acceptedPostId)
@@ -2734,13 +2663,13 @@ class ApplicationControllerTest {
         // 공고는 다시 매칭 완료
         assertEquals(
                 PostStatus.MATCHED,
-                postRepository.findById(testPostId).orElseThrow().postStatus
+                postRepository.findByIdOrNull(testPostId)!!.postStatus
         )
 
         // 노쇼 처리된 첫 번째 지원은 그대로 남는다
         val noShowApplication = applicationRepository
-                .findById(firstApplication.id!!)
-                .orElseThrow()
+                .findByIdOrNull(firstApplication.id!!)!!
+
 
         assertEquals(ApplicationStatus.NO_SHOW, noShowApplication.status)
         assertNull(noShowApplication.acceptedPostId)
@@ -2750,11 +2679,11 @@ class ApplicationControllerTest {
     @DisplayName("[ApplicationController] 지원 취소 - 모집 마감 후 노쇼면 공고가 취소되어 재매칭 불가")
     fun t40() {
 
-        val client = userRepository.findByUsername("client1")
-                .orElseThrow()
+        val client = userRepository.findByUsername("client1")!!
 
-        val escort = userRepository.findByUsername("escort1")
-                .orElseThrow()
+
+        val escort = userRepository.findByUsername("escort1")!!
+
 
         // 모집 마감 시간이 이미 지난 매칭 공고
         val expiredMatchedPost = Post(
@@ -2794,7 +2723,7 @@ class ApplicationControllerTest {
 
         assertEquals(
                 PostStatus.CANCELED,
-                postRepository.findById(expiredMatchedPost.id!!).orElseThrow().postStatus
+                postRepository.findByIdOrNull(expiredMatchedPost.id!!)!!.postStatus
         )
 
         // 다른 동행인은 지원부터 막힌다 — 재매칭되지 않는다

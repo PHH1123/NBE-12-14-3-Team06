@@ -12,7 +12,7 @@ interface EscortProfileRepository : JpaRepository<EscortProfile, Long> {
 
     // 응답 DTO 가 user 를 쓰므로 함께 조회 (LazyInitializationException 방지)
     @Query("select p from EscortProfile p join fetch p.user where p.userId = :userId")
-    fun findByIdWithUser(@Param("userId") userId: Long): Optional<EscortProfile>
+    fun findByIdWithUser(@Param("userId") userId: Long): EscortProfile?
 
     // 회원 탈퇴 시 동행 매니저 프로필 삭제
     @Modifying(flushAutomatically = true)

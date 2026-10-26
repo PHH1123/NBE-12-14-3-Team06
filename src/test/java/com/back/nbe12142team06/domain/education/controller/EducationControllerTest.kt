@@ -118,7 +118,7 @@ class EducationControllerTest {
         signUp(username, "ESCORT").also { createEscortProfile(it) }
 
     private fun findUserId(username: String): Long =
-        userRepository.findByUsername(username).orElseThrow().id
+        userRepository.findByUsername(username)!!.id
 
     // 시청 기록 요청 (token 이 null 이면 비로그인 요청)
     private fun watchLog(videoId: Long, body: String, token: Cookie?): ResultActions {

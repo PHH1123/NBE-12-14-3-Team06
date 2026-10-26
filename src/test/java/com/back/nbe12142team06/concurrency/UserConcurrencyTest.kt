@@ -182,8 +182,7 @@ class UserConcurrencyTest {
 
         assertThat(unexpected).`as`("예상하지 못한 예외").isEmpty()
 
-        val result = userRepository.findByIdIncludingDeleted(userId)
-            .orElseThrow()
+        val result = userRepository.findByIdIncludingDeleted(userId)!!
         val masked = "deleted_$userId"
 
         if (withdrawSucceeded.get()) {
@@ -243,7 +242,7 @@ class UserConcurrencyTest {
         assertThat(success.get()).`as`("탈퇴 성공은 1건").isEqualTo(1)
         assertThat(alreadyDeleted.get()).`as`("나머지는 이미 탈퇴로 거절").isEqualTo(THREAD_COUNT - 1)
 
-        val result = userRepository.findByIdIncludingDeleted(userId).orElseThrow()
+        val result = userRepository.findByIdIncludingDeleted(userId)!!
         assertThat(result.isDeleted).`as`("탈퇴 상태").isTrue()
     }
 

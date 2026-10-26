@@ -247,7 +247,7 @@ class AdminUserControllerTest {
     }
 
     private fun findUserId(username: String): Long =
-        userRepository.findByUsername(username).orElseThrow().id
+        userRepository.findByUsername(username)!!.id
 
     @Test
     @DisplayName("[AdminUserController] 회원 단건 조회 - 관리자가 정상적으로 단건 조회 시 200-1 반환")
@@ -572,7 +572,7 @@ class AdminUserControllerTest {
         em.flush()
         em.clear()
 
-        val deletedUser = userRepository.findByIdIncludingDeleted(user1Id).orElseThrow()
+        val deletedUser = userRepository.findByIdIncludingDeleted(user1Id)!!
 
         assertThat(deletedUser.email).isEqualTo("deleted_$user1Id")
         assertThat(deletedUser.username).isEqualTo("deleted_$user1Id")

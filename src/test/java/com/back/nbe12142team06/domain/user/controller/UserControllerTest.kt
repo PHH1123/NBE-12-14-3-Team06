@@ -246,7 +246,7 @@ class UserControllerTest {
         )
 
     private fun findUserId(username: String): Long =
-        userRepository.findByUsername(username).orElseThrow().id
+        userRepository.findByUsername(username)!!.id
 
     // 의뢰인 프로필 생성
     private fun createClientProfile(clientToken: Cookie) {
@@ -270,7 +270,7 @@ class UserControllerTest {
 
     // 의뢰인의 공고 생성 (조회 권한 테스트용, 결제·이동수단 없이 공고만 저장)
     private fun createPost(clientUsername: String): Post {
-        val client = userRepository.findByUsername(clientUsername).orElseThrow()
+        val client = userRepository.findByUsername(clientUsername)!!
         val now = LocalDateTime.now()
 
         return postRepository.save(
@@ -297,7 +297,7 @@ class UserControllerTest {
 
     // 동행 매니저 지원 (PENDING 상태)
     private fun applyToPost(post: Post, escortUsername: String): Application {
-        val escort = userRepository.findByUsername(escortUsername).orElseThrow()
+        val escort = userRepository.findByUsername(escortUsername)!!
 
         return applicationRepository.save(Application(post, escort))
     }
@@ -521,7 +521,7 @@ class UserControllerTest {
         em.flush()
         em.clear()
 
-        val updated = userRepository.findByUsername("user1").orElseThrow()
+        val updated = userRepository.findByUsername("user1")!!
         assertThat(updated.email).isEqualTo("firssst@test.test")
         assertThat(updated.name).isEqualTo("김춘자")
         assertThat(updated.birthDate).isEqualTo(LocalDate.of(1990, 5, 29))
@@ -587,7 +587,7 @@ class UserControllerTest {
         em.flush()
         em.clear()
 
-        val updated = userRepository.findByUsername("user1").orElseThrow()
+        val updated = userRepository.findByUsername("user1")!!
         assertThat(updated.email).isEqualTo("first@test.test")
         assertThat(updated.name).isEqualTo("김춘식")
         assertThat(updated.birthDate).isEqualTo(LocalDate.of(1990, 5, 20))
@@ -1363,7 +1363,7 @@ class UserControllerTest {
         em.flush()
         em.clear()
 
-        val test = userRepository.findByUsername("test1").orElseThrow()
+        val test = userRepository.findByUsername("test1")!!
 
         assertThat(test.userStatus).isEqualTo(UserStatus.ACTIVE)
     }
@@ -1376,7 +1376,7 @@ class UserControllerTest {
         em.flush()
         em.clear()
 
-        val test = userRepository.findByUsername("test1").orElseThrow()
+        val test = userRepository.findByUsername("test1")!!
 
         val history = userStatusHistoryRepository.findAllByUserId(test.id)[0]
         assertThat(history.status).isEqualTo(UserStatus.ACTIVE)
@@ -1391,7 +1391,7 @@ class UserControllerTest {
     fun t64() {
         val accessToken = signUp("user1")
 
-        val user = userRepository.findByUsername("user1").orElseThrow()
+        val user = userRepository.findByUsername("user1")!!
         userStatusHistoryRepository.save(user.suspend(1L, "노쇼 3회 누적"))
         em.flush()
         em.clear()
@@ -1411,7 +1411,7 @@ class UserControllerTest {
     fun t65() {
         val accessToken = signUp("user1")
 
-        val user = userRepository.findByUsername("user1").orElseThrow()
+        val user = userRepository.findByUsername("user1")!!
         userStatusHistoryRepository.save(user.suspend(1L, "노쇼 3회 누적"))
         em.flush()
         em.clear()

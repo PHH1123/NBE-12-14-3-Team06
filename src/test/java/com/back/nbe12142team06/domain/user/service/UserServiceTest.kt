@@ -101,7 +101,7 @@ class UserServiceTest {
         em.flush()
         em.clear()
 
-        val userCheck = userRepository.findByUsername("user1").orElseThrow()
+        val userCheck = userRepository.findByUsername("user1")!!
         assertThat(userCheck.username).isEqualTo("user1")
         assertThat(userCheck.password).isNotNull()
         assertThat(userCheck.email).isEqualTo("user@test.test")
@@ -157,7 +157,7 @@ class UserServiceTest {
         em.flush()
         em.clear()
 
-        val userCheck = userRepository.findByUsername("user1").orElseThrow()
+        val userCheck = userRepository.findByUsername("user1")!!
 
         // 비밀번호가 평문인지 검증
         assertThat(userCheck.password).isNotEqualTo("1234")

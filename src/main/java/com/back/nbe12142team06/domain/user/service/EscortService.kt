@@ -6,6 +6,7 @@ import com.back.nbe12142team06.domain.user.repository.EscortGradeHistoryReposito
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository
 import com.back.nbe12142team06.global.exception.NotFoundException
 import org.slf4j.LoggerFactory
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -34,8 +35,8 @@ class EscortService(
     // 관리자만 실행 가능
     @Transactional
     fun escortGradeCal(adminId: Long, userId: Long): Boolean {
-        val escort = escortProfileRepository.findById(userId)
-            .orElseThrow { NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.") }
+        val escort = escortProfileRepository.findByIdOrNull(userId)
+            ?: throw NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.")
 
         val changed = refreshGrade(escort)
 

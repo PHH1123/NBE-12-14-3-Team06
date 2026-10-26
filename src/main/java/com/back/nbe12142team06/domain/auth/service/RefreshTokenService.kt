@@ -42,10 +42,10 @@ class RefreshTokenService(
 
         // 유효성 검증
         val refreshToken = refreshTokenRepository.findByTokenHash(RefreshTokenGenerator.hash(rawToken))
-            ?: {
+            ?: run {
                 log.warn("[토큰 재발급 실패] 알 수 없는 리프레시 토큰")
                 throw UnauthorizedException(92, "유효하지 않은 토큰입니다.")
-            } as RefreshToken
+            }
 
         // 폐기된 토큰인지 검증
         if (refreshToken.isRevoked) {
