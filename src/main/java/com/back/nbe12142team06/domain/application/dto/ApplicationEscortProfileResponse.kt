@@ -3,7 +3,6 @@ package com.back.nbe12142team06.domain.application.dto
 import com.back.nbe12142team06.domain.user.enums.EscortGrade
 import com.back.nbe12142team06.domain.user.enums.Gender
 
-@JvmRecord
 data class ApplicationEscortProfileResponse(
     val escortId: Long?,
     val name: String?,

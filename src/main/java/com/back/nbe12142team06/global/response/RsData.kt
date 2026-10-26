@@ -1,6 +1,6 @@
 package com.back.nbe12142team06.global.response
 
-class RsData<T> @JvmOverloads constructor(
+class RsData<T> constructor(
     val statusCode: String,
     val msg: String,
     val data: T? = null

@@ -9,7 +9,6 @@ object RefreshTokenGenerator {
     private const val TOKEN_BYTES = 32 // 256 비트짜리 난수 생성 (브루트 포싱 방어)
 
     // 난수 생성
-    @JvmStatic
     fun generate(): String {
         // 지정한 바이트 길이만큼의 난수 생성
         val bytes = ByteArray(TOKEN_BYTES).also(RANDOM::nextBytes)
@@ -27,7 +26,6 @@ object RefreshTokenGenerator {
     }
 
     // DB에는 해시값만 저장
-    @JvmStatic
     fun hash(rawToken: String): String {
         // SHA-256 해시 후 16진수 문자열로 반환
         val digest = MessageDigest.getInstance("SHA-256")

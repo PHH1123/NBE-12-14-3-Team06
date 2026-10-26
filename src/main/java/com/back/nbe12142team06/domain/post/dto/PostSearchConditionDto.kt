@@ -2,7 +2,6 @@ package com.back.nbe12142team06.domain.post.dto
 
 import java.time.LocalDateTime
 
-@JvmRecord
 data class PostSearchConditionDto(
     val keyword: String?,
     val region: String?,

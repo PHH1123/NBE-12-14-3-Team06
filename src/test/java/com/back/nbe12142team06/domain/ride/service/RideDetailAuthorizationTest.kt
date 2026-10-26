@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * 이동 상세 조회 권한 검증.
@@ -48,6 +49,12 @@ class RideDetailAuthorizationTest {
     @field:Autowired private lateinit var em: EntityManager
     @field:Autowired private lateinit var emf: EntityManagerFactory
 
+    // 다른 테스트가 커밋해 둔 사용자와 username·email·전화번호가 겹치지 않도록 매 테스트마다 번호를 올린다
+    // (공유 H2 testdb 를 쓰므로 고정값이면 실행 순서에 따라 USERS 유니크 제약을 위반한다)
+    companion object {
+        private val SEQ = AtomicInteger()
+    }
+
     private lateinit var client: User
     private lateinit var escort: User
     private lateinit var stranger: User
@@ -55,9 +62,16 @@ class RideDetailAuthorizationTest {
 
     @BeforeEach
     fun setUp() {
-        client = userRepository.save(createUser("rideClient", Role.CLIENT, "010-2222-0001"))
-        escort = userRepository.save(createUser("rideEscort", Role.ESCORT, "010-2222-0002"))
-        stranger = userRepository.save(createUser("rideStranger", Role.ESCORT, "010-2222-0003"))
+        val seq = SEQ.incrementAndGet()
+        client = userRepository.save(
+            createUser("rideClient$seq", Role.CLIENT, String.format("010-9101-%04d", seq))
+        )
+        escort = userRepository.save(
+            createUser("rideEscort$seq", Role.ESCORT, String.format("010-9102-%04d", seq))
+        )
+        stranger = userRepository.save(
+            createUser("rideStranger$seq", Role.ESCORT, String.format("010-9103-%04d", seq))
+        )
 
         val post = postRepository.save(createPost(client))
         applicationRepository.save(

@@ -1,6 +1,5 @@
 package com.back.nbe12142team06.domain.settlement.client
 
-@JvmRecord
 data class SettlementClientRequest( // 금융결제원 AccessToken
     val Authorization: String,  // 약정 계좌/계정구분
     val cntr_account_type: String,  // 약정 계좌/계정 번호
@@ -37,7 +36,6 @@ data class SettlementClientRequest( // 금융결제원 AccessToken
         )
     )
 
-    @JvmRecord
     data class Req( // 거래순번
         val tran_no: Int,  // 은행거래고유번호
         val bank_tran_id: String,  // 입금은행.표준코드

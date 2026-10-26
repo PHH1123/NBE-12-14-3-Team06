@@ -53,7 +53,6 @@ class RefreshToken internal constructor() : BaseTimeEntity() {  // JPA용 기본
 
     companion object {
         // now + ttl(Time to Live)를 만료 시각으로 생성
-        @JvmStatic
         fun create(user: User, tokenHash: String, ttl: Duration): RefreshToken =
             RefreshToken().apply {
                 this.user = user

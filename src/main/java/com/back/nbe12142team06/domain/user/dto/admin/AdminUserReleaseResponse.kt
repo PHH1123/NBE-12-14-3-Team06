@@ -4,7 +4,6 @@ import com.back.nbe12142team06.domain.user.entity.UserStatusHistory
 import com.back.nbe12142team06.domain.user.enums.UserStatus
 import java.time.LocalDateTime
 
-@JvmRecord
 data class AdminUserReleaseResponse(
     val username: String,
     val startAt: LocalDateTime?,  // 정지 해제 이력 생성 시각 (@CreatedDate)

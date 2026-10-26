@@ -10,7 +10,6 @@ object GeoUtils {
     private const val EARTH_RADIUS_METERS = 6_371_000.0
 
     // 두 좌표 사이의 거리(미터). 하버사인 공식
-    @JvmStatic
     fun distanceMeters(lat1: BigDecimal, lng1: BigDecimal, lat2: BigDecimal, lng2: BigDecimal): Double {
         val phi1 = Math.toRadians(lat1.toDouble())
         val phi2 = Math.toRadians(lat2.toDouble())

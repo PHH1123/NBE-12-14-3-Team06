@@ -25,7 +25,6 @@ data class RideResponse (
     )
 
     companion object {
-        @JvmStatic
         fun from(ride: Ride): RideResponse {
             val post = ride.post
             val pickup = Location(post.pickupLat, post.pickupLng, post.pickupAddress)

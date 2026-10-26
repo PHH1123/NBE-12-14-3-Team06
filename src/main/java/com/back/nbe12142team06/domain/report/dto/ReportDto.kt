@@ -4,7 +4,6 @@ import com.back.nbe12142team06.domain.report.entity.Report
 import java.time.LocalDateTime
 
 // 진료 보고서 조회용
-@JvmRecord
 data class ReportDto(
     val id: Long?,
     val applicationId: Long?,

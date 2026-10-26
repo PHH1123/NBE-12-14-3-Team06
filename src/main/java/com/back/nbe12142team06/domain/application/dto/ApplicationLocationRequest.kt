@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.PositiveOrZero
 import java.math.BigDecimal
 
-@JvmRecord
 data class ApplicationLocationRequest(
     @field:NotNull
     @field:DecimalMin("-90.0")

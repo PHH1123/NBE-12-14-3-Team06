@@ -2,7 +2,6 @@ package com.back.nbe12142team06.domain.user.dto.profile
 
 import com.back.nbe12142team06.domain.user.entity.ClientProfile
 
-@JvmRecord
 data class ClientProfileModifyResponse(
     val userId: Long?,
     val emergencyContactName: String,

@@ -3,7 +3,6 @@ package com.back.nbe12142team06.domain.user.dto.profile
 import com.back.nbe12142team06.domain.user.entity.EscortProfile
 
 // 의뢰인이 보는 동행 매니저 프로필 (계좌 정보 등 민감 정보 제외)
-@JvmRecord
 data class EscortProfileForClientResponse(
     val userId: Long?,
     val name: String,

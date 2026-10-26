@@ -6,7 +6,6 @@ import com.back.nbe12142team06.domain.post.entity.PostStatus
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
-@JvmRecord
 data class MyApplicationResponse(
     val applicationId: Long?,
     val postId: Long?,

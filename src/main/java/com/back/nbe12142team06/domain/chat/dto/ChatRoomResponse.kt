@@ -5,7 +5,6 @@ import com.back.nbe12142team06.domain.user.enums.Role
 import com.back.nbe12142team06.global.exception.NotFoundException
 import java.time.LocalDateTime
 
-@JvmRecord
 data class ChatRoomResponse(
     val chatRoomId: Long,
     val partnerId: Long,
@@ -16,7 +15,6 @@ data class ChatRoomResponse(
     val unReadCount: Long,
 ) {
     companion object {
-        @JvmStatic
         fun from(chatRoom: ChatRoom, userId: Long, unReadCount: Long) : ChatRoomResponse {
             val chatPart = chatRoom.chatParts.firstOrNull { it.user.id != userId }
                 ?: throw NotFoundException("상대방을 찾을 수 없습니다.")

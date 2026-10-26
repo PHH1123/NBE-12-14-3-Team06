@@ -4,7 +4,6 @@ import com.back.nbe12142team06.domain.review.entity.Review
 import com.back.nbe12142team06.domain.review.entity.ReviewTag
 import java.time.LocalDateTime
 
-@JvmRecord
 data class ReviewWriteResponse(
     val id: Long?,
     val applicationId: Long?,

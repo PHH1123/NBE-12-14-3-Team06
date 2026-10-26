@@ -2,7 +2,6 @@ package com.back.nbe12142team06.domain.education.dto
 
 import com.back.nbe12142team06.domain.education.entity.EducationProgress
 
-@JvmRecord
 data class EducationVideoResponse(
     val videoId: Long?,
     val title: String,

@@ -4,7 +4,6 @@ import com.back.nbe12142team06.domain.settlement.entity.Settlement
 import com.back.nbe12142team06.domain.settlement.entity.SettlementStatus
 import java.time.LocalDate
 
-@JvmRecord
 data class SettlementAdminResponse(
     val id: Long,
     val payoutAmount: Int,

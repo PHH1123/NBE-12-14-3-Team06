@@ -5,6 +5,10 @@ import com.back.nbe12142team06.domain.application.enums.ApplicationStatus
 import com.back.nbe12142team06.domain.application.enums.EscortProgress
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository
+import com.back.nbe12142team06.domain.auth.repository.RefreshTokenRepository
+import com.back.nbe12142team06.domain.chat.repository.ChatMessageRepository
+import com.back.nbe12142team06.domain.chat.repository.ChatPartRepository
+import com.back.nbe12142team06.domain.notification.repository.NotificationRepository
 import com.back.nbe12142team06.domain.payment.entity.Payment
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository
@@ -13,13 +17,19 @@ import com.back.nbe12142team06.domain.post.entity.Post
 import com.back.nbe12142team06.domain.post.entity.PostStatus
 import com.back.nbe12142team06.domain.post.repository.PostRepository
 import com.back.nbe12142team06.domain.post.service.PostService
+import com.back.nbe12142team06.domain.report.repository.ReportRepository
+import com.back.nbe12142team06.domain.review.repository.ReviewRepository
+import com.back.nbe12142team06.domain.ride.repository.RideRepository
+import com.back.nbe12142team06.domain.settlement.repository.SettlementRepository
 import com.back.nbe12142team06.domain.user.entity.EscortProfile
 import com.back.nbe12142team06.domain.user.entity.User
 import com.back.nbe12142team06.domain.user.enums.Gender
 import com.back.nbe12142team06.domain.user.enums.Role
 import com.back.nbe12142team06.domain.user.enums.UserStatus
+import com.back.nbe12142team06.domain.user.repository.ClientProfileRepository
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository
 import com.back.nbe12142team06.domain.user.repository.UserRepository
+import com.back.nbe12142team06.domain.user.repository.UserStatusHistoryRepository
 import com.back.nbe12142team06.domain.user.service.UserService
 import com.back.nbe12142team06.global.exception.DuplicatedException
 import com.back.nbe12142team06.global.exception.ForbiddenException
@@ -94,6 +104,18 @@ class ApplicationConcurrencyTest {
 
     private lateinit var postService: PostService
 
+    // USERS 를 지우려면 이를 참조하는 테이블부터 비워야 해서 함께 주입한다
+    @field:Autowired private lateinit var reviewRepository: ReviewRepository
+    @field:Autowired private lateinit var reportRepository: ReportRepository
+    @field:Autowired private lateinit var settlementRepository: SettlementRepository
+    @field:Autowired private lateinit var rideRepository: RideRepository
+    @field:Autowired private lateinit var chatMessageRepository: ChatMessageRepository
+    @field:Autowired private lateinit var chatPartRepository: ChatPartRepository
+    @field:Autowired private lateinit var notificationRepository: NotificationRepository
+    @field:Autowired private lateinit var userStatusHistoryRepository: UserStatusHistoryRepository
+    @field:Autowired private lateinit var refreshTokenRepository: RefreshTokenRepository
+    @field:Autowired private lateinit var clientProfileRepository: ClientProfileRepository
+
     private var postId = 0L
     private var escortId = 0L
     private var clientId = 0L
@@ -105,12 +127,41 @@ class ApplicationConcurrencyTest {
     @BeforeEach
     fun setUp() {
 
-        // 지원을 참조하는 자식 데이터부터 삭제
-        noShowPenaltyRepository.deleteAll()
-        escortProgressLogRepository.deleteAll()
+        // 이 테스트는 @Transactional 을 걸 수 없어(동시성 검증) 데이터가 커밋된 채 남는다.
+        // 남은 USERS 행이 다른 테스트의 전화번호·이메일 유니크 제약과 충돌하므로 사용자까지 지운다.
+        //
+        // deleteAll() 이 아니라 deleteAllInBatch() 를 쓰는 이유:
+        //  - Post 는 @SQLDelete 로 소프트 삭제돼서 deleteAll() 로는 deleted_at 만 세팅되고 행이 남는다
+        //    (그 행의 CLIENT_ID 가 USERS 를 계속 참조해 사용자 삭제가 FK 위반으로 실패한다)
+        //  - User·Post 의 @SQLRestriction("deleted_at IS NULL") 때문에 deleteAll() 은
+        //    이미 탈퇴·삭제 처리된 행을 조회하지 못해 영원히 남긴다
+        // FK 방향에 따라 자식 → 부모 순서로 비운다.
 
-        // 지원 데이터 삭제
-        applicationRepository.deleteAll()
+        // 지원을 참조하는 자식 데이터
+        noShowPenaltyRepository.deleteAllInBatch()
+        escortProgressLogRepository.deleteAllInBatch()
+        reviewRepository.deleteAllInBatch()
+        reportRepository.deleteAllInBatch()
+
+        // 결제(공고·정산 참조) → 정산(지원·사용자 참조)
+        paymentRepository.deleteAllInBatch()
+        settlementRepository.deleteAllInBatch()
+
+        // 공고를 참조하는 자식 데이터 → 지원 → 공고
+        rideRepository.deleteAllInBatch()
+        applicationRepository.deleteAllInBatch()
+        postRepository.deleteAllInBatch()
+
+        // 사용자를 참조하는 나머지 테이블
+        chatMessageRepository.deleteAllInBatch()
+        chatPartRepository.deleteAllInBatch()
+        notificationRepository.deleteAllInBatch()
+        userStatusHistoryRepository.deleteAllInBatch()
+        refreshTokenRepository.deleteAllInBatch()
+        escortProfileRepository.deleteAllInBatch()
+        clientProfileRepository.deleteAllInBatch()
+
+        userRepository.deleteAllInBatch()
 
         val seq = TEST_SEQUENCE.incrementAndGet()
 

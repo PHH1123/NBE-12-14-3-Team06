@@ -5,7 +5,6 @@ import com.back.nbe12142team06.domain.review.entity.ReviewTag
 import java.time.LocalDateTime
 
 // 리뷰 조회용
-@JvmRecord
 data class ReviewDto(
     val id: Long?,
     val applicationId: Long?,

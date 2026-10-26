@@ -8,7 +8,6 @@ import com.back.nbe12142team06.domain.user.enums.UserStatus
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-@JvmRecord
 data class AdminUserResponse(
     val id: Long?,
     val username: String,
@@ -27,7 +26,6 @@ data class AdminUserResponse(
     val deleted: Boolean,
 ) {
     // userStatusHistory: 현재 정지 이력 (활성 회원이면 null)
-    @JvmOverloads
     constructor(user: User, userStatusHistory: UserStatusHistory? = null) : this(
         user.id,
         user.username,

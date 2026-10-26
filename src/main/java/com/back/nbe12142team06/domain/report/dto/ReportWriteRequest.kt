@@ -8,7 +8,6 @@ import jakarta.validation.constraints.Size
 // 진료 보고서 작성용
 // 제목은 화면에서 받지 않고 서비스에서 자동 생성한다.
 // 필수 항목도 타입은 null 을 허용한다. 값이 빠진 요청이 JSON 변환에서 막히지 않고 검증 메시지(@NotNull 등)로 응답되게 하기 위해서다.
-@JvmRecord
 data class ReportWriteRequest(
 
     @field:NotNull(message = "진료 과목은 필수 항목입니다.")
