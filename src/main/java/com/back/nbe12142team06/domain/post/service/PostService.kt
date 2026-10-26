@@ -314,7 +314,7 @@ class PostService(
 
         // 동행 매니저 프로필 존재 확인 — 외부 결제 API(validPayment)보다 먼저 검증한다.
         // validPayment 는 Toss 부분 취소를 호출하므로, 그 뒤에 실패하면 환불은 되돌릴 수 없다.
-        val escortId = application.escort!!.id!!
+        val escortId = application.escort.id
         if (!escortProfileRepository.existsById(escortId)) {
             throw NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.")
         }

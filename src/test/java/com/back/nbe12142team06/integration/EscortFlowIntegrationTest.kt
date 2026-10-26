@@ -382,17 +382,17 @@ class EscortFlowIntegrationTest {
         val application = applicationRepository.findById(applicationId).orElseThrow()
         val arrivedAt = escortProgressLogRepository
             .findByApplicationAndProgress(application, EscortProgress.ARRIVED_HOME)
-            .orElseThrow().occurredAt!!
+            .orElseThrow().occurredAt
         val departedLog = escortProgressLogRepository
             .findByApplicationAndProgress(application, EscortProgress.DEPARTED)
             .orElseThrow()
         escortProgressLogRepository.delete(departedLog)
         escortProgressLogRepository.saveAndFlush(
-            EscortProgressLog.builder()
-                .application(application)
-                .progress(EscortProgress.DEPARTED)
-                .occurredAt(arrivedAt.minusHours(2))
-                .build()
+            EscortProgressLog(
+                application = application,
+                progress = EscortProgress.DEPARTED,
+                occurredAt = arrivedAt.minusHours(2),
+            )
         )
 
         // 11. 의뢰인의 동행 완료 처리

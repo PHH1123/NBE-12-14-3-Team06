@@ -146,26 +146,26 @@ class ApplicationConcurrencyTest {
 
         saveVerifiedProfile(escort, "1234")
 
-        val post = Post.builder()
-                .client(client)
-                .title("동시성 테스트 공고")
-                .content("동시 지원 테스트")
-                .region("수원")
-                .hospitalName("테스트 병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2795))
-                .hospitalLng(BigDecimal.valueOf(127.0476))
-                .pickupAddress("경기도 수원시")
-                .pickupLat(BigDecimal.valueOf(37.2636))
-                .pickupLng(BigDecimal.valueOf(127.0286))
-                .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().minusMinutes(1))
-                .recruitEndAt(LocalDateTime.now().plusDays(1))
-                .escortStartAt(LocalDateTime.now().plusDays(2))
-                .escortEndAt(LocalDateTime.now().plusDays(2).plusHours(3))
-                .patientNote("테스트")
-                .reportRequired(false)
-                .build()
+        val post = Post(
+                client = client,
+                title = "동시성 테스트 공고",
+                content = "동시 지원 테스트",
+                region = "수원",
+                hospitalName = "테스트 병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2795),
+                hospitalLng = BigDecimal.valueOf(127.0476),
+                pickupAddress = "경기도 수원시",
+                pickupLat = BigDecimal.valueOf(37.2636),
+                pickupLng = BigDecimal.valueOf(127.0286),
+                hourlyPay = 15000,
+                recruitStartAt = LocalDateTime.now().minusMinutes(1),
+                recruitEndAt = LocalDateTime.now().plusDays(1),
+                escortStartAt = LocalDateTime.now().plusDays(2),
+                escortEndAt = LocalDateTime.now().plusDays(2).plusHours(3),
+                patientNote = "테스트",
+                reportRequired = false,
+                )
 
         postId = postRepository.save(post).id!!
 
@@ -289,15 +289,9 @@ class ApplicationConcurrencyTest {
                 .orElseThrow()
 
         // 같은 공고에 서로 다른 동행인 2명이 지원한 상태 생성
-        var application1 = Application.builder()
-                .post(post)
-                .escort(escort1)
-                .build()
+        var application1 = Application(post, escort1)
 
-        var application2 = Application.builder()
-                .post(post)
-                .escort(escort2)
-                .build()
+        var application2 = Application(post, escort2)
 
         application1 = applicationRepository.save(application1)
         application2 = applicationRepository.save(application2)
@@ -405,10 +399,7 @@ class ApplicationConcurrencyTest {
         val post = postRepository.findById(postId)
                 .orElseThrow()
 
-        var application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        var application = Application(post, escort)
 
         application = applicationRepository.save(application)
 
@@ -539,10 +530,7 @@ class ApplicationConcurrencyTest {
         val post = postRepository.findById(postId)
                 .orElseThrow()
 
-        var application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        var application = Application(post, escort)
 
         application.accept()
         application = applicationRepository.save(application)
@@ -614,26 +602,26 @@ class ApplicationConcurrencyTest {
         val post1 = postRepository.findById(postId).orElseThrow()
 
         // 기존 공고와 시간이 겹치는 두 번째 공고
-        var post2 = Post.builder()
-                .client(client)
-                .title("동시 승인 테스트 공고 B")
-                .content("동일 동행인 중복 승인 테스트")
-                .region("수원")
-                .hospitalName("테스트 병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2795))
-                .hospitalLng(BigDecimal.valueOf(127.0476))
-                .pickupAddress("경기도 수원시")
-                .pickupLat(BigDecimal.valueOf(37.2636))
-                .pickupLng(BigDecimal.valueOf(127.0286))
-                .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().minusMinutes(1))
-                .recruitEndAt(LocalDateTime.now().plusDays(1))
-                .escortStartAt(post1.escortStartAt)
-                .escortEndAt(post1.escortEndAt)
-                .patientNote("테스트")
-                .reportRequired(false)
-                .build()
+        var post2 = Post(
+                client = client,
+                title = "동시 승인 테스트 공고 B",
+                content = "동일 동행인 중복 승인 테스트",
+                region = "수원",
+                hospitalName = "테스트 병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2795),
+                hospitalLng = BigDecimal.valueOf(127.0476),
+                pickupAddress = "경기도 수원시",
+                pickupLat = BigDecimal.valueOf(37.2636),
+                pickupLng = BigDecimal.valueOf(127.0286),
+                hourlyPay = 15000,
+                recruitStartAt = LocalDateTime.now().minusMinutes(1),
+                recruitEndAt = LocalDateTime.now().plusDays(1),
+                escortStartAt = post1.escortStartAt,
+                escortEndAt = post1.escortEndAt,
+                patientNote = "테스트",
+                reportRequired = false,
+                )
 
         post2 = postRepository.save(post2)
 
@@ -641,16 +629,10 @@ class ApplicationConcurrencyTest {
         saveDonePayment(post2)
 
         val application1 = applicationRepository.save(
-                Application.builder()
-                        .post(post1)
-                        .escort(escort)
-                        .build())
+                Application(post1, escort))
 
         val application2 = applicationRepository.save(
-                Application.builder()
-                        .post(post2)
-                        .escort(escort)
-                        .build())
+                Application(post2, escort))
 
         val applicationId1 = application1.id
         val applicationId2 = application2.id
@@ -737,10 +719,7 @@ class ApplicationConcurrencyTest {
         val post = postRepository.findById(postId)
                 .orElseThrow()
 
-        val application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        val application = Application(post, escort)
 
         val applicationId = applicationRepository.saveAndFlush(application).id
 
@@ -850,10 +829,7 @@ class ApplicationConcurrencyTest {
         val escort = userRepository.findById(escortId).orElseThrow()
         val post = postRepository.findById(postId).orElseThrow()
 
-        val application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        val application = Application(post, escort)
 
         val applicationId = applicationRepository.saveAndFlush(application).id
 
@@ -953,10 +929,7 @@ class ApplicationConcurrencyTest {
         val escort = userRepository.findById(escortId).orElseThrow()
         val post = postRepository.findById(postId).orElseThrow()
 
-        val application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        val application = Application(post, escort)
 
         val applicationId = applicationRepository.saveAndFlush(application).id
 
@@ -1066,15 +1039,9 @@ class ApplicationConcurrencyTest {
 
         saveVerifiedProfile(escortB, "5678")
 
-        val appA = Application.builder()
-                .post(post)
-                .escort(escortA)
-                .build()
+        val appA = Application(post, escortA)
 
-        val appB = Application.builder()
-                .post(post)
-                .escort(escortB)
-                .build()
+        val appB = Application(post, escortB)
 
         appA.accept()
         appB.reject()
@@ -1173,26 +1140,26 @@ class ApplicationConcurrencyTest {
         val postA = postRepository.findById(postId).orElseThrow()
 
         // 공고 A와 동행 시간이 겹치는 공고 B 생성
-        var postB = Post.builder()
-                .client(client)
-                .title("동시 지원 취소 테스트 공고 B")
-                .content("서로 다른 공고 승인 및 취소 동시성 테스트")
-                .region("수원")
-                .hospitalName("테스트 병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2795))
-                .hospitalLng(BigDecimal.valueOf(127.0476))
-                .pickupAddress("경기도 수원시")
-                .pickupLat(BigDecimal.valueOf(37.2636))
-                .pickupLng(BigDecimal.valueOf(127.0286))
-                .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().minusMinutes(1))
-                .recruitEndAt(LocalDateTime.now().plusDays(1))
-                .escortStartAt(postA.escortStartAt)
-                .escortEndAt(postA.escortEndAt)
-                .patientNote("테스트")
-                .reportRequired(false)
-                .build()
+        var postB = Post(
+                client = client,
+                title = "동시 지원 취소 테스트 공고 B",
+                content = "서로 다른 공고 승인 및 취소 동시성 테스트",
+                region = "수원",
+                hospitalName = "테스트 병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2795),
+                hospitalLng = BigDecimal.valueOf(127.0476),
+                pickupAddress = "경기도 수원시",
+                pickupLat = BigDecimal.valueOf(37.2636),
+                pickupLng = BigDecimal.valueOf(127.0286),
+                hourlyPay = 15000,
+                recruitStartAt = LocalDateTime.now().minusMinutes(1),
+                recruitEndAt = LocalDateTime.now().plusDays(1),
+                escortStartAt = postA.escortStartAt,
+                escortEndAt = postA.escortEndAt,
+                patientNote = "테스트",
+                reportRequired = false,
+                )
 
         postB = postRepository.saveAndFlush(postB)
         val postBId = postB.id
@@ -1200,15 +1167,9 @@ class ApplicationConcurrencyTest {
         // 공고 B 결제 완료
         saveDonePayment(postB)
 
-        val appA = Application.builder()
-                .post(postA)
-                .escort(escort)
-                .build()
+        val appA = Application(postA, escort)
 
-        val appB = Application.builder()
-                .post(postB)
-                .escort(escort)
-                .build()
+        val appB = Application(postB, escort)
 
         val appAId = applicationRepository.saveAndFlush(appA).id
         val appBId = applicationRepository.saveAndFlush(appB).id

@@ -103,7 +103,7 @@ class EscortGradeIntegrationTest {
         ReflectionTestUtils.setField(profile, "noShowCount", noShowCount)
         profile.updateGrade(storedGrade)
         escortProfileRepository.save(profile)
-        escortProfileRepository.verify(escort.id!!, LocalDateTime.now()) // 교육 이수 처리 (지원 가능 상태)
+        escortProfileRepository.verify(escort.id, LocalDateTime.now()) // 교육 이수 처리 (지원 가능 상태)
     }
 
     // 공고 작성 → 결제 완료 처리 → 지원 → 승인까지 해서 "매칭된 지원"을 만든다.
@@ -119,7 +119,7 @@ class EscortGradeIntegrationTest {
             RideSelect.TAXI, RideSelect.TAXI, "", true
         )
 
-        var post = postService.findById(postService.write(client.id!!, request).id!!)
+        var post = postService.findById(postService.write(client.id, request).id!!)
         paymentRepository.testStatusDoneAndPutPaymentKey(post.id!!, UUID.randomUUID().toString()) // 결제 완료 상태로 만든다
         // 공고 다시 조회
         post = postService.findById(post.id!!)
@@ -132,10 +132,10 @@ class EscortGradeIntegrationTest {
     }
 
     private fun profileOfEscort(): EscortProfile =
-        escortProfileRepository.findById(escort.id!!).orElseThrow()
+        escortProfileRepository.findById(escort.id).orElseThrow()
 
     private fun historiesOfEscort(): List<EscortGradeHistory> =
-        escortGradeHistoryRepository.findAllByEscortProfileUserId(escort.id!!)
+        escortGradeHistoryRepository.findAllByEscortProfileUserId(escort.id)
 
     @Test
     @DisplayName("[통합] 동행 완료로 완료 5회가 되면 등급이 새싹으로 오르고 이력이 남는다")
@@ -146,14 +146,14 @@ class EscortGradeIntegrationTest {
 
         // 동행 시작 → 귀가 완료 기록 (escortComplete가 이 시각들을 읽는다)
         val departedAt = LocalDateTime.now()
-        application.post!!.startProgress(departedAt) // 공고를 동행 진행 중으로
+        application.post.startProgress(departedAt) // 공고를 동행 진행 중으로
         escortProgressLogRepository.save(EscortProgressLog(application, EscortProgress.DEPARTED, departedAt))
         escortProgressLogRepository.save(
             EscortProgressLog(application, EscortProgress.ARRIVED_HOME, departedAt.plusHours(HOURS.toLong()))
         )
 
         // 동행 완료 처리 (완료 횟수 4 → 5)
-        postService.escortComplete(application.post!!.id!!, client.id!!)
+        postService.escortComplete(application.post.id!!, client.id)
 
         val after = profileOfEscort()
         assertThat(after.completedCount).isEqualTo(5)

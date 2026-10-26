@@ -118,7 +118,7 @@ class ReportWriteConcurrencyTest {
         )
 
         val application = applicationRepository.save(
-            Application.builder().post(post).escort(escort).build(),
+            Application(post, escort),
         )
 
         escortId = escort.id

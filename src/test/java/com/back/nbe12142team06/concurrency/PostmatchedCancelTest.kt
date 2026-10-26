@@ -136,10 +136,7 @@ class PostmatchedCancelTest {
         post = postRepository.save(post)
 
         // Application: PENDING -> ACCEPTED
-        var application = Application.builder()
-            .post(post)
-            .escort(escort)
-            .build()
+        var application = Application(post, escort)
         application.accept()
         application = applicationRepository.save(application)
 

@@ -22,7 +22,7 @@ data class ReportDto(
     constructor(report: Report) : this(
         report.id,
         report.application.id,
-        report.application.post!!.client.name,
+        report.application.post.client.name,
         report.title,
         report.department.description,
         report.purpose,

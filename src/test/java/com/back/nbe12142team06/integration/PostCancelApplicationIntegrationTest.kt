@@ -86,7 +86,7 @@ class PostCancelApplicationIntegrationTest {
     private fun signUpEscort(username: String, name: String, phone: String): User {
         val escort = signUp(username, name, Role.ESCORT, phone)
         escortProfileRepository.save(EscortProfile(escort, "소개", "은행", name, "000-1234567-000"))
-        escortProfileRepository.verify(escort.id!!, LocalDateTime.now())
+        escortProfileRepository.verify(escort.id, LocalDateTime.now())
         return escort
     }
 
@@ -103,7 +103,7 @@ class PostCancelApplicationIntegrationTest {
             RideSelect.TAXI, RideSelect.TAXI, "", true
         )
 
-        var post = postService.findById(postService.write(client.id!!, request).id!!)
+        var post = postService.findById(postService.write(client.id, request).id!!)
         paymentRepository.testStatusDoneAndPutPaymentKey(post.id!!, UUID.randomUUID().toString())
         // 공고 다시 조회
         post = postService.findById(post.id!!)
@@ -126,7 +126,7 @@ class PostCancelApplicationIntegrationTest {
         val applicationB = apply(post, escortB)
         val otherApplication = apply(otherPost, escortA) // 다른 공고에 한 지원
 
-        postService.cancel(post.id!!, client.id!!)
+        postService.cancel(post.id!!, client.id)
 
         assertThat(postService.findById(post.id!!).postStatus).isEqualTo(PostStatus.CANCELED)
         assertThat(statusOf(applicationA)).isEqualTo(ApplicationStatus.CANCELED)
@@ -141,11 +141,11 @@ class PostCancelApplicationIntegrationTest {
         val application = apply(post, escortA)
         applicationService.accept(application, client.id) // 공고가 MATCHED, 지원은 ACCEPTED
 
-        postService.matchedCancel(post.id!!, client.id!!)
+        postService.matchedCancel(post.id!!, client.id)
 
         assertThat(statusOf(application)).isEqualTo(ApplicationStatus.CANCELED)
         // 패널티 없음: 노쇼 횟수가 늘지 않는다
-        assertThat(escortProfileRepository.findById(escortA.id!!).orElseThrow().noShowCount).isZero()
+        assertThat(escortProfileRepository.findById(escortA.id).orElseThrow().noShowCount).isZero()
 
         // newPost()의 testStatusDone()은 clearAutomatically=true로 영속성 컨텍스트를 비운다.
         // 먼저 매칭 취소 상태를 DB에 반영해 테스트 도중 변경 사항이 사라지지 않게 한다.

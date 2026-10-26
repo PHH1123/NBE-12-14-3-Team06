@@ -11,7 +11,7 @@ data class ApplicationApplyResponse(
 ) {
     constructor(application: Application) : this(
         application.id,
-        application.post!!.id,
+        application.post.id,
         application.status,
     )
 }

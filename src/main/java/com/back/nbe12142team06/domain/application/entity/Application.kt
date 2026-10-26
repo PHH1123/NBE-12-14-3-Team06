@@ -36,17 +36,17 @@ class Application protected constructor() : BaseTimeEntity() {
 
     @field:ManyToOne(fetch = FetchType.LAZY)
     @field:JoinColumn(name = "post_id", nullable = false)
-    var post: Post? = null
+    lateinit var post: Post
         protected set
 
     @field:ManyToOne(fetch = FetchType.LAZY)
     @field:JoinColumn(name = "escort_id", nullable = false)
-    var escort: User? = null
+    lateinit var escort: User
         protected set
 
     @field:Enumerated(EnumType.STRING)
     @field:Column(nullable = false)
-    var status: ApplicationStatus? = ApplicationStatus.PENDING
+    var status: ApplicationStatus = ApplicationStatus.PENDING
         protected set
 
     // 동행 중 매니저의 마지막 위치. 첫 위치 수신 전에는 null이다.
@@ -76,20 +76,26 @@ class Application protected constructor() : BaseTimeEntity() {
     var activePostId: Long? = null
         protected set
 
-    // Kotlin 호출부에서는 필수 연관관계를 명시한 생성자를 사용할 수 있다.
+    // 필수 연관관계는 생성 시 지정하고, DB가 생성하는 ID와 선택 상태 필드는 필요할 때만 전달한다.
     constructor(
         post: Post,
         escort: User,
-        status: ApplicationStatus? = ApplicationStatus.PENDING,
+        status: ApplicationStatus = ApplicationStatus.PENDING,
+        id: Long? = null,
+        acceptedPostId: Long? = null,
+        activePostId: Long? = null,
     ) : this() {
         this.post = post
         this.escort = escort
         this.status = status
+        this.id = id
+        this.acceptedPostId = acceptedPostId
+        this.activePostId = activePostId
     }
 
     private fun syncActivePostId() {
         activePostId = if (status == ApplicationStatus.PENDING || status == ApplicationStatus.ACCEPTED) {
-            post!!.id
+            post.id
         } else {
             null
         }
@@ -101,7 +107,7 @@ class Application protected constructor() : BaseTimeEntity() {
     }
 
     private fun changeStatus(next: ApplicationStatus) {
-        if (!status!!.canTransitionTo(next)) {
+        if (!status.canTransitionTo(next)) {
             throw InvalidException(37, "변경할 수 없는 지원 상태입니다.")
         }
         status = next
@@ -110,7 +116,7 @@ class Application protected constructor() : BaseTimeEntity() {
 
     fun accept() {
         changeStatus(ApplicationStatus.ACCEPTED)
-        acceptedPostId = post!!.id
+        acceptedPostId = post.id
     }
 
     fun reject() {
@@ -134,46 +140,4 @@ class Application protected constructor() : BaseTimeEntity() {
         acceptedPostId = null
     }
 
-    companion object {
-        // 남아 있는 Java 서비스·테스트와의 호환성용. Kotlin 전환 완료 뒤 제거 여부를 검토한다.
-        @JvmStatic
-        fun builder(): ApplicationBuilder = ApplicationBuilder()
-    }
-
-    class ApplicationBuilder {
-        private var id: Long? = null
-        private var post: Post? = null
-        private var escort: User? = null
-        private var status: ApplicationStatus? = ApplicationStatus.PENDING
-        private var lat: BigDecimal? = null
-        private var lng: BigDecimal? = null
-        private var accuracy: BigDecimal? = null
-        private var locationUpdatedAt: Instant? = null
-        private var acceptedPostId: Long? = null
-        private var activePostId: Long? = null
-
-        fun id(value: Long?) = apply { id = value }
-        fun post(value: Post?) = apply { post = value }
-        fun escort(value: User?) = apply { escort = value }
-        fun status(value: ApplicationStatus?) = apply { status = value }
-        fun lat(value: BigDecimal?) = apply { lat = value }
-        fun lng(value: BigDecimal?) = apply { lng = value }
-        fun accuracy(value: BigDecimal?) = apply { accuracy = value }
-        fun locationUpdatedAt(value: Instant?) = apply { locationUpdatedAt = value }
-        fun acceptedPostId(value: Long?) = apply { acceptedPostId = value }
-        fun activePostId(value: Long?) = apply { activePostId = value }
-
-        fun build(): Application = Application().apply {
-            this.id = this@ApplicationBuilder.id
-            this@ApplicationBuilder.post?.let { this.post = it }
-            this@ApplicationBuilder.escort?.let { this.escort = it }
-            this.status = this@ApplicationBuilder.status
-            this.lat = this@ApplicationBuilder.lat
-            this.lng = this@ApplicationBuilder.lng
-            this.accuracy = this@ApplicationBuilder.accuracy
-            this.locationUpdatedAt = this@ApplicationBuilder.locationUpdatedAt
-            this.acceptedPostId = this@ApplicationBuilder.acceptedPostId
-            this.activePostId = this@ApplicationBuilder.activePostId
-        }
-    }
 }

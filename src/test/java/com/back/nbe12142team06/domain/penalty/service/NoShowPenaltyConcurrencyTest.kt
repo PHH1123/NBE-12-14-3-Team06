@@ -120,35 +120,30 @@ class NoShowPenaltyConcurrencyTest {
     }
 
     private fun savePost(): Post = postRepository.save(
-        Post.builder()
-            .client(client)
-            .title("패널티 경합 공고")
-            .content("병원 동행 테스트")
-            .region("서울")
-            .hospitalName("서울아산병원")
-            .hospitalAddress("서울특별시 송파구 올림픽로43길 88")
-            .hospitalLat(BigDecimal.valueOf(37.52643))
-            .hospitalLng(BigDecimal.valueOf(127.1096))
-            .pickupAddress("서울특별시 중구 세종대로 지하2")
-            .pickupLat(BigDecimal.valueOf(37.555800))
-            .pickupLng(BigDecimal.valueOf(126.972000))
-            .hourlyPay(15_000)
-            .recruitStartAt(LocalDateTime.now().minusDays(5))
-            .recruitEndAt(LocalDateTime.now().minusDays(4))
-            .escortStartAt(LocalDateTime.now().minusDays(2))
-            .escortEndAt(LocalDateTime.now().minusDays(2).plusHours(4))
-            .postStatus(PostStatus.COMPLETED)
-            .build()
+        Post(
+            client = client,
+            title = "패널티 경합 공고",
+            content = "병원 동행 테스트",
+            region = "서울",
+            hospitalName = "서울아산병원",
+            hospitalAddress = "서울특별시 송파구 올림픽로43길 88",
+            hospitalLat = BigDecimal.valueOf(37.52643),
+            hospitalLng = BigDecimal.valueOf(127.1096),
+            pickupAddress = "서울특별시 중구 세종대로 지하2",
+            pickupLat = BigDecimal.valueOf(37.555800),
+            pickupLng = BigDecimal.valueOf(126.972000),
+            hourlyPay = 15_000,
+            recruitStartAt = LocalDateTime.now().minusDays(5),
+            recruitEndAt = LocalDateTime.now().minusDays(4),
+            escortStartAt = LocalDateTime.now().minusDays(2),
+            escortEndAt = LocalDateTime.now().minusDays(2).plusHours(4),
+            postStatus = PostStatus.COMPLETED,
+        )
     )
 
     private fun saveApplication(post: Post, status: ApplicationStatus): Application =
         applicationRepository.save(
-            Application.builder()
-                .post(post)
-                .escort(escort)
-                .status(status)
-                .acceptedPostId(post.id)
-                .build()
+            Application(post = post, escort = escort, status = status, acceptedPostId = post.id)
         )
 
     companion object {

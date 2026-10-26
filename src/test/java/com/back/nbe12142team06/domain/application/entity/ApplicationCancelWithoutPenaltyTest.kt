@@ -2,10 +2,12 @@ package com.back.nbe12142team06.domain.application.entity
 
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus
 import com.back.nbe12142team06.domain.post.entity.Post
+import com.back.nbe12142team06.domain.user.entity.User
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import org.springframework.test.util.ReflectionTestUtils
 
 /**
  * Application.cancelWithoutPenalty (패널티 없는 지원 취소) 단위 테스트.
@@ -17,8 +19,8 @@ class ApplicationCancelWithoutPenaltyTest {
     @CsvSource(value = ["PENDING", "ACCEPTED"])
     @DisplayName("대기중·승인 지원을 패널티 없이 취소하면 CANCELED 가 되고 acceptedPostId, activePostId 가 풀린다")
     fun 지원을_취소하면_상태와_공고_연결값이_풀린다(status: ApplicationStatus) {
-        val post = Post.builder().id(10L).build()
-        val application = Application.builder().post(post).build() // 처음 상태는 PENDING
+        val post = Post().also { ReflectionTestUtils.setField(it, "id", 10L) }
+        val application = Application(post, User()) // 처음 상태는 PENDING
         if (status == ApplicationStatus.ACCEPTED) {
             application.accept() // 승인되면 acceptedPostId, activePostId 가 공고 id 로 채워진다
             assertThat(application.acceptedPostId).isEqualTo(10L)

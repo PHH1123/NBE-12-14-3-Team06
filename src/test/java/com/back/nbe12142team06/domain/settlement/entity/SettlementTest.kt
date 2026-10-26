@@ -1,6 +1,7 @@
 package com.back.nbe12142team06.domain.settlement.entity
 
 import com.back.nbe12142team06.domain.application.entity.Application
+import com.back.nbe12142team06.domain.post.entity.Post
 import com.back.nbe12142team06.domain.user.entity.User
 import com.back.nbe12142team06.domain.user.enums.Gender
 import com.back.nbe12142team06.domain.user.enums.Role
@@ -32,7 +33,7 @@ class SettlementTest {
             penaltyAmount = BigDecimal.ZERO,
             settlementStatus = status,
             settledDate = LocalDate.now().plusDays(1),
-            application = Application.builder().escort(escort).build(),
+            application = Application(Post(), escort),
             escort = escort
         )
     }

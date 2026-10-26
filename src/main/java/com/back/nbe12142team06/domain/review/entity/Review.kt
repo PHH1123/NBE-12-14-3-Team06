@@ -31,59 +31,39 @@ class Review protected constructor() : BaseTimeEntity() {
 
     @field:OneToOne(fetch = FetchType.LAZY, optional = false)
     @field:JoinColumn(name = "application_id", nullable = false, unique = true)
-    var application: Application? = null
+    lateinit var application: Application
         protected set
 
     @field:NotNull(message = "별점은 필수입니다.")
     @field:Min(value = 1, message = "별점은 1점 이상이어야 합니다.")
     @field:Max(value = 5, message = "별점은 5점 이하여야 합니다.")
     @field:Column(nullable = false, columnDefinition = "SMALLINT")
-    var rating: Int? = null
+    var rating: Int = 0
         protected set
 
-    // Java @Builder.Default: tags 미지정 시 빈 HashSet, 명시적인 null은 그대로 유지한다.
+    // 태그를 선택하지 않으면 빈 컬렉션을 사용한다.
     @field:BatchSize(size = 100)
     @field:Enumerated(EnumType.STRING)
     @field:ElementCollection(fetch = FetchType.LAZY)
     @field:CollectionTable(name = "review_tag", joinColumns = [JoinColumn(name = "review_id")])
     @field:Column(name = "tag", length = 30, nullable = false)
-    var tags: Set<ReviewTag>? = HashSet()
+    var tags: Set<ReviewTag> = HashSet()
         protected set
 
     @field:Column(length = 500)
     var content: String? = null
         protected set
 
-    companion object {
-        @JvmStatic
-        fun builder(): ReviewBuilder = ReviewBuilder()
-    }
-
-    class ReviewBuilder {
-        private var id: Long? = null
-        private var application: Application? = null
-        private var rating: Int? = null
-        private var tags: Set<ReviewTag>? = null
-        private var tagsSet: Boolean = false
-        private var content: String? = null
-
-        fun id(value: Long?) = apply { id = value }
-        fun application(value: Application?) = apply { application = value }
-        fun rating(value: Int?) = apply { rating = value }
-        fun tags(value: Set<ReviewTag>?) = apply {
-            tags = value
-            tagsSet = true
-        }
-        fun content(value: String?) = apply { content = value }
-
-        fun build(): Review = Review().apply {
-            this.id = this@ReviewBuilder.id
-            this.application = this@ReviewBuilder.application
-            this.rating = this@ReviewBuilder.rating
-            if (this@ReviewBuilder.tagsSet) {
-                this.tags = this@ReviewBuilder.tags
-            }
-            this.content = this@ReviewBuilder.content
-        }
+    // 필수 값은 생성자로 받고, 선택 입력만 기본값을 제공한다.
+    constructor(
+        application: Application,
+        rating: Int,
+        tags: Set<ReviewTag> = HashSet(),
+        content: String? = null,
+    ) : this() {
+        this.application = application
+        this.rating = rating
+        this.tags = tags
+        this.content = content
     }
 }

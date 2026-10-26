@@ -189,7 +189,7 @@ class PaymentService(
     fun validPayment(post: Post, application: Application, settledDate: LocalDate) {
         val payoutAmount = validPayment(post)
         // 정산 데이터 생성
-        settlementService.createSettlement(payoutAmount, application, application.escort!!, settledDate)
+        settlementService.createSettlement(payoutAmount, application, application.escort, settledDate)
     }
 
     fun validPayment(post: Post): BigDecimal {

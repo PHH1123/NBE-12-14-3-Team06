@@ -12,8 +12,8 @@ data class ApplicationAcceptResponse(
 ) {
     constructor(application: Application) : this(
         application.id,
-        application.post!!.id,
-        application.escort!!.id,
+        application.post.id,
+        application.escort.id,
         application.status,
     )
 }
