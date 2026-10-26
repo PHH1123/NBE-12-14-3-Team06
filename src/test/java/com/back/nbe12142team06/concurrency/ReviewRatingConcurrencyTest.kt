@@ -73,45 +73,45 @@ class ReviewRatingConcurrencyTest {
         val phoneTag = tag.substring(tag.length - 7)
 
         val escort = userRepository.save(
-            User.builder()
-                .username("review-escort-$tag")
-                .password("pw")
-                .email("review-escort-$tag@test.com")
-                .name("동행인")
-                .role(Role.ESCORT)
-                .gender(Gender.FEMALE)
-                .birthDate(LocalDate.of(1995, 1, 1))
-                .phoneNum("010${phoneTag}1")
-                .region("수원")
-                .build(),
+            User(
+                username = "report-escort-$tag",
+                password = "pw",
+                email = "report-escort-$tag@test.com",
+                name = "동행인",
+                role = Role.ESCORT,
+                gender = Gender.FEMALE,
+                birthDate = LocalDate.of(1995, 1, 1),
+                phoneNum = "010${phoneTag}1",
+                region = "수원",
+            ),
         )
 
         val client1 = userRepository.save(
-            User.builder()
-                .username("review-client1-$tag")
-                .password("pw")
-                .email("review-client1-$tag@test.com")
-                .name("의뢰인1")
-                .role(Role.CLIENT)
-                .gender(Gender.MALE)
-                .birthDate(LocalDate.of(1950, 1, 1))
-                .phoneNum("010${phoneTag}2")
-                .region("수원")
-                .build(),
+            User(
+                username = "review-client1-$tag",
+                password = "pw",
+                email = "review-client1-$tag@test.com",
+                name = "의뢰인1",
+                role = Role.CLIENT,
+                gender = Gender.MALE,
+                birthDate = LocalDate.of(1950, 1, 1),
+                phoneNum = "010${phoneTag}2",
+                region = "수원",
+            ),
         )
 
         val client2 = userRepository.save(
-            User.builder()
-                .username("review-client2-$tag")
-                .password("pw")
-                .email("review-client2-$tag@test.com")
-                .name("의뢰인2")
-                .role(Role.CLIENT)
-                .gender(Gender.MALE)
-                .birthDate(LocalDate.of(1955, 1, 1))
-                .phoneNum("010${phoneTag}3")
-                .region("수원")
-                .build(),
+            User(
+                username = "review-client2-$tag",
+                password = "pw",
+                email = "review-client2-$tag@test.com",
+                name = "의뢰인2",
+                role = Role.CLIENT,
+                gender = Gender.MALE,
+                birthDate = LocalDate.of(1955, 1, 1),
+                phoneNum = "010${phoneTag}3",
+                region = "수원",
+            ),
         )
 
         escortProfileRepository.save(EscortProfile(escort, "자기소개", "국민은행", "동행인", "1234567890"))
