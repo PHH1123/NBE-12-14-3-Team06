@@ -11,9 +11,8 @@ import com.back.nbe12142team06.domain.user.entity.User
 import com.back.nbe12142team06.domain.user.enums.Gender
 import com.back.nbe12142team06.domain.user.enums.Role
 import jakarta.persistence.EntityManager
-import jakarta.persistence.EntityManagerFactory
 import org.assertj.core.api.Assertions.assertThat
-import org.hibernate.SessionFactory
+import org.hibernate.Hibernate
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -37,7 +36,6 @@ class SettlementRepositoryTest {
 
     @field:Autowired private lateinit var settlementRepository: SettlementRepository
     @field:Autowired private lateinit var em: EntityManager
-    @field:Autowired private lateinit var emf: EntityManagerFactory
 
     private lateinit var client: User
     private lateinit var escort: User
@@ -234,17 +232,13 @@ class SettlementRepositoryTest {
         em.flush()
         em.clear()
 
-        val statistics = emf.unwrap(SessionFactory::class.java).statistics
-        statistics.isStatisticsEnabled = true
-        statistics.clear()
-
         val found = settlementRepository.fetchJoinById(settlement.requiredId)!!
-        val queryCountAfterFind = statistics.prepareStatementCount
 
-        // 지연 로딩이면 여기서 동행인 조회 쿼리가 더 나간다
+        // 페치 조인이 동작했다면 동행인은 프록시가 아니라 이미 채워진 상태다.
+        // 쿼리 수(SessionFactory.statistics)로 세지 않는 이유: 그 카운터는 SessionFactory 전체에
+        // 하나뿐이어서 @Async 알림 스레드가 날린 쿼리까지 함께 세고, 간헐적으로 어긋난다.
+        assertThat(Hibernate.isInitialized(found.escort)).isTrue()
+
         assertThat(found.escort.name).isEqualTo("동행매니저")
-
-        assertThat(queryCountAfterFind).isEqualTo(1)
-        assertThat(statistics.prepareStatementCount).isEqualTo(1)
     }
 }

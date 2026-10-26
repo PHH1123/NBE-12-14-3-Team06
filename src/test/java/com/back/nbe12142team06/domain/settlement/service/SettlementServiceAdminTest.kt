@@ -164,7 +164,21 @@ class SettlementServiceAdminTest {
 
         settlementRepository.saveAll(listOf(settlement1, settlement2, settlement3, settlement4, settlement5))
 
-        val settlements = settlementService.getAnalytics(LocalDate.now().minusDays(7), LocalDate.now().plusDays(1))
+        // 관리자 집계 쿼리는 settledDate 가 아니라 createdAt 기준으로 기간 내 '모든' 정산을 읽는다
+        // (SettlementRepository.findAnalytics). 다른 테스트가 커밋해 둔 정산도 createdAt 이 실행 시각이라
+        // 항상 이 기간에 들어오므로, 이 테스트가 만든 건만 남겨 집계한다.
+        val myIds = listOf(settlement1, settlement2, settlement3, settlement4, settlement5)
+            .map { it.requiredId }
+            .toSet()
+
+        val settlements = settlementService
+            .getAnalytics(LocalDate.now().minusDays(7), LocalDate.now().plusDays(1))
+            .filter { it.requiredId in myIds }
+
+        // 서비스 쿼리가 이 테스트의 정산 5건을 실제로 읽어왔는지 먼저 확인한다
+        // (빈 목록을 집계해도 0 이 나오므로, 이 단정이 없으면 헛통과할 수 있다)
+        assertThat(settlements).hasSize(5)
+
         val result = SettlementAnalyticsResponse.from(settlements)
 
         assertThat(result.totalSettlementAmount).isEqualTo(526_500L)
@@ -207,7 +221,16 @@ class SettlementServiceAdminTest {
         val settlementPage = settlementService.getSettlementForAdmin(
             LocalDate.now().minusDays(7), LocalDate.now().plusDays(1), pageable
         )
-        val result = settlementPage.map { SettlementAdminResponse(it) }.content
+
+        // 위 테스트와 같은 이유로 이 테스트가 만든 정산만 남긴다.
+        // id 내림차순이라 가장 나중에 만든 이 테스트의 정산들이 첫 페이지 앞쪽에 온다.
+        val myIds = listOf(settlement1, settlement2, settlement3, settlement4)
+            .map { it.requiredId }
+            .toSet()
+
+        val result = settlementPage.content
+            .filter { it.requiredId in myIds }
+            .map { SettlementAdminResponse(it) }
 
         assertThat(result).hasSize(4)
         assertThat(result.first().id).isEqualTo(settlement4.requiredId)

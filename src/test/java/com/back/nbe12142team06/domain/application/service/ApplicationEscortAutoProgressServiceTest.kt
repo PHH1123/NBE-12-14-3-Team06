@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.application.service
 
+import com.back.nbe12142team06.DatabaseCleaner
 import com.back.nbe12142team06.domain.application.dto.ApplicationLocationRequest
 import com.back.nbe12142team06.domain.application.entity.Application
 import com.back.nbe12142team06.domain.application.entity.EscortProgressLog
@@ -21,6 +22,7 @@ import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository
 import com.back.nbe12142team06.domain.user.repository.UserRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatCode
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -51,6 +53,7 @@ class ApplicationEscortAutoProgressServiceTest {
     @field:Autowired private lateinit var userRepository: UserRepository
     @field:Autowired private lateinit var escortProfileRepository: EscortProfileRepository
     @field:Autowired private lateinit var passwordEncoder: PasswordEncoder
+    @field:Autowired private lateinit var databaseCleaner: DatabaseCleaner
 
     companion object {
         private val SEQ = AtomicInteger()
@@ -70,6 +73,9 @@ class ApplicationEscortAutoProgressServiceTest {
 
     @BeforeEach
     fun setUp() {
+        // @Transactional 을 걸지 않아 데이터가 커밋된 채 남으므로, 다른 비트랜잭션 테스트와 같은 관례로 비운다
+        databaseCleaner.clean()
+
         val seq = SEQ.incrementAndGet()
         client = saveUser("autoClient$seq", Role.CLIENT, String.format("010-6661-%04d", seq))
         escort = saveUser("autoEscort$seq", Role.ESCORT, String.format("010-6662-%04d", seq))
@@ -82,6 +88,11 @@ class ApplicationEscortAutoProgressServiceTest {
 
         rideRepository.save(Ride(post = post, selected = RideSelect.TAXI))
         rideRepository.save(Ride(post = post, selected = RideSelect.TAXI, direction = RideDirection.TO_HOME))
+    }
+
+    @AfterEach
+    fun tearDown() {
+        databaseCleaner.clean()
     }
 
     private fun saveUser(username: String, role: Role, phone: String): User {

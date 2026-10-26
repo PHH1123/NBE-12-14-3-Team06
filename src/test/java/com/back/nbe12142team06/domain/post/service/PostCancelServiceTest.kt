@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.post.service
 
+import com.back.nbe12142team06.DatabaseCleaner
 import com.back.nbe12142team06.domain.post.entity.Post
 import com.back.nbe12142team06.domain.post.entity.PostStatus
 import com.back.nbe12142team06.domain.post.repository.PostRepository
@@ -10,6 +11,7 @@ import com.back.nbe12142team06.domain.user.repository.UserRepository
 import com.back.nbe12142team06.global.exception.InvalidException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -45,12 +47,23 @@ class PostCancelServiceTest {
     @Autowired
     private lateinit var passwordEncoder: PasswordEncoder
 
+    @Autowired
+    private lateinit var databaseCleaner: DatabaseCleaner
+
     private lateinit var client: User
 
     @BeforeEach
     fun setUp() {
+        // @Transactional 을 걸지 않아 데이터가 커밋된 채 남으므로, 다른 비트랜잭션 테스트와 같은 관례로 비운다
+        databaseCleaner.clean()
+
         val seq = SEQ.incrementAndGet()
         client = saveUser("cancelClient$seq", Role.CLIENT, "010-6961-%04d".format(seq))
+    }
+
+    @AfterEach
+    fun tearDown() {
+        databaseCleaner.clean()
     }
 
     private fun saveUser(username: String, role: Role, phone: String): User {
