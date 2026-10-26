@@ -85,7 +85,7 @@ class RefreshTokenTest {
         em.flush()
         em.clear()
 
-        assertThat(refreshTokenRepository.findByTokenHash(hash)).isPresent()
+        assertThat(refreshTokenRepository.findByTokenHash(hash)).isNotNull()
     }
 
     @Test

@@ -135,8 +135,8 @@ class AuthControllerTest {
 
         // DB에서 폐기 확인
         val hash = RefreshTokenGenerator.hash(rawRefreshToken.value)
-        val saved = refreshTokenRepository.findByTokenHash(hash).orElseThrow()
-        assertThat(saved.isRevoked).isTrue()
+        val saved = refreshTokenRepository.findByTokenHash(hash)
+        assertThat(saved!!.isRevoked).isTrue()
     }
 
     companion object {
