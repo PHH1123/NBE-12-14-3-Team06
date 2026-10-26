@@ -201,44 +201,4 @@ class User internal constructor() : BaseSoftDeleteTimeEntity() {  // JPA용 기�
 
         userStatus = newStatus
     }
-
-    // Lombok @Builder 를 쓰던 기존 호출부(테스트·초기 데이터 24곳) 호환용. 새 코드는 생성자를 쓴다.
-    class Builder internal constructor() {
-        private var username: String? = null
-        private var password: String? = null
-        private var email: String? = null
-        private var name: String? = null
-        private var role: Role? = null
-        private var gender: Gender? = null
-        private var birthDate: LocalDate? = null
-        private var phoneNum: String? = null
-        private var region: String? = null
-
-        fun username(username: String) = apply { this.username = username }
-        fun password(password: String?) = apply { this.password = password }
-        fun email(email: String) = apply { this.email = email }
-        fun name(name: String) = apply { this.name = name }
-        fun role(role: Role) = apply { this.role = role }
-        fun gender(gender: Gender) = apply { this.gender = gender }
-        fun birthDate(birthDate: LocalDate) = apply { this.birthDate = birthDate }
-        fun phoneNum(phoneNum: String) = apply { this.phoneNum = phoneNum }
-        fun region(region: String) = apply { this.region = region }
-
-        fun build() = User(
-            requireNotNull(username) { "username 은 필수입니다." },
-            requireNotNull(password) { "password 는 필수입니다." },
-            requireNotNull(email) { "email 은 필수입니다." },
-            requireNotNull(name) { "name 은 필수입니다." },
-            requireNotNull(role) { "role 은 필수입니다." },
-            requireNotNull(gender) { "gender 는 필수입니다." },
-            requireNotNull(birthDate) { "birthDate 는 필수입니다." },
-            requireNotNull(phoneNum) { "phoneNum 은 필수입니다." },
-            requireNotNull(region) { "region 은 필수입니다." },
-        )
-    }
-
-    companion object {
-        @JvmStatic
-        fun builder() = Builder()
-    }
 }
