@@ -34,8 +34,8 @@ class ReportSummaryUpdater(
         // 항목별로 조립한 뒤 마스킹한다. 조립 전에 마스킹하면 항목마다 반복 호출하게 된다.
         return reportMasker.mask(
             buildContent(report),
-            report.application.post!!.client,
-            report.application.escort!!,
+            report.application.post.client,
+            report.application.escort,
         )
     }
 

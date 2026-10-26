@@ -99,17 +99,14 @@ class RideControllerTest {
         )
 
         // 공고를 쓰면 이동 정보(병원 이동·귀가 이동)가 함께 만들어진다
-        val post1 = postService.write(user1.id!!, postWriteRequest())
+        val post1 = postService.write(user1.id, postWriteRequest())
         paymentRepository.testStatusDoneAndPutPaymentKey(post1.id!!, UUID.randomUUID().toString())
 
-        val application = Application.builder()
-            .post(postRepository.findById(post1.id!!).get())
-            .escort(user2)
-            .build()
+        val application = Application(postRepository.findById(post1.id).get(), user2)
         application.accept()
         applicationRepository.save(application)
 
-        savedPost1Id = post1.id!!
+        savedPost1Id = post1.id
         savedRide1Id = rideService.findByPostId(savedPost1Id).first().requiredId
 
         // user로 로그인해 인증 쿠키 확보

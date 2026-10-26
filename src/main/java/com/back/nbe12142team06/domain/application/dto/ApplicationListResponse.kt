@@ -12,8 +12,8 @@ data class ApplicationListResponse(
 ) {
     constructor(application: Application) : this(
         application.id,
-        application.escort!!.id,
-        application.escort!!.name,
+        application.escort.id,
+        application.escort.name,
         application.status,
     )
 }

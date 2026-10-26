@@ -80,35 +80,35 @@ class SettlementServiceAdminTest {
     )
 
     private fun createPost(client: User, hour: Long = 4): Post {
-        return Post.builder()
-            .title("정형외과 동행 구합니다")
-            .content("무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.")
-            .region("서울")
-            .hospitalName("서울성모병원")
-            .hospitalAddress("서울 서초구 반포대로 222")
-            .hospitalLat(BigDecimal.valueOf(37.5012743))
-            .hospitalLng(BigDecimal.valueOf(127.0051893))
-            .pickupAddress("서울 서초구 잠원동 10-1")
-            .pickupLat(BigDecimal.valueOf(37.5160000))
-            .pickupLng(BigDecimal.valueOf(127.0200000))
-            .hourlyPay(15_000)
-            .recruitStartAt(LocalDateTime.now().plusDays(1))
-            .recruitEndAt(LocalDateTime.now().plusDays(6))
-            .escortStartAt(LocalDateTime.now().plusDays(7))
-            .escortEndAt(LocalDateTime.now().plusDays(7).plusHours(hour))
-            .postStatus(PostStatus.COMPLETED)
-            .client(client)
-            .build()
+        return Post(
+            title = "정형외과 동행 구합니다",
+            content = "무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.",
+            region = "서울",
+            hospitalName = "서울성모병원",
+            hospitalAddress = "서울 서초구 반포대로 222",
+            hospitalLat = BigDecimal.valueOf(37.5012743),
+            hospitalLng = BigDecimal.valueOf(127.0051893),
+            pickupAddress = "서울 서초구 잠원동 10-1",
+            pickupLat = BigDecimal.valueOf(37.5160000),
+            pickupLng = BigDecimal.valueOf(127.0200000),
+            hourlyPay = 15_000,
+            recruitStartAt = LocalDateTime.now().plusDays(1),
+            recruitEndAt = LocalDateTime.now().plusDays(6),
+            escortStartAt = LocalDateTime.now().plusDays(7),
+            escortEndAt = LocalDateTime.now().plusDays(7).plusHours(hour),
+            postStatus = PostStatus.COMPLETED,
+            client = client,
+        )
     }
 
     private fun createApplication(escort: User, post: Post): Application {
-        return Application.builder()
-            .post(post)
-            .escort(escort)
-            .status(ApplicationStatus.ACCEPTED)
-            .acceptedPostId(post.id)
-            .activePostId(post.id)
-            .build()
+        return Application(
+            post = post,
+            escort = escort,
+            status = ApplicationStatus.ACCEPTED,
+            acceptedPostId = post.id,
+            activePostId = post.id,
+        )
     }
 
     private fun createClient(): User = User(

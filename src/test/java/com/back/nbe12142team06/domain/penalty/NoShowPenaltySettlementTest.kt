@@ -102,7 +102,7 @@ class NoShowPenaltySettlementTest {
     private fun signUpEscort(username: String, name: String, phone: String): User {
         val escort = signUp(username, name, Role.ESCORT, phone)
         escortProfileRepository.save(EscortProfile(escort, "하이", "오픈은행", name, "000-1234567-000"))
-        escortProfileRepository.verify(escort.id!!, LocalDateTime.now())
+        escortProfileRepository.verify(escort.id, LocalDateTime.now())
         return escort
     }
 
@@ -119,7 +119,7 @@ class NoShowPenaltySettlementTest {
             RideSelect.TAXI, RideSelect.TAXI, "", true
         )
 
-        var post = postService.findById(postService.write(client.id!!, request).id!!)
+        var post = postService.findById(postService.write(client.id, request).id!!)
         paymentRepository.testStatusDoneAndPutPaymentKey(post.id!!, UUID.randomUUID().toString())
         // 영속성 컨텍스트 초기화 후 공고 다시 조회
         post = postService.findById(post.id!!)
@@ -138,7 +138,7 @@ class NoShowPenaltySettlementTest {
     @DisplayName("[NoShowPenaltyService] 지원 승인 후 취소 패널티")
     fun noShow() {
         // 패널티 적용 되었는지 검증
-        val escortProfile = escortProfileRepository.findById(escort.id!!).get()
+        val escortProfile = escortProfileRepository.findById(escort.id).get()
         assertThat(escortProfile.noShowCount).isEqualTo(1)
 
         // 동행 시작 -> 동행 완료까지
@@ -149,7 +149,7 @@ class NoShowPenaltySettlementTest {
             var occurredAt = LocalDateTime.now()
             if (progress == EscortProgress.DEPARTED) {
                 // 출발 시간에는 now()를 저장
-                application.post!!.startProgress(occurredAt)
+                application.post.startProgress(occurredAt)
             } else {
                 // 이후부터 단계마다 +1시간씩 저장, 기본은 2이므로 -1
                 occurredAt = occurredAt.plusHours((progress.ordinal - 1).toLong())
@@ -160,7 +160,7 @@ class NoShowPenaltySettlementTest {
         }
 
         // 동행 완료 처리
-        postService.escortComplete(post.id!!, client.id!!)
+        postService.escortComplete(post.id!!, client.id)
 
         val settlement = settlementRepository.findAll().first()
         val noShowPenalty = noShowPenaltyRepository.findAll().first()

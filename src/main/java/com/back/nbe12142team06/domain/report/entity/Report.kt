@@ -73,43 +73,4 @@ class Report(
         this.aiSummary = aiSummary
         this.summarizedAt = LocalDateTime.now()
     }
-
-    companion object {
-        /**
-         * Java 호출부(테스트 등) 호환용. Lombok @Builder 가 없어져서 같은 모양으로 남겨 둔다.
-         * 호출하는 쪽이 모두 코틀린이 되면 이름 있는 인자 생성자로 바꾸고 이 빌더는 지운다.
-         */
-        @JvmStatic
-        fun builder(): ReportBuilder = ReportBuilder()
-    }
-
-    class ReportBuilder {
-        private var application: Application? = null
-        private var title: String? = null
-        private var department: Department? = null
-        private var purpose: String? = null
-        private var originContent: String? = null
-        private var notes: String? = null
-
-        fun application(application: Application) = apply { this.application = application }
-
-        fun title(title: String) = apply { this.title = title }
-
-        fun department(department: Department) = apply { this.department = department }
-
-        fun purpose(purpose: String) = apply { this.purpose = purpose }
-
-        fun originContent(originContent: String) = apply { this.originContent = originContent }
-
-        fun notes(notes: String?) = apply { this.notes = notes }
-
-        fun build(): Report = Report(
-            application = requireNotNull(application) { "application 은 필수입니다." },
-            title = requireNotNull(title) { "title 은 필수입니다." },
-            department = requireNotNull(department) { "department 는 필수입니다." },
-            purpose = requireNotNull(purpose) { "purpose 는 필수입니다." },
-            originContent = requireNotNull(originContent) { "originContent 는 필수입니다." },
-            notes = notes,
-        )
-    }
 }

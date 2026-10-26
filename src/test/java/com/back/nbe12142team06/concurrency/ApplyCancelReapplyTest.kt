@@ -143,7 +143,7 @@ class ApplyCancelReapplyTest {
         applicationService.cancel(second, escortId)   // 복합 unique 제약이었을 때 여기서 터졌다.
 
         val all = applicationRepository.findAll()
-            .filter { it.post!!.id == postId && it.escort!!.id == escortId }
+            .filter { it.post.id == postId && it.escort.id == escortId }
         assertThat(all).hasSize(2)
     }
 }

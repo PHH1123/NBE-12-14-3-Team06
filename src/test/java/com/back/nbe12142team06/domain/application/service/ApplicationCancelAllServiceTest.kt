@@ -72,26 +72,26 @@ class ApplicationCancelAllServiceTest {
     }
 
     private fun newPost(owner: User): Post {
-        return postRepository.save(Post.builder()
-            .client(owner)
-            .title("지원취소 테스트 공고")
-            .content("내용")
-            .region("서울")
-            .hospitalName("테스트 병원")
-            .hospitalAddress("서울시")
-            .hospitalLat(BigDecimal.valueOf(37.5665))
-            .hospitalLng(BigDecimal.valueOf(126.9780))
-            .pickupAddress("서울시")
-            .pickupLat(BigDecimal.valueOf(37.5700))
-            .pickupLng(BigDecimal.valueOf(126.9800))
-            .hourlyPay(15000)
-            .recruitStartAt(LocalDateTime.now())
-            .recruitEndAt(LocalDateTime.now().plusDays(1))
-            .escortStartAt(LocalDateTime.now().plusDays(2))
-            .escortEndAt(LocalDateTime.now().plusDays(2).plusHours(3))
-            .patientNote("테스트")
-            .reportRequired(false)
-            .build())
+        return postRepository.save(Post(
+            client = owner,
+            title = "지원취소 테스트 공고",
+            content = "내용",
+            region = "서울",
+            hospitalName = "테스트 병원",
+            hospitalAddress = "서울시",
+            hospitalLat = BigDecimal.valueOf(37.5665),
+            hospitalLng = BigDecimal.valueOf(126.9780),
+            pickupAddress = "서울시",
+            pickupLat = BigDecimal.valueOf(37.5700),
+            pickupLng = BigDecimal.valueOf(126.9800),
+            hourlyPay = 15000,
+            recruitStartAt = LocalDateTime.now(),
+            recruitEndAt = LocalDateTime.now().plusDays(1),
+            escortStartAt = LocalDateTime.now().plusDays(2),
+            escortEndAt = LocalDateTime.now().plusDays(2).plusHours(3),
+            patientNote = "테스트",
+            reportRequired = false,
+            ))
     }
 
     @Test
@@ -99,7 +99,7 @@ class ApplicationCancelAllServiceTest {
     fun 대기중인_지원은_패널티없이_취소된다() {
         // given: 모집 중 공고와 대기 중인 지원 생성
         val post = newPost(client)
-        val application = applicationRepository.save(Application.builder().post(post).escort(escort).build())
+        val application = applicationRepository.save(Application(post, escort))
 
         // when: 회원 탈퇴·정지용 일괄 지원취소 실행
         applicationService.cancelAllByEscort(escort.id)
@@ -123,7 +123,7 @@ class ApplicationCancelAllServiceTest {
         post.match()
         postRepository.save(post)
 
-        var application = Application.builder().post(post).escort(escort).build()
+        var application = Application(post, escort)
         application.accept()
         application = applicationRepository.save(application)
 
@@ -151,7 +151,7 @@ class ApplicationCancelAllServiceTest {
         post.startProgress(LocalDateTime.now())
         postRepository.save(post)
 
-        var application = Application.builder().post(post).escort(escort).build()
+        var application = Application(post, escort)
         application.accept()
         application = applicationRepository.save(application)
 
@@ -182,7 +182,7 @@ class ApplicationCancelAllServiceTest {
         val post = newPost(client)
         post.match()
         postRepository.save(post)
-        val application = Application.builder().post(post).escort(escort).build()
+        val application = Application(post, escort)
         application.accept()
         applicationRepository.save(application)
 
@@ -206,8 +206,8 @@ class ApplicationCancelAllServiceTest {
             "010-8000-${String.format("%04d", SEQ.get())}")
         val myPost = newPost(client)
         val otherPost = newPost(client)
-        val myApplication = applicationRepository.save(Application.builder().post(myPost).escort(escort).build())
-        val otherApplication = applicationRepository.save(Application.builder().post(otherPost).escort(otherEscort).build())
+        val myApplication = applicationRepository.save(Application(myPost, escort))
+        val otherApplication = applicationRepository.save(Application(otherPost, otherEscort))
 
         // when
         applicationService.cancelAllByEscort(escort.id)

@@ -59,25 +59,25 @@ class NoShowPenaltyServiceTest {
     @field:Autowired private lateinit var settlementRepository: SettlementRepository
 
     private fun createPost(client: User, status: PostStatus): Post {
-        return Post.builder()
-            .title("정형외과 동행 구합니다")
-            .content("무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.")
-            .region("서울")
-            .hospitalName("서울성모병원")
-            .hospitalAddress("서울 서초구 반포대로 222")
-            .hospitalLat(BigDecimal.valueOf(37.5012743))
-            .hospitalLng(BigDecimal.valueOf(127.0051893))
-            .pickupAddress("서울 서초구 잠원동 10-1")
-            .pickupLat(BigDecimal.valueOf(37.5160000))
-            .pickupLng(BigDecimal.valueOf(127.0200000))
-            .hourlyPay(hourlyPay)
-            .recruitStartAt(LocalDateTime.now().plusDays(1))
-            .recruitEndAt(LocalDateTime.now().plusDays(6))
-            .escortStartAt(LocalDateTime.now().plusDays(7))
-            .escortEndAt(LocalDateTime.now().plusDays(7).plusHours(hours.toLong()))
-            .postStatus(status)
-            .client(client)
-            .build()
+        return Post(
+            title = "정형외과 동행 구합니다",
+            content = "무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.",
+            region = "서울",
+            hospitalName = "서울성모병원",
+            hospitalAddress = "서울 서초구 반포대로 222",
+            hospitalLat = BigDecimal.valueOf(37.5012743),
+            hospitalLng = BigDecimal.valueOf(127.0051893),
+            pickupAddress = "서울 서초구 잠원동 10-1",
+            pickupLat = BigDecimal.valueOf(37.5160000),
+            pickupLng = BigDecimal.valueOf(127.0200000),
+            hourlyPay = hourlyPay,
+            recruitStartAt = LocalDateTime.now().plusDays(1),
+            recruitEndAt = LocalDateTime.now().plusDays(6),
+            escortStartAt = LocalDateTime.now().plusDays(7),
+            escortEndAt = LocalDateTime.now().plusDays(7).plusHours(hours.toLong()),
+            postStatus = status,
+            client = client,
+        )
     }
 
     private fun createClient(tag: String = "01"): User = User(
@@ -91,13 +91,13 @@ class NoShowPenaltyServiceTest {
     )
 
     private fun createApplication(escort: User, post: Post, status: ApplicationStatus): Application {
-        return Application.builder()
-            .post(post)
-            .escort(escort)
-            .status(status)
-            .acceptedPostId(post.id)
-            .activePostId(post.id)
-            .build()
+        return Application(
+            post = post,
+            escort = escort,
+            status = status,
+            acceptedPostId = post.id,
+            activePostId = post.id,
+        )
     }
 
     private fun createSettlement(application: Application, escort: User): Settlement = Settlement(
@@ -133,7 +133,7 @@ class NoShowPenaltyServiceTest {
     @DisplayName("[NoShowPenaltyService] APPLIED 패널티는 재적용 대상에서 제외된다")
     fun appliedPenaltyNotReapplied() {
         val application = setUpNoShowApplication()
-        val escortId = application.escort!!.id
+        val escortId = application.escort.id
 
         noShowPenaltyService.noShow(application)
         em.flush()
@@ -142,7 +142,7 @@ class NoShowPenaltyServiceTest {
         val pendingPenalty: NoShowPenalty = noShowPenaltyService.getNoShowPenalty(escortId)!!
         assertThat(pendingPenalty.status).isEqualTo(NoShowPenaltyStatus.PENDING)
 
-        val settlement = settlementRepository.save(createSettlement(application, application.escort!!))
+        val settlement = settlementRepository.save(createSettlement(application, application.escort))
         noShowPenaltyService.applyPenalty(escortId, penaltyAmount, baseAmount, settlement, pendingPenalty)
 
         em.flush()
@@ -277,7 +277,7 @@ class NoShowPenaltyServiceTest {
             payoutAmount, saveApplication(client, escort, ApplicationStatus.ACCEPTED), escort, LocalDate.now()
         )
         em.flush()
-        return noShowPenaltyRepository.findAll().first { it.application.escort!!.id == escort.id }
+        return noShowPenaltyRepository.findAll().first { it.application.escort.id == escort.id }
     }
 
     @Test

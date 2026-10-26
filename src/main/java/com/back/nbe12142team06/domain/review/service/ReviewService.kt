@@ -40,13 +40,13 @@ class ReviewService(
             .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
 
         // 리뷰는 해당 공고를 등록한 의뢰인만 작성 가능
-        if (!application.post!!.client.id!!.equals(actorId)) {
+        if (!application.post.client.id.equals(actorId)) {
             throw ForbiddenException(61, "본인이 의뢰한 동행 건에만 리뷰를 작성할 수 있습니다.")
         }
 
         // 매칭이 확정된 동행 건에만 리뷰 작성 가능
         if (application.status != ApplicationStatus.ACCEPTED ||
-            application.post!!.postStatus != PostStatus.COMPLETED
+            application.post.postStatus != PostStatus.COMPLETED
         ) {
             throw InvalidException(61, "매칭이 확정된 동행 건에만 리뷰를 작성할 수 있습니다.")
         }
@@ -59,19 +59,19 @@ class ReviewService(
         val tags: Set<ReviewTag> = request.tags ?: HashSet()
 
         val review = reviewRepository.save(
-            Review.builder()
-                .application(application)
-                .rating(request.rating)
-                .tags(tags)
-                .content(request.content)
-                .build()
+            Review(
+                application = application,
+                rating = request.rating!!,
+                tags = tags,
+                content = request.content,
+            )
         )
 
         // 동행 매니저 프로필 평점 반영.
         // 엔티티를 읽어 더티체킹으로 갱신하면 같은 동행인에게 리뷰가 동시에 여러 건
         // 작성될 때 lost update 가 발생하므로, DB 에서 원자적으로 증가시키는 벌크 UPDATE 를 쓴다.
-        val escortId = application.escort!!.id
-        val updated = escortProfileRepository.addRating(escortId, request.rating!!)
+        val escortId = application.escort.id
+        val updated = escortProfileRepository.addRating(escortId, request.rating)
         if (updated == 0) {
             throw NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.")
         }
@@ -80,8 +80,8 @@ class ReviewService(
 
         // 알림
         noticeService.send(
-            application.escort!!.id,
-            C_REVIEW_WRITE.of(application.post!!.title),
+            application.escort.id,
+            C_REVIEW_WRITE.of(application.post.title),
             U_REVIEW_WRITE.of()
         )
 

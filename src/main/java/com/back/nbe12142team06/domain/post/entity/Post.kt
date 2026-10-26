@@ -142,6 +142,8 @@ class Post internal constructor() : BaseSoftDeleteTimeEntity() {  // createdAt, 
         escortEndAt: LocalDateTime,
         patientNote: String? = null,
         reportRequired: Boolean = true,
+        id: Long? = null,
+        postStatus: PostStatus = PostStatus.OPEN,
     ) : this() {
         this.client = client
         this.title = title
@@ -161,6 +163,8 @@ class Post internal constructor() : BaseSoftDeleteTimeEntity() {  // createdAt, 
         this.escortEndAt = escortEndAt
         this.patientNote = patientNote
         this.reportRequired = reportRequired
+        this.id = id
+        this.postStatus = postStatus
     }
 
     fun modify(
@@ -256,104 +260,5 @@ class Post internal constructor() : BaseSoftDeleteTimeEntity() {  // createdAt, 
     // 매칭 후 동행인 취소 시 공고 재오픈
     fun reopen() {
         changeStatus(PostStatus.OPEN)
-    }
-
-    companion object {
-        /**
-         * Java 호출부(테스트, 시드 데이터 등) 호환용. Lombok @Builder 가 없어져서 같은 모양으로 남겨 둔다.
-         * Lombok 빌더처럼 값을 일부만 채워도 만들어진다. 호출하는 쪽이 모두 코틀린이 되면
-         * 이름 있는 인자 생성자로 바꾸고 이 빌더는 지운다.
-         */
-        @JvmStatic
-        fun builder(): PostBuilder = PostBuilder()
-    }
-
-    class PostBuilder {
-        private var id: Long? = null
-        private var client: User? = null
-        private var title: String? = null
-        private var content: String? = null
-        private var patientNote: String? = null
-        private var region: String? = null
-        private var hospitalName: String? = null
-        private var hospitalAddress: String? = null
-        private var hospitalLat: BigDecimal? = null
-        private var hospitalLng: BigDecimal? = null
-        private var pickupAddress: String? = null
-        private var pickupLat: BigDecimal? = null
-        private var pickupLng: BigDecimal? = null
-        private var hourlyPay: Int = 0
-        private var escortStartAt: LocalDateTime? = null
-        private var escortEndAt: LocalDateTime? = null
-        private var recruitStartAt: LocalDateTime? = null
-        private var recruitEndAt: LocalDateTime? = null
-        private var postStatus: PostStatus = PostStatus.OPEN
-        private var reportRequired: Boolean = true
-
-        fun id(id: Long?) = apply { this.id = id }
-
-        fun client(client: User?) = apply { this.client = client }
-
-        fun title(title: String?) = apply { this.title = title }
-
-        fun content(content: String?) = apply { this.content = content }
-
-        fun patientNote(patientNote: String?) = apply { this.patientNote = patientNote }
-
-        fun region(region: String?) = apply { this.region = region }
-
-        fun hospitalName(hospitalName: String?) = apply { this.hospitalName = hospitalName }
-
-        fun hospitalAddress(hospitalAddress: String?) = apply { this.hospitalAddress = hospitalAddress }
-
-        fun hospitalLat(hospitalLat: BigDecimal?) = apply { this.hospitalLat = hospitalLat }
-
-        fun hospitalLng(hospitalLng: BigDecimal?) = apply { this.hospitalLng = hospitalLng }
-
-        fun pickupAddress(pickupAddress: String?) = apply { this.pickupAddress = pickupAddress }
-
-        fun pickupLat(pickupLat: BigDecimal?) = apply { this.pickupLat = pickupLat }
-
-        fun pickupLng(pickupLng: BigDecimal?) = apply { this.pickupLng = pickupLng }
-
-        fun hourlyPay(hourlyPay: Int) = apply { this.hourlyPay = hourlyPay }
-
-        fun escortStartAt(escortStartAt: LocalDateTime?) = apply { this.escortStartAt = escortStartAt }
-
-        fun escortEndAt(escortEndAt: LocalDateTime?) = apply { this.escortEndAt = escortEndAt }
-
-        fun recruitStartAt(recruitStartAt: LocalDateTime?) = apply { this.recruitStartAt = recruitStartAt }
-
-        fun recruitEndAt(recruitEndAt: LocalDateTime?) = apply { this.recruitEndAt = recruitEndAt }
-
-        fun postStatus(postStatus: PostStatus) = apply { this.postStatus = postStatus }
-
-        fun reportRequired(reportRequired: Boolean) = apply { this.reportRequired = reportRequired }
-
-        // 값을 넣지 않은 항목은 비워 둔다 (Lombok 빌더와 같다). 저장할 때 DB 의 NOT NULL 제약으로 걸러진다.
-        fun build(): Post {
-            val post = Post()
-            post.id = id
-            client?.let { post.client = it }
-            title?.let { post.title = it }
-            content?.let { post.content = it }
-            post.patientNote = patientNote
-            region?.let { post.region = it }
-            hospitalName?.let { post.hospitalName = it }
-            hospitalAddress?.let { post.hospitalAddress = it }
-            hospitalLat?.let { post.hospitalLat = it }
-            hospitalLng?.let { post.hospitalLng = it }
-            pickupAddress?.let { post.pickupAddress = it }
-            pickupLat?.let { post.pickupLat = it }
-            pickupLng?.let { post.pickupLng = it }
-            post.hourlyPay = hourlyPay
-            escortStartAt?.let { post.escortStartAt = it }
-            escortEndAt?.let { post.escortEndAt = it }
-            recruitStartAt?.let { post.recruitStartAt = it }
-            recruitEndAt?.let { post.recruitEndAt = it }
-            post.postStatus = postStatus
-            post.reportRequired = reportRequired
-            return post
-        }
     }
 }

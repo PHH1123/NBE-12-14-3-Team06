@@ -75,29 +75,29 @@ class SettlementServiceUnitTest {
     }
 
     private fun createPost(client: User): Post {
-        return Post.builder()
-            .id(3L)
-            .title("정형외과 동행 구합니다")
-            .content("무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.")
-            .region("서울")
-            .hospitalName("서울성모병원")
-            .hospitalAddress("서울 서초구 반포대로 222")
-            .hospitalLat(BigDecimal.valueOf(37.5012743))
-            .hospitalLng(BigDecimal.valueOf(127.0051893))
-            .pickupAddress("서울 서초구 잠원동 10-1")
-            .pickupLat(BigDecimal.valueOf(37.5160000))
-            .pickupLng(BigDecimal.valueOf(127.0200000))
-            .hourlyPay(15_000)
-            .recruitStartAt(LocalDateTime.now().plusDays(1))
-            .recruitEndAt(LocalDateTime.now().plusDays(6))
-            .escortStartAt(LocalDateTime.now().plusDays(7))
-            .escortEndAt(LocalDateTime.now().plusDays(7).plusHours(10))
-            .client(client)
-            .build()
+        return Post(
+            id = 3L,
+            title = "정형외과 동행 구합니다",
+            content = "무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.",
+            region = "서울",
+            hospitalName = "서울성모병원",
+            hospitalAddress = "서울 서초구 반포대로 222",
+            hospitalLat = BigDecimal.valueOf(37.5012743),
+            hospitalLng = BigDecimal.valueOf(127.0051893),
+            pickupAddress = "서울 서초구 잠원동 10-1",
+            pickupLat = BigDecimal.valueOf(37.5160000),
+            pickupLng = BigDecimal.valueOf(127.0200000),
+            hourlyPay = 15_000,
+            recruitStartAt = LocalDateTime.now().plusDays(1),
+            recruitEndAt = LocalDateTime.now().plusDays(6),
+            escortStartAt = LocalDateTime.now().plusDays(7),
+            escortEndAt = LocalDateTime.now().plusDays(7).plusHours(10),
+            client = client,
+        )
     }
 
     private fun createApplication(escort: User): Application =
-        Application.builder().id(5L).post(createPost(createUser("client01", Role.CLIENT, 8L))).escort(escort).build()
+        Application(id = 5L, post = createPost(createUser("client01", Role.CLIENT, 8L)), escort = escort)
 
     private fun createSettlement(status: SettlementStatus, escort: User = createUser("escort01", Role.ESCORT, escortId)): Settlement {
         return Settlement(
