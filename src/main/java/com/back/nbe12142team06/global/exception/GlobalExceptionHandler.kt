@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 
@@ -118,5 +119,11 @@ class GlobalExceptionHandler {
     @ExceptionHandler
     fun concurrentUpdateHandler(e: OptimisticLockingFailureException): RsData<*> {
         return RsData<Void>("409-01", "다른 요청과 충돌했습니다. 다시 시도해주세요.")
+    }
+
+    // SSE 연결 종료 시 잡는 예외
+    @ExceptionHandler
+    fun asyncRequestNotUsableHandler(e: AsyncRequestNotUsableException) {
+        log.debug("SSE 연결이 이미 종료됨: {}", e.message)
     }
 }
