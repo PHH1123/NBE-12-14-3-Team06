@@ -196,8 +196,7 @@ class EducationControllerTest {
 
         // 60초 전부터 10초 간격으로 50초까지 정상 시청한 상태를 미리 만듦
         val progress = educationProgressRepository
-            .findByEscortProfileUserIdAndEducationVideoId(escortId, videoId)
-            .orElseThrow()
+            .findByEscortProfileUserIdAndEducationVideoId(escortId, videoId)!!
 
         val base = LocalDateTime.now().minusSeconds(60)
         for (sec in 0..50 step 10) {

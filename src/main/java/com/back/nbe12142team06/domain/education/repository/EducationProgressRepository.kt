@@ -18,13 +18,13 @@ interface EducationProgressRepository : JpaRepository<EducationProgress, Long> {
     fun findByEscortProfileAndEducationVideo(
         escortProfile: EscortProfile,
         educationVideo: EducationVideo,
-    ): Optional<EducationProgress>
+    ): EducationProgress?
 
     @EntityGraph(attributePaths = ["educationVideo"])
     fun findAllByEscortProfileUserIdOrderByEducationVideoIdAsc(userId: Long): List<EducationProgress>
 
     @EntityGraph(attributePaths = ["educationVideo"])
-    fun findByEscortProfileUserIdAndEducationVideoId(userId: Long, videoId: Long): Optional<EducationProgress>
+    fun findByEscortProfileUserIdAndEducationVideoId(userId: Long, videoId: Long): EducationProgress?
 
     @Modifying(flushAutomatically = true)
     @Query(

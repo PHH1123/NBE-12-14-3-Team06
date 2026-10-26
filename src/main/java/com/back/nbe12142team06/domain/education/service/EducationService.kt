@@ -8,6 +8,7 @@ import com.back.nbe12142team06.domain.education.repository.WatchProgressLogRepos
 import com.back.nbe12142team06.domain.user.entity.EscortProfile
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository
 import com.back.nbe12142team06.global.exception.NotFoundException
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -25,14 +26,14 @@ class EducationService(
     // 시청 기록
     @Transactional
     fun recordProgress(userId: Long, videoId: Long, positionSec: Double): EducationProgress {
-        val escortProfile = escortProfileRepository.findById(userId)
-            .orElseThrow { NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.") }
+        val escortProfile = escortProfileRepository.findByIdOrNull(userId)
+            ?: throw NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.")
 
-        val educationVideo = educationVideoRepository.findById(videoId)
-            .orElseThrow { NotFoundException(101, "존재하지않는 교육 영상입니다.") }
+        val educationVideo = educationVideoRepository.findByIdOrNull(videoId)
+            ?: throw NotFoundException(101, "존재하지않는 교육 영상입니다.")
 
         val progress = educationProgressRepository.findByEscortProfileAndEducationVideo(escortProfile, educationVideo)
-            .orElseThrow { NotFoundException(102, "교육 진행 정보가 존재하지 않습니다.") }
+            ?: throw NotFoundException(102, "교육 진행 정보가 존재하지 않습니다.")
 
         // 이미 이수한 경우 더 기록하지 않음
         if (escortProfile.verified) return progress
@@ -47,8 +48,7 @@ class EducationService(
 
             // 벌크 UPDATE는 메모리 객체를 갱신하지 않으므로, 응답용으로 최신 상태를 다시 조회
             val refreshed = escortProfileRepository.findById(userId).orElseThrow()
-            return educationProgressRepository.findByEscortProfileAndEducationVideo(refreshed, educationVideo)
-                .orElseThrow()
+            return educationProgressRepository.findByEscortProfileAndEducationVideo(refreshed, educationVideo)!!
         }
 
         return progress
@@ -66,7 +66,7 @@ class EducationService(
     fun getProgress(userId: Long, videoId: Long): EducationProgress {
         checkEscortProfileExists(userId)
         return educationProgressRepository.findByEscortProfileUserIdAndEducationVideoId(userId, videoId)
-            .orElseThrow { NotFoundException(103, "존재하지않는 교육 영상입니다.") }
+            ?: throw NotFoundException(103, "존재하지않는 교육 영상입니다.")
     }
 
     // 동행 매니저 프로필 생성 시 모든 영상에 대한 진행 상황 생성
