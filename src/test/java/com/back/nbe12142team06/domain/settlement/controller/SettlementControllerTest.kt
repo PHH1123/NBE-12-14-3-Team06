@@ -304,11 +304,7 @@ class SettlementControllerTest {
     @DisplayName("[SettlementService] 자동 정산 - 성공")
     fun settlementScheduler() {
         val application = applicationRepository.save(
-            Application.builder()
-                .post(savedPost1)
-                .escort(savedUser3)
-                .status(ApplicationStatus.REJECTED)
-                .build()
+            Application(post = savedPost1, escort = savedUser3, status = ApplicationStatus.REJECTED)
         )
 
         val settlement = settlementRepository.save(
@@ -337,11 +333,7 @@ class SettlementControllerTest {
     // savedUser2 의 정산 건을 하나 더 만든다 (목록 페이징·기간 필터 확인용)
     private fun saveExtraSettlement(settledDate: LocalDate): Long {
         val application = applicationRepository.save(
-            Application.builder()
-                .post(savedPost1)
-                .escort(savedUser2)
-                .status(ApplicationStatus.REJECTED)
-                .build()
+            Application(post = savedPost1, escort = savedUser2, status = ApplicationStatus.REJECTED)
         )
         return settlementRepository.save(
             Settlement(

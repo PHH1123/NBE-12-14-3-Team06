@@ -114,20 +114,12 @@ class ReviewControllerTest {
         postRepository.save(post)
 
         // 매칭 확정된 동행 건
-        val accepted = Application.builder()
-            .post(post)
-            .escort(escort)
-            .status(ApplicationStatus.ACCEPTED)
-            .build()
+        val accepted = Application(post = post, escort = escort, status = ApplicationStatus.ACCEPTED)
         applicationRepository.save(accepted)
         acceptedApplicationId = accepted.id
 
         // 아직 확정되지 않은 동행 건
-        val pending = Application.builder()
-            .post(post)
-            .escort(other)
-            .status(ApplicationStatus.PENDING)
-            .build()
+        val pending = Application(post = post, escort = other, status = ApplicationStatus.PENDING)
         applicationRepository.save(pending)
         pendingApplicationId = pending.id
 
@@ -141,24 +133,24 @@ class ReviewControllerTest {
     }
 
     private fun createPost(client: User): Post {
-        return Post.builder()
-            .client(client)
-            .title("테스트 공고")
-            .content("병원 동행 테스트")
-            .region("수원")
-            .hospitalName("아주대학교병원")
-            .hospitalAddress("경기도 수원시")
-            .hospitalLat(BigDecimal.valueOf(37.2795))
-            .hospitalLng(BigDecimal.valueOf(127.0476))
-            .pickupAddress("경기도 수원시 팔달구")
-            .pickupLat(BigDecimal.valueOf(37.2636))
-            .pickupLng(BigDecimal.valueOf(127.0286))
-            .hourlyPay(15000)
-            .recruitStartAt(LocalDateTime.now())
-            .recruitEndAt(LocalDateTime.now().plusDays(1))
-            .escortStartAt(LocalDateTime.now().plusDays(2))
-            .escortEndAt(LocalDateTime.now().plusDays(2).plusHours(3))
-            .build()
+        return Post(
+            client = client,
+            title = "테스트 공고",
+            content = "병원 동행 테스트",
+            region = "수원",
+            hospitalName = "아주대학교병원",
+            hospitalAddress = "경기도 수원시",
+            hospitalLat = BigDecimal.valueOf(37.2795),
+            hospitalLng = BigDecimal.valueOf(127.0476),
+            pickupAddress = "경기도 수원시 팔달구",
+            pickupLat = BigDecimal.valueOf(37.2636),
+            pickupLng = BigDecimal.valueOf(127.0286),
+            hourlyPay = 15000,
+            recruitStartAt = LocalDateTime.now(),
+            recruitEndAt = LocalDateTime.now().plusDays(1),
+            escortStartAt = LocalDateTime.now().plusDays(2),
+            escortEndAt = LocalDateTime.now().plusDays(2).plusHours(3),
+        )
     }
 
     // 로그인 후 accessToken 쿠키 획득
@@ -212,7 +204,7 @@ class ReviewControllerTest {
 
         // 동행 매니저 평점 반영 확인
         val escortId = applicationRepository.findById(acceptedApplicationId!!)
-            .orElseThrow().escort!!.id!!
+            .orElseThrow().escort.id
         val escortProfile = escortProfileRepository.findById(escortId).orElseThrow()
         assertThat(escortProfile.ratingCount).isEqualTo(1)
         assertThat(escortProfile.averageRating).isEqualTo(5.0)
@@ -307,12 +299,12 @@ class ReviewControllerTest {
     @DisplayName("[ReviewController] 리뷰 작성 - 이미 리뷰가 존재할 때 409-61 반환")
     fun 리뷰_작성_중복() {
         reviewRepository.save(
-            Review.builder()
-                .application(applicationRepository.findById(acceptedApplicationId!!).orElseThrow())
-                .rating(5)
-                .tags(setOf(ReviewTag.KIND))
-                .content("기존 리뷰")
-                .build()
+            Review(
+                application = applicationRepository.findById(acceptedApplicationId!!).orElseThrow(),
+                rating = 5,
+                tags = setOf(ReviewTag.KIND),
+                content = "기존 리뷰",
+            )
         )
 
         val resultActions = mvc.perform(
@@ -379,12 +371,12 @@ class ReviewControllerTest {
     @DisplayName("[ReviewController] 리뷰 목록 조회 - 정상 조회")
     fun 리뷰_목록_조회_성공() {
         reviewRepository.save(
-            Review.builder()
-                .application(applicationRepository.findById(acceptedApplicationId!!).orElseThrow())
-                .rating(5)
-                .tags(setOf(ReviewTag.KIND, ReviewTag.PUNCTUAL))
-                .content("어머니를 세심하게 챙겨주셨습니다.")
-                .build()
+            Review(
+                application = applicationRepository.findById(acceptedApplicationId!!).orElseThrow(),
+                rating = 5,
+                tags = setOf(ReviewTag.KIND, ReviewTag.PUNCTUAL),
+                content = "어머니를 세심하게 챙겨주셨습니다.",
+            )
         )
 
         val resultActions = mvc.perform(
@@ -432,20 +424,20 @@ class ReviewControllerTest {
     fun 리뷰_목록_조회_동행인별_분리() {
         // acceptedApplication 의 동행인(escort1)에게 리뷰 작성
         reviewRepository.save(
-            Review.builder()
-                .application(applicationRepository.findById(acceptedApplicationId!!).orElseThrow())
-                .rating(5)
-                .content("escort1 리뷰")
-                .build()
+            Review(
+                application = applicationRepository.findById(acceptedApplicationId!!).orElseThrow(),
+                rating = 5,
+                content = "escort1 리뷰",
+            )
         )
 
         // pendingApplication 의 동행인(other1)에게 리뷰 작성
         reviewRepository.save(
-            Review.builder()
-                .application(applicationRepository.findById(pendingApplicationId!!).orElseThrow())
-                .rating(1)
-                .content("other1 리뷰")
-                .build()
+            Review(
+                application = applicationRepository.findById(pendingApplicationId!!).orElseThrow(),
+                rating = 1,
+                content = "other1 리뷰",
+            )
         )
 
         val resultActions = mvc.perform(

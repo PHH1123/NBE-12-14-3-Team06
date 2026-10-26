@@ -101,12 +101,12 @@ class SettlementNotTransactionServiceTest {
     private fun savePendingSettlement(escort: User, client: User): Settlement {
         val post = postRepository.save(createPost(client))
         val application = applicationRepository.save(
-            Application.builder()
-                .post(post)
-                .escort(escort)
-                .status(ApplicationStatus.ACCEPTED)
-                .acceptedPostId(post.id)
-                .build()
+            Application(
+                post = post,
+                escort = escort,
+                status = ApplicationStatus.ACCEPTED,
+                acceptedPostId = post.id,
+            )
         )
         return settlementRepository.save(
             Settlement(

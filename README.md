@@ -13,8 +13,9 @@
     - [⚙시스템 아키텍처](#-시스템-아키텍처)
     - [🌊상태 플로우](#-상태-플로우)
     - [📂패키지 구조](#-패키지-구조)
-7. [🚀트러블 슈팅](#-트러블-슈팅)
-8. [✍️2차 프로젝트 후 보완](#-2차-프로젝트-후-보완)
+7. [🚀2차 프로젝트 트러블 슈팅](#-2차-프로젝트-트러블-슈팅)
+8. [🚀3차 프로젝트 트러블 슈팅](#-3차-프로젝트-트러블-슈팅)
+9. [✍️3차 프로젝트 변경점](#-2차-프로젝트-후-보완)
 
 
 </div>
@@ -107,6 +108,8 @@
 ![websocket](https://img.shields.io/badge/websocket-3c790a?style=for-the-badge&logo=websocket&logoColor=white)
 ![stomp](https://img.shields.io/badge/stomp-000000?style=for-the-badge&logo=stomp&logoColor=white)
 ![sse](https://img.shields.io/badge/sse-5e17eb?style=for-the-badge&logo=messenger&logoColor=white)
+![grafana](https://img.shields.io/badge/grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
+![prometheus](https://img.shields.io/badge/prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
 
 ### Third-Party
 
@@ -116,10 +119,10 @@
 
 ### Infra
 
-![railway](https://img.shields.io/badge/railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)
+![aws-ec2](https://img.shields.io/badge/aws_ec2-F37440?style=for-the-badge&logo=aws_ec2&logoColor=white)
 ![vercel](https://img.shields.io/badge/vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+![supabase](https://img.shields.io/badge/supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![docker](https://img.shields.io/badge/docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![aws-rds](https://img.shields.io/badge/aws_rds-1271b7?style=for-the-badge&logo=aws_rds&logoColor=white)
 
 ### Tools
 
@@ -135,10 +138,11 @@
 
 # 👥 팀원
 
-|                [최훈희](https://github.com/hunhee99)<br>(BE, 팀장)                 |                       [장윤찬](https://github.com/globaltoper)<br>(BE)                       |                 [김신영](https://github.com/kimssin1991)<br>(BE)                 |                   [나희원](https://github.com/lion1230)<br>(BE)                   |                        [박현호](https://github.com/PHH1123)<br>(BE)                         |
-|:-----------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------:|:------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------:|
-| <img src='https://avatars.githubusercontent.com/u/67158609?v=4' width='100'/> |      <img src='https://avatars.githubusercontent.com/u/276445634?v=4' width='100'/>       | <img src='https://avatars.githubusercontent.com/u/82699095?v=4' width='100'/> | <img src='https://avatars.githubusercontent.com/u/301536526?v=4' width='100'/> |      <img src='https://avatars.githubusercontent.com/u/193578436?v=4' width='100'/>      |
-|    <p align="left">- 회원 도메인<br/>- 인증·인가<br/>- 교육 영상 시청 검증<br/>- ERD 설계</p>    | <p align="left">- 진료 보고서 도메인<br>- 리뷰 도메인<br/>- AI 요약 연동<br/>- 발표자료 제작<br/>- 전체 통합 테스트</p> |      <p align="left">- 공고 도메인<br/>- 카카오맵 연동<br/>- 스케줄러<br/>- 로깅·모니터링</p>      |         <p align="left">- 지원 도메인<br>- 동행 진행 상태<br/>- UI·UX·와이어프레임</p>          | <p align="left">- 결제, 정산 도메인<br/>- 이동수단 도메인<br/>- 채팅(2차 보완)<br/>- 알림(2차 보완)<br/>- 서기</p> |
+|     이름      |                       [최훈희](https://github.com/hunhee99)<br>(BE, 팀장)                       |                                             [김신영](https://github.com/kimssin1991)<br>(BE)                                              |                        [나희원](https://github.com/lion1230)<br>(BE)                         |                        [박현호](https://github.com/PHH1123)<br>(BE)                         |                       [장윤찬](https://github.com/globaltoper)<br>(BE)                       |
+|:-----------:|:------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------:|
+|             |       <img src='https://avatars.githubusercontent.com/u/67158609?v=4' width='100'/>        |                             <img src='https://avatars.githubusercontent.com/u/82699095?v=4' width='100'/>                              |      <img src='https://avatars.githubusercontent.com/u/301536526?v=4' width='100'/>       |      <img src='https://avatars.githubusercontent.com/u/193578436?v=4' width='100'/>      |      <img src='https://avatars.githubusercontent.com/u/276445634?v=4' width='100'/>       |
+| **2차 프로젝트** |          <p align="left">- 회원 도메인<br/>- 인증·인가<br/>- 교육 영상 시청 검증<br/>- ERD 설계</p>           |                                  <p align="left">- 공고 도메인<br/>- 카카오맵 연동<br/>- 스케줄러<br/>- 로깅·모니터링</p>                                   |       <p align="left">- 지원 도메인<br>- 동행 진행 상태<br/>- UI·UX·와이어프레임<br/>- 시연 영상 제작</p>        | <p align="left">- 결제, 정산 도메인<br/>- 이동수단 도메인<br/>- 채팅(2차 보완)<br/>- 알림(2차 보완)<br/>- 서기</p> | <p align="left">- 진료 보고서 도메인<br>- 리뷰 도메인<br/>- AI 요약 연동<br/>- 발표자료 제작<br/>- 전체 통합 테스트</p> |
+| **3차 프로젝트** | <p align="left">- 회원 Kt Migr.<br/>- 인증·인가 Kt Migr.<br/>- 교육 영상 Kt Migr.<br/>- 발표자료 제작 </p> | <p align="left">- 공고 Kt Migr.<br/>- 보고서 Kt Migr.<br/>- LLM 요청 (RestClient -> Spring AI) Migr.<br/>- 실시간 위치 기능                     </p> | <p align="left">- 지원 Kt Migr.<br/>- 리뷰 Kt Migr.<br/>- UI·UX·와이어프레임 재구성<br/>- 시연 영상 제작</p> |  <p align="left">- 결제, 정산 Kt Migr.<br/>- 이동수단 Kt Migr.<br/>- 채팅 기능<br/>- 알림 기능<br/>  |                                                                                           |
 
 # 🗓️ 프로젝트 일정
 
@@ -259,7 +263,7 @@
 
 </div>
 
-# 🚀 트러블 슈팅
+# 🚀 2차 프로젝트 트러블 슈팅
 
 <div align=left>
 
@@ -1306,18 +1310,421 @@ class SettlementConcurrencyTest {
 
 </div>
 
-# ✍️ 2차 프로젝트 후 보완
+# 🚀 3차 프로젝트 트러블 슈팅
 
-1. UI 전면 수정
-2. 모든 상태 전이 검증
-3. 공고 목록 조회 최적화(캐싱)
-4. 관리자 기능 추가
-3. 채팅 기능 추가
-4. 알림 기능 추가
-5. DB 마이그레이션(MySQL -> PostgreSQL)
-6. WAS 배포 클라우드 이전(Railway -> AWS EC2)
-7. DB 클라우드화(LocalDB -> Supabase)
-8. 모니터링 서버 추가(AWS EC2)
+<div align=left>
+
+<details>
+    <summary style="font-weight: bold">결제 테스트</summary>
+
+# 문제
+
+---
+
+## 구성 환경
+
+### 결제 서비스
+
+결제 서비스는 두 개가 있습니다.
+
+- PaymentService
+  앞단 또는 다른 서비스에서 호출, 트랜잭션 X
+- PaymentPersistenceService
+  영속성을 타는 서비스, 트랜잭션 O
+
+이렇게 했던 이유는 앞의 게시글에 있습니다.
+간략하게 설명하면, DB에 데이터 저장 후 즉시 커밋하기 위함입니다.
+
+#### PaymentService.kt
+
+```kotlin
+@CacheEvict(cacheNames = ["postList"], allEntries = true)
+fun confirm(request: PaymentConfirmRequest, paymentId: Long, userId: Long): Payment {
+var payment = paymentPersistenceService.confirmUpdate(userId, paymentId, request.amount)
+
+    val tossPaymentKey = request.paymentKey
+    val tossOrderId = request.orderId
+    val amount = request.amount
+
+    // 2. 외부 API 호출
+    val response: ResponseEntity<TossConfirmResponse>
+    try {
+        response = tossPaymentClient.callApiConfirm(tossPaymentKey, tossOrderId, amount)
+    } catch (e: InternalServerErrorException) {
+        // 결제 실패 시 결제 데이터 하드 삭제
+        paymentPersistenceService.failedConfirm(paymentId)
+        throw e
+    }
+    // 3. DB 반영
+    try {
+        payment = paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId)
+    } catch (e: NotFoundException) {
+        cancel(userId, paymentId, PaymentCancelRequest("서버 에러 발생"))
+        log.error("결제 승인 실패", e)
+        throw e
+    } catch (ex: RuntimeException) {
+        cancel(userId, paymentId, PaymentCancelRequest("서버 에러 발생"))
+        log.error("결제 승인 실패", ex)
+        throw InternalServerErrorException(41, "결제 승인 도중 서버 에러가 발생했습니다.")
+    }
+
+    log.info("결제 승인 성공 - paymentId: {}, userId: {}", paymentId, userId)
+
+    // 알림
+    noticeService.send(
+        userId,
+        NotificationContent.C_PAYMENT_DONE.of(payment.post.title, payment.amount.toString()),
+        NotificationUrl.U_PAYMENT_DONE.of(payment.post.id!!)
+    )
+
+    return payment
+}
+```
+
+#### 테스트 코드
+결제 테스트 코드에는 클래스 레벨에 트랜잭션을 달았습니다.
+
+여기서 문제는 각 테스트 코드마다 PaymentPersistenceService의 메서드를 호출하는 점입니다.
+
+그렇다면 PaymentPersistenceService는 모두 하나의 트랜잭션 안에서 동작하게 될 것입니다.
+
+```kotlin
+@Test
+@DisplayName("[PaymentService] 승인 도중 IN_PROGRESS가 DB에 저장되는지")
+fun paymentConfirmSavedDbInProgress() {
+val client = createClient(addId = false)
+val post = createPost(client, id = null)
+val payment = createPayment(post, PaymentStatus.READY, id = null)
+
+    userRepository.save(client)
+    postRepository.save(post)
+    paymentRepository.save(payment)
+
+    val updatedCount = paymentPersistenceService.confirmUpdateStatus(payment.requiredId)
+
+    em.flush()
+    em.clear()
+
+    val inProgressPayment = paymentRepository.findById(payment.requiredId).get()
+
+    assertThat(updatedCount).isEqualTo(1)
+    assertThat(inProgressPayment.paymentStatus).isEqualTo(PaymentStatus.IN_PROGRESS)
+}
+```
+
+- 문제의 테스트코드1입니다.
+- 원래 테스트 범위는 결제 상태가 변경이 되었고 조회했을 때 값이 잘 반영되었는 지 확인하는 테스트입니다.
+- paymentPersistenceService.confirmUpdateStatus()는 벌크 UPDATE 쿼리를 날리기 때문에 즉시 반영됩니다.
+  그러므로 em.flush()는 사실 없어도 됩니다.
+- em.clear()로 1차 캐시를 비워준 후 조회합니다. 
+- 잘 반영되었는지 확인하는 부분은 테스트가 가능하지만, 실제 운영 환경에서는 별도의 트랜잭션으로 조회합니다.
+- 쉽게 말하면, 트랜잭션 1에서 업데이트를 하고, 트랜잭션 2에서 조회를 하는 것입니다.
+- 테스트는 트랜잭션 1에서 업데이트와 조회 둘을 같이 하고 있습니다.
+
+```kotlin
+@Test
+@DisplayName("[PaymentService] 결제 승인 실패 시 결제 데이터 하드 삭제")
+fun paymentDeletePaymentWithConfirmFailed() {
+val client = createClient(addId = false)
+val post = createPost(client, id = null)
+val payment = createPayment(post, PaymentStatus.READY, id = null)
+
+    userRepository.save(client)
+    postRepository.save(post)
+    paymentRepository.save(payment)
+
+    doReturn(payment).whenever(paymentPersistenceService).findById(any(), any())
+    doThrow(InternalServerErrorException(43, "토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다."))
+        .whenever(tossPaymentClient).callApiConfirm(any(), any(), any())
+
+    assertThatThrownBy {
+        paymentService.confirm(
+            PaymentConfirmRequest("tempPaymentKey", "tempOrderId", payment.amount.toString()),
+            payment.requiredId, client.id
+        )
+    }
+        .isInstanceOf(InternalServerErrorException::class.java)
+        .hasMessage("토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다.")
+
+    em.flush()
+    em.clear()
+
+    assertThat(paymentRepository.findById(payment.requiredId)).isEmpty()
+}
+```
+
+- 이 테스트도 위와 마찬가지로 테스트 레벨에서 트랜잭션이 적용되어 전파됩니다.
+- 그런데 이전 테스트보다 심각한 문제가 하나 있습니다.
+  예외를 발생 시킨다는 것입니다.
+- 예외를 발생하게 되면 롤백을 하게 됩니다.
+- 실제 예상 로직
+  - 트랜잭션1: (결제 데이터 상태 수정)
+  - 트랜잭션X: 예외 발생
+- 테스트 로직
+  - 트랜잭션1: 결제 데이터 생성, (트랜잭션2: 결제 데이터 상태 수정), 예외 발생
+- 그러므로 테스트 로직에서는 예외가 발생했기 때문에 결제 데이터 생성과 결제 데이터 상태 수정이 모두 롤백되어 애초에 생성 자체가 없던 일이 됩니다.
+
+
+# 여러 해결 방안
+
+
+## ✅ 테스트 레벨에서 Transaction 제거 + DB 데이터 초기화
+테스트에서 트랜잭션을 제거하고 실제 DB에 커밋되도록 하는 방식입니다.
+
+그러면 다른 테스트에도 영향이 가므로 DB 데이터를 항상 초기화해줘야 합니다.
+
+
+
+## ❌ PlatformTransactionTemplate 사용해서 직접 커밋하기
+트랜잭션을 직접 관리하는 건데 이거는 JPA를 활용하지 않고 JDBC를 사용하는 과거로 돌아가는 방법이며, 코드가 굉장히 지저분해질 것이다.
+
+## ❌ Transaction 전파 REQUIRED_NEW
+트랜잭션의 전파 레벨을 REQUIRED_NEW로 바꾸는 것이다.
+
+현재 서비스에서는 다른 서비스에서 호출하는 경우가 있는데
+
+만약 PaymentPersistenceService를 호출하는 서비스에서 트랜잭션을 열었고, 그 서비스에서 롤백이 된다면 Payment만 롤백이 안되는 상황이 생긴다.
+
+# 결론
+현재 서비스에서는 첫 방법인 테스트 레벨에서 Transaction을 제거하고 DB 데이터를 매번 초기화 해주는 게 가장 좋다.
+
+## 테스트1 해결
+```kotlin
+@AfterEach
+fun tearDown() {
+databaseCleaner.clean()
+}
+
+@Test
+@DisplayName("[PaymentService] 승인 도중 IN_PROGRESS가 커밋되어 다른 트랜잭션에서도 보인다")
+fun confirmUpdateStatusIsCommitted() {
+val payment = saveReadyPayment()
+
+    val updatedCount = paymentPersistenceService.confirmUpdateStatus(payment.requiredId)
+
+    // 테스트에 트랜잭션이 없으므로 아래 조회는 새 트랜잭션에서 커밋된 상태를 읽는다
+    val reloaded = paymentRepository.findById(payment.requiredId).get()
+
+    assertThat(updatedCount).isEqualTo(1)
+    assertThat(reloaded.paymentStatus).isEqualTo(PaymentStatus.IN_PROGRESS)
+}
+```
+
+## 테스트2 해결
+```kotlin
+@AfterEach
+fun tearDown() {
+databaseCleaner.clean()
+}
+
+@Test
+@DisplayName("[PaymentService] 결제 승인 실패 시 결제 데이터 하드 삭제가 커밋된다")
+fun paymentDeletePaymentWithConfirmFailed() {
+val payment = saveReadyPayment()
+val paymentId = payment.requiredId
+val userId = payment.post.client.id
+
+    doThrow(InternalServerErrorException(43, "토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다."))
+        .whenever(tossPaymentClient).callApiConfirm(any(), any(), any())
+
+    assertThatThrownBy {
+        paymentService.confirm(
+            PaymentConfirmRequest("tempPaymentKey", "tempOrderId", payment.amount.toString()),
+            paymentId, userId
+        )
+    }
+        .isInstanceOf(InternalServerErrorException::class.java)
+        .hasMessage("토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다.")
+
+    // 예외가 그대로 전파됐지만 삭제는 자기 트랜잭션에서 커밋되어 남아 있어야 한다
+    assertThat(paymentRepository.findById(paymentId)).isEmpty()
+}
+```
+
+</details>
+
+<details>
+    <summary style="font-weight: bold">정산 모듈 동시성 제어</summary>
+
+# 문제
+
+---
+
+채팅방 목록 조회를 하기 위해서는 아래가 필요합니다.
+
+- 채팅방 목록 조회
+- 채팅방마다 읽지 않은 채팅은 몇 개인지 조회
+
+그래서 아래의 쿼리를 사용하고 있었습니다.
+
+1. 채팅방 목록 조회 쿼리 1회
+2. (채팅방 입장 내역 조회 쿼리 1회 * 채팅방 수 N) = N회,
+  사용자의 최근 읽은 날짜를 필요해 조회합니다.
+3. (읽지 않은 채팅 조회 쿼리 1회 * 채팅방 수 N) = N회
+
+채팅방마다 조회를 일일이 하고 있습니다.
+
+# 해결 방안
+
+---
+
+기존에는 불필요하게 쿼리를 채팅방마다 날리도록 조회했습니다.
+
+그러면 응답되는 로우는 1개 또는 2개인데 막상 쿼리는 계속 날리니 불필요한 네트워크 성능을 차지했습니다.
+
+
+
+## 2N -> N
+채팅방 입장 내역 조회 쿼리와 읽지 않은 채팅 조회 쿼리를 하나로 합치기만 해도 2N -> N으로 줄일 수 있습니다.
+
+## N -> 1
+하나의 쿼리로 합쳐진 것을 매번 쿼리를 날리는 게 아닌 그룹으로 묶고 DB의 IN 절을 사용하여 한꺼번에 조회하도록 하면 N -> 1로 줄일 수 있습니다.
+
+
+
+# 코드
+
+---
+
+## 기존 코드
+
+### ChatController
+```java
+@GetMapping("/api/v1/chat")
+@ResponseBody
+public RsData<List<ChatRoomResponse>> list(@AuthenticationPrincipal SecurityUser user) {
+Long userId = user.getId();
+
+    List<ChatRoom> chatRoomList = chatService.getChatRoomList(userId);
+
+    return new RsData<>("200-121", "채팅방 목록을 조회했습니다.",
+            chatRoomList.stream().map(chatRoom -> {
+                int unReadCounts = chatService.getUnReadCounts(userId, chatRoom.getId());
+                return new ChatRoomResponse(chatRoom, userId, unReadCounts);
+            }).toList());
+}
+```
+
+### ChatService.getChatRoomList(userId) & ChatRoomRepository
+위 로직은 변하지 않았습니다.
+
+아래에서 확인하실 수 있습니다.
+
+### ChatService.getUnReadCounts(userId, chatRoom.getId())
+```java
+@Transactional(readOnly = true)
+public int getUnReadCounts(Long userId, Long chatRoomId) {
+    ChatPart chatPart = chatPartRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+                            .orElseThrow(() -> new ForbiddenException(121, "채팅방에 접속하실 권한이 없습니다."));
+    return chatMessageService.getUnReadCounts(userId, chatRoomId, chatPart.getLastReadAt());
+}
+```
+
+### ChatMessageService
+```java
+public int getUnReadCounts(Long userId, Long chatRoomId, LocalDateTime lastReadAt) {
+    return chatMessageRepository.getUnReadCounts(userId, chatRoomId, lastReadAt);
+}
+```
+
+### ChatMessageRepository
+```java
+@Query("select count(m) from ChatMessage m " +
+        "where m.chatPart.user.id<>:userId " +
+        "and m.chatPart.chatRoom.id=:chatRoomId " +
+        "and m.sentAt > :lastReadAt")
+int getUnReadCounts(@Param("userId") Long userId,
+                    @Param("chatRoomId") Long chatRoomId,
+                    @Param("lastReadAt") LocalDateTime lastReadAt);
+```
+
+## 수정 코드
+### ChatController
+```java
+@GetMapping("/api/v1/chat")
+@ResponseBody
+public RsData<List<ChatRoomResponse>> list(@AuthenticationPrincipal SecurityUser user) {
+Long userId = user.getId();
+
+    List<ChatRoom> chatRoomList = chatService.getChatRoomList(userId);
+    Map<Long, Long> unReadMap = chatService.getUnReadCounts(userId, chatRoomList);
+
+    return new RsData<>("200-121", "채팅방 목록을 조회했습니다.",
+            chatRoomList.stream()
+                    .map(chatRoom -> new ChatRoomResponse(
+                            chatRoom, userId, unReadMap.getOrDefault(chatRoom.getId(), 0L))).toList());
+}
+```
+
+### ChatService
+```java
+@Transactional(readOnly = true)
+public List<ChatRoom> getChatRoomList(Long userId) {
+    return chatRoomRepository.findByUser(userId);
+}
+
+@Transactional(readOnly = true)
+public Map<Long, Long> getUnReadCounts(Long userId, List<ChatRoom> chatRooms) {
+    if (chatRooms.isEmpty()) {
+        return Map.of();
+    }
+    List<Long> chatRoomIds = chatRooms.stream().map(ChatRoom::getId).toList();
+
+    return chatMessageService.getUnReadCounts(userId, chatRoomIds).stream()
+            .collect(Collectors.toMap(UnreadCountDto::chatRoomId, UnreadCountDto::count));
+}
+```
+
+### ChatRoomRepository
+```java
+@Query("select cr from ChatRoom cr " +
+        "join fetch cr.chatParts cp " +
+        "join fetch cp.user u " +
+        "where cr.id in" +
+        "(select cr2.id from ChatRoom cr2 join cr2.chatParts cp2 where cp2.user.id=:userId and cp2.isActive=true)")
+List<ChatRoom> findByUser(@Param("userId") Long userId);
+```
+
+### ChatMessageService
+```java
+public List<UnreadCountDto> getUnReadCounts(Long userId, List<Long> chatRoomIds) {
+    return chatMessageRepository.getUnreadCountsByChatRoomIds(userId, chatRoomIds);
+}
+```
+
+### ChatMessageRepository
+```java
+@Query("select cp.chatRoom.id, count(m) " +
+        "from ChatPart cp " +
+        "left join ChatMessage m on m.chatPart.chatRoom.id=cp.chatRoom.id " +
+        "and m.chatPart.user.id <> cp.user.id " +
+        "and m.sentAt > cp.lastReadAt " +
+        "where cp.user.id=:userId " +
+        "and cp.chatRoom.id in :chatRoomIds " +
+        "group by cp.chatRoom.id")
+List<UnreadCountDto> getUnreadCountsByChatRoomIds(@Param("userId") Long userId,
+                                                  @Param("chatRoomIds") List<Long> chatRoomIds);
+```
+
+</details>
+
+</div>
+
+# ✍️ 3차 프로젝트 변경점
+
+1. 코틀린 마이그레이션
+2. UI 전면 수정 
+3. 모든 상태 전이 검증 
+4. 동행 중 실시간 위치 정보 표시 기능 추가
+5. 민감 개인정보 암호화
+6. 공고 목록 조회 최적화(캐싱)
+7. 관리자 기능 추가 
+8. 채팅 기능 추가 
+9. 알림 기능 추가 
+10. DB 마이그레이션(MySQL -> PostgreSQL)
+11. WAS 배포 클라우드 이전(Railway -> AWS EC2)
+12. DB 클라우드화(LocalDB -> Supabase)
+13. 모니터링 서버 추가(AWS EC2)
 
 
 </div>

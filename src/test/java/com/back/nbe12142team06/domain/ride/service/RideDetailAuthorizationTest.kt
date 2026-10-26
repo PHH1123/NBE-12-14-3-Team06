@@ -61,13 +61,13 @@ class RideDetailAuthorizationTest {
 
         val post = postRepository.save(createPost(client))
         applicationRepository.save(
-            Application.builder()
-                .post(post)
-                .escort(escort)
-                .status(ApplicationStatus.ACCEPTED)
-                .acceptedPostId(post.id)
-                .activePostId(post.id)
-                .build()
+            Application(
+                post = post,
+                escort = escort,
+                status = ApplicationStatus.ACCEPTED,
+                acceptedPostId = post.id,
+                activePostId = post.id,
+            )
         )
 
         rideId = rideRepository.save(Ride(post = post, selected = RideSelect.TAXI)).requiredId
@@ -84,25 +84,25 @@ class RideDetailAuthorizationTest {
         role, Gender.MALE, LocalDate.of(1990, 5, 20), phoneNum, "서울시"
     )
 
-    private fun createPost(client: User): Post = Post.builder()
-        .title("정형외과 동행 구합니다")
-        .content("무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.")
-        .region("서울")
-        .hospitalName("서울성모병원")
-        .hospitalAddress("서울 서초구 반포대로 222")
-        .hospitalLat(BigDecimal.valueOf(37.5012743))
-        .hospitalLng(BigDecimal.valueOf(127.0051893))
-        .pickupAddress("서울 서초구 잠원동 10-1")
-        .pickupLat(BigDecimal.valueOf(37.5160000))
-        .pickupLng(BigDecimal.valueOf(127.0200000))
-        .hourlyPay(15_000)
-        .recruitStartAt(LocalDateTime.now().minusDays(10))
-        .recruitEndAt(LocalDateTime.now().minusDays(5))
-        .escortStartAt(LocalDateTime.now().minusDays(3))
-        .escortEndAt(LocalDateTime.now().minusDays(3).plusHours(4))
-        .postStatus(PostStatus.MATCHED)
-        .client(client)
-        .build()
+    private fun createPost(client: User): Post = Post(
+        title = "정형외과 동행 구합니다",
+        content = "무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.",
+        region = "서울",
+        hospitalName = "서울성모병원",
+        hospitalAddress = "서울 서초구 반포대로 222",
+        hospitalLat = BigDecimal.valueOf(37.5012743),
+        hospitalLng = BigDecimal.valueOf(127.0051893),
+        pickupAddress = "서울 서초구 잠원동 10-1",
+        pickupLat = BigDecimal.valueOf(37.5160000),
+        pickupLng = BigDecimal.valueOf(127.0200000),
+        hourlyPay = 15_000,
+        recruitStartAt = LocalDateTime.now().minusDays(10),
+        recruitEndAt = LocalDateTime.now().minusDays(5),
+        escortStartAt = LocalDateTime.now().minusDays(3),
+        escortEndAt = LocalDateTime.now().minusDays(3).plusHours(4),
+        postStatus = PostStatus.MATCHED,
+        client = client,
+    )
 
     @Test
     @DisplayName("[RideService] 의뢰인은 이동 상세를 조회할 수 있다")

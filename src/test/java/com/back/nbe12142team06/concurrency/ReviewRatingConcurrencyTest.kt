@@ -120,10 +120,10 @@ class ReviewRatingConcurrencyTest {
         val post2 = postRepository.save(completedPost(client2))
 
         val application1 = applicationRepository.save(
-            Application.builder().post(post1).escort(escort).status(ApplicationStatus.ACCEPTED).build(),
+            Application(post = post1, escort = escort, status = ApplicationStatus.ACCEPTED),
         )
         val application2 = applicationRepository.save(
-            Application.builder().post(post2).escort(escort).status(ApplicationStatus.ACCEPTED).build(),
+            Application(post = post2, escort = escort, status = ApplicationStatus.ACCEPTED),
         )
 
         escortId = escort.id
@@ -138,27 +138,27 @@ class ReviewRatingConcurrencyTest {
         databaseCleaner.clean()
     }
 
-    // 상태(COMPLETED)를 정해서 만들어야 해서 호환용 빌더를 쓴다. (생성자에는 상태 인자가 없다)
+    // 기존 테스트와 동일하게 완료 상태(COMPLETED) 공고를 생성한다.
     private fun completedPost(client: User): Post {
-        return Post.builder()
-            .client(client)
-            .title("테스트 공고")
-            .content("병원 동행 테스트")
-            .region("수원")
-            .hospitalName("아주대학교병원")
-            .hospitalAddress("경기도 수원시")
-            .hospitalLat(BigDecimal.valueOf(37.2795))
-            .hospitalLng(BigDecimal.valueOf(127.0476))
-            .pickupAddress("경기도 수원시 팔달구")
-            .pickupLat(BigDecimal.valueOf(37.2636))
-            .pickupLng(BigDecimal.valueOf(127.0286))
-            .hourlyPay(15000)
-            .recruitStartAt(LocalDateTime.now().minusDays(3))
-            .recruitEndAt(LocalDateTime.now().minusDays(2))
-            .escortStartAt(LocalDateTime.now().minusDays(1))
-            .escortEndAt(LocalDateTime.now().minusDays(1).plusHours(3))
-            .postStatus(PostStatus.COMPLETED)
-            .build()
+        return Post(
+            client = client,
+            title = "테스트 공고",
+            content = "병원 동행 테스트",
+            region = "수원",
+            hospitalName = "아주대학교병원",
+            hospitalAddress = "경기도 수원시",
+            hospitalLat = BigDecimal.valueOf(37.2795),
+            hospitalLng = BigDecimal.valueOf(127.0476),
+            pickupAddress = "경기도 수원시 팔달구",
+            pickupLat = BigDecimal.valueOf(37.2636),
+            pickupLng = BigDecimal.valueOf(127.0286),
+            hourlyPay = 15000,
+            recruitStartAt = LocalDateTime.now().minusDays(3),
+            recruitEndAt = LocalDateTime.now().minusDays(2),
+            escortStartAt = LocalDateTime.now().minusDays(1),
+            escortEndAt = LocalDateTime.now().minusDays(1).plusHours(3),
+            postStatus = PostStatus.COMPLETED,
+        )
     }
 
     @Test

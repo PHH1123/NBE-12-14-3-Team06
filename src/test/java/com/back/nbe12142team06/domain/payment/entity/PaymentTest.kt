@@ -190,7 +190,7 @@ class PaymentTest {
         val settlement = Settlement(
             payoutAmount = amount,
             settledDate = LocalDate.now(),
-            application = Application.builder().escort(escort).build(),
+            application = Application(createPost(), escort),
             escort = escort
         )
 

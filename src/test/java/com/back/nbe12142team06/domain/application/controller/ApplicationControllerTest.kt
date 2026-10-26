@@ -132,26 +132,26 @@ class ApplicationControllerTest {
         this.escortProfileRepository.verify(escortProfile.userId!!, LocalDateTime.now())
 
         // 테스트용 공고
-        var post = Post.builder()
-                .client(client)
-                .title("테스트 공고")
-                .content("병원 동행 테스트")
-                .region("수원")
-                .hospitalName("아주대학교병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2795))
-                .hospitalLng(BigDecimal.valueOf(127.0476))
-                .pickupAddress("경기도 수원시 팔달구")
-                .pickupLat(BigDecimal.valueOf(37.2636))
-                .pickupLng(BigDecimal.valueOf(127.0286))
-                .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().minusDays(1))
-                .recruitEndAt(LocalDateTime.now().plusDays(2))
-                .escortStartAt(LocalDateTime.now().plusDays(3))
-                .escortEndAt(LocalDateTime.now().plusDays(3).plusHours(3))
-                .patientNote("테스트 환자")
-                .reportRequired(false)
-                .build()
+        var post = Post(
+                client = client,
+                title = "테스트 공고",
+                content = "병원 동행 테스트",
+                region = "수원",
+                hospitalName = "아주대학교병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2795),
+                hospitalLng = BigDecimal.valueOf(127.0476),
+                pickupAddress = "경기도 수원시 팔달구",
+                pickupLat = BigDecimal.valueOf(37.2636),
+                pickupLng = BigDecimal.valueOf(127.0286),
+                hourlyPay = 15000,
+                recruitStartAt = LocalDateTime.now().minusDays(1),
+                recruitEndAt = LocalDateTime.now().plusDays(2),
+                escortStartAt = LocalDateTime.now().plusDays(3),
+                escortEndAt = LocalDateTime.now().plusDays(3).plusHours(3),
+                patientNote = "테스트 환자",
+                reportRequired = false,
+                )
 
         testPostId = postRepository.save(post).id!!
 
@@ -359,10 +359,7 @@ class ApplicationControllerTest {
                 .orElseThrow()
 
         // 승인된 지원 생성
-        val application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        val application = Application(post, escort)
 
         application.accept()
         applicationRepository.save(application)
@@ -387,10 +384,7 @@ class ApplicationControllerTest {
         val post = postRepository.findById(testPostId)
                 .orElseThrow()
 
-        val application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        val application = Application(post, escort)
 
         application.accept()
         applicationRepository.save(application)
@@ -415,10 +409,7 @@ class ApplicationControllerTest {
                 .orElseThrow()
 
         // PENDING 지원 생성 (기본 상태)
-        val application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        val application = Application(post, escort)
 
         applicationRepository.save(application)
 
@@ -454,10 +445,7 @@ class ApplicationControllerTest {
                 .orElseThrow()
 
         // escort2의 동행을 진행 중 상태로 생성
-        val application = Application.builder()
-                .post(post)
-                .escort(escort2)
-                .build()
+        val application = Application(post, escort2)
 
         application.accept()
         applicationRepository.save(application)
@@ -602,27 +590,27 @@ class ApplicationControllerTest {
                 .orElseThrow()
 
         // 이미 매칭 완료된 공고 생성
-        val matchedPost = Post.builder()
-                .client(client)
-                .title("매칭 완료된 공고")
-                .content("이미 매칭된 공고입니다.")
-                .region("수원")
-                .hospitalName("아주대학교병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2795))
-                .hospitalLng(BigDecimal.valueOf(127.0476))
-                .pickupAddress("경기도 수원시 팔달구")
-                .pickupLat(BigDecimal.valueOf(37.2636))
-                .pickupLng(BigDecimal.valueOf(127.0286))
-                .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().minusDays(1))
-                .recruitEndAt(LocalDateTime.now().plusDays(2))
-                .escortStartAt(LocalDateTime.now().plusDays(3))
-                .escortEndAt(LocalDateTime.now().plusDays(3).plusHours(3))
-                .patientNote("테스트 환자")
-                .reportRequired(false)
-                .postStatus(PostStatus.MATCHED)
-                .build()
+        val matchedPost = Post(
+                client = client,
+                title = "매칭 완료된 공고",
+                content = "이미 매칭된 공고입니다.",
+                region = "수원",
+                hospitalName = "아주대학교병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2795),
+                hospitalLng = BigDecimal.valueOf(127.0476),
+                pickupAddress = "경기도 수원시 팔달구",
+                pickupLat = BigDecimal.valueOf(37.2636),
+                pickupLng = BigDecimal.valueOf(127.0286),
+                hourlyPay = 15000,
+                recruitStartAt = LocalDateTime.now().minusDays(1),
+                recruitEndAt = LocalDateTime.now().plusDays(2),
+                escortStartAt = LocalDateTime.now().plusDays(3),
+                escortEndAt = LocalDateTime.now().plusDays(3).plusHours(3),
+                patientNote = "테스트 환자",
+                reportRequired = false,
+                postStatus = PostStatus.MATCHED,
+                )
 
         val matchedPostId = postRepository.save(matchedPost).id
 
@@ -754,24 +742,15 @@ class ApplicationControllerTest {
         userRepository.save(escort3)
 
         applicationRepository.save(
-                Application.builder()
-                        .post(post)
-                        .escort(escort1)
-                        .build()
+                Application(post, escort1)
         )
 
         applicationRepository.save(
-                Application.builder()
-                        .post(post)
-                        .escort(escort2)
-                        .build()
+                Application(post, escort2)
         )
 
         applicationRepository.save(
-                Application.builder()
-                        .post(post)
-                        .escort(escort3)
-                        .build()
+                Application(post, escort3)
         )
 
         val resultActions = mvc.perform(
@@ -1061,13 +1040,13 @@ class ApplicationControllerTest {
 
         val firstApplication = applications.stream()
                 .filter { application ->
-                        application.escort!!.username.equals("escort1") }
+                        application.escort.username.equals("escort1") }
                 .findFirst()
                 .orElseThrow()
 
         val secondApplication = applications.stream()
                 .filter { application ->
-                        application.escort!!.username.equals("escort2") }
+                        application.escort.username.equals("escort2") }
                 .findFirst()
                 .orElseThrow()
 
@@ -1153,31 +1132,31 @@ class ApplicationControllerTest {
                 .orElseThrow()
 
         // 기존 testPost와 시간이 겹치는 두 번째 공고 생성
-        val overlappingPost = Post.builder()
-                .client(client)
-                .title("시간 겹치는 테스트 공고")
-                .content("동행 시간이 겹치는 공고입니다.")
-                .region("수원")
-                .hospitalName("성빈센트병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2770))
-                .hospitalLng(BigDecimal.valueOf(127.0276))
-                .pickupAddress("경기도 수원시")
-                .pickupLat(BigDecimal.valueOf(37.2700))
-                .pickupLng(BigDecimal.valueOf(127.0300))
-                .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().minusDays(1))
-                .recruitEndAt(LocalDateTime.now().plusDays(2))
+        val overlappingPost = Post(
+                client = client,
+                title = "시간 겹치는 테스트 공고",
+                content = "동행 시간이 겹치는 공고입니다.",
+                region = "수원",
+                hospitalName = "성빈센트병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2770),
+                hospitalLng = BigDecimal.valueOf(127.0276),
+                pickupAddress = "경기도 수원시",
+                pickupLat = BigDecimal.valueOf(37.2700),
+                pickupLng = BigDecimal.valueOf(127.0300),
+                hourlyPay = 15000,
+                recruitStartAt = LocalDateTime.now().minusDays(1),
+                recruitEndAt = LocalDateTime.now().plusDays(2),
 
                 // 기존 testPost: 3일 뒤 ~ 3일 뒤 + 3시간
                 // 새 공고: 3일 뒤 + 1시간 ~ 3일 뒤 + 4시간
                 // -> 서로 시간이 겹침
-                .escortStartAt(LocalDateTime.now().plusDays(3).plusHours(1))
-                .escortEndAt(LocalDateTime.now().plusDays(3).plusHours(4))
+                escortStartAt = LocalDateTime.now().plusDays(3).plusHours(1),
+                escortEndAt = LocalDateTime.now().plusDays(3).plusHours(4),
 
-                .patientNote("테스트 환자")
-                .reportRequired(false)
-                .build()
+                patientNote = "테스트 환자",
+                reportRequired = false,
+                )
 
         val overlappingPostId = postRepository.save(overlappingPost).id
 
@@ -1264,31 +1243,31 @@ class ApplicationControllerTest {
                 .orElseThrow()
 
         // 기존 testPost와 시간이 겹치지 않는 두 번째 공고 생성
-        val nonOverlappingPost = Post.builder()
-                .client(client)
-                .title("시간 안 겹치는 테스트 공고")
-                .content("동행 시간이 겹치지 않는 공고입니다.")
-                .region("수원")
-                .hospitalName("성빈센트병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2770))
-                .hospitalLng(BigDecimal.valueOf(127.0276))
-                .pickupAddress("경기도 수원시")
-                .pickupLat(BigDecimal.valueOf(37.2700))
-                .pickupLng(BigDecimal.valueOf(127.0300))
-                .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().minusDays(1))
-                .recruitEndAt(LocalDateTime.now().plusDays(2))
+        val nonOverlappingPost = Post(
+                client = client,
+                title = "시간 안 겹치는 테스트 공고",
+                content = "동행 시간이 겹치지 않는 공고입니다.",
+                region = "수원",
+                hospitalName = "성빈센트병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2770),
+                hospitalLng = BigDecimal.valueOf(127.0276),
+                pickupAddress = "경기도 수원시",
+                pickupLat = BigDecimal.valueOf(37.2700),
+                pickupLng = BigDecimal.valueOf(127.0300),
+                hourlyPay = 15000,
+                recruitStartAt = LocalDateTime.now().minusDays(1),
+                recruitEndAt = LocalDateTime.now().plusDays(2),
 
                 // 기존 testPost: 3일 뒤 ~ 3일 뒤 + 3시간
                 // 새 공고:3일 뒤 + 4시간 ~ 3일 뒤 + 6시간
                 // -> 시간이 겹치지 않음
-                .escortStartAt(LocalDateTime.now().plusDays(3).plusHours(4))
-                .escortEndAt(LocalDateTime.now().plusDays(3).plusHours(6))
+                escortStartAt = LocalDateTime.now().plusDays(3).plusHours(4),
+                escortEndAt = LocalDateTime.now().plusDays(3).plusHours(6),
 
-                .patientNote("테스트 환자")
-                .reportRequired(false)
-                .build()
+                patientNote = "테스트 환자",
+                reportRequired = false,
+                )
 
         val nonOverlappingPostId = postRepository.save(nonOverlappingPost).id
 
@@ -1431,31 +1410,31 @@ class ApplicationControllerTest {
                 .getCookie("accessToken")!!
 
         // 첫 번째 공고와 시간이 겹치는 두 번째 공고 생성
-        val overlappingPost = Post.builder()
-                .client(client2)
-                .title("시간 겹치는 두 번째 공고")
-                .content("이미 승인된 일정과 겹치는 공고입니다.")
-                .region("수원")
-                .hospitalName("성빈센트병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2770))
-                .hospitalLng(BigDecimal.valueOf(127.0276))
-                .pickupAddress("경기도 수원시")
-                .pickupLat(BigDecimal.valueOf(37.2700))
-                .pickupLng(BigDecimal.valueOf(127.0300))
-                .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().minusDays(1))
-                .recruitEndAt(LocalDateTime.now().plusDays(2))
+        val overlappingPost = Post(
+                client = client2,
+                title = "시간 겹치는 두 번째 공고",
+                content = "이미 승인된 일정과 겹치는 공고입니다.",
+                region = "수원",
+                hospitalName = "성빈센트병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2770),
+                hospitalLng = BigDecimal.valueOf(127.0276),
+                pickupAddress = "경기도 수원시",
+                pickupLat = BigDecimal.valueOf(37.2700),
+                pickupLng = BigDecimal.valueOf(127.0300),
+                hourlyPay = 15000,
+                recruitStartAt = LocalDateTime.now().minusDays(1),
+                recruitEndAt = LocalDateTime.now().plusDays(2),
 
                 // 기존 testPost: 3일 뒤 ~ 3일 뒤 + 3시간
                 // 새 공고: 3일 뒤 + 1시간 ~ 3일 뒤 + 4시간
                 // -> 시간 겹침
-                .escortStartAt(LocalDateTime.now().plusDays(3).plusHours(1))
-                .escortEndAt(LocalDateTime.now().plusDays(3).plusHours(4))
+                escortStartAt = LocalDateTime.now().plusDays(3).plusHours(1),
+                escortEndAt = LocalDateTime.now().plusDays(3).plusHours(4),
 
-                .patientNote("테스트 환자")
-                .reportRequired(false)
-                .build()
+                patientNote = "테스트 환자",
+                reportRequired = false,
+                )
 
         val overlappingPostId = postRepository.save(overlappingPost).id
 
@@ -1761,7 +1740,7 @@ class ApplicationControllerTest {
 
         // 취소 전 노쇼 횟수 확인
         val escortProfile = escortProfileRepository
-                .findById(application.escort!!.id)
+                .findById(application.escort.id)
                 .orElseThrow()
 
         val beforeNoShowCount = escortProfile.noShowCount
@@ -1793,7 +1772,7 @@ class ApplicationControllerTest {
 
         // 취소 후 동행인 프로필 확인
         val updatedEscortProfile = escortProfileRepository
-                .findById(application.escort!!.id)
+                .findById(application.escort.id)
                 .orElseThrow()
 
         // 승인된 지원은 NO_SHOW 처리
@@ -1829,40 +1808,37 @@ class ApplicationControllerTest {
                 .orElseThrow()
 
         // 모집 마감 시간이 이미 지난 매칭 공고 생성
-        val expiredMatchedPost = Post.builder()
-                .client(client)
-                .title("모집 마감 지난 공고")
-                .content("모집 마감 후 동행인 취소 테스트")
-                .region("수원")
-                .hospitalName("아주대학교병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2795))
-                .hospitalLng(BigDecimal.valueOf(127.0476))
-                .pickupAddress("경기도 수원시 팔달구")
-                .pickupLat(BigDecimal.valueOf(37.2636))
-                .pickupLng(BigDecimal.valueOf(127.0286))
-                .hourlyPay(15000)
+        val expiredMatchedPost = Post(
+                client = client,
+                title = "모집 마감 지난 공고",
+                content = "모집 마감 후 동행인 취소 테스트",
+                region = "수원",
+                hospitalName = "아주대학교병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2795),
+                hospitalLng = BigDecimal.valueOf(127.0476),
+                pickupAddress = "경기도 수원시 팔달구",
+                pickupLat = BigDecimal.valueOf(37.2636),
+                pickupLng = BigDecimal.valueOf(127.0286),
+                hourlyPay = 15000,
 
                 // 모집 마감 시간이 이미 지남
-                .recruitStartAt(LocalDateTime.now().minusDays(2))
-                .recruitEndAt(LocalDateTime.now().minusMinutes(1))
+                recruitStartAt = LocalDateTime.now().minusDays(2),
+                recruitEndAt = LocalDateTime.now().minusMinutes(1),
 
                 // 실제 동행 시간은 아직 미래
-                .escortStartAt(LocalDateTime.now().plusDays(1))
-                .escortEndAt(LocalDateTime.now().plusDays(1).plusHours(3))
+                escortStartAt = LocalDateTime.now().plusDays(1),
+                escortEndAt = LocalDateTime.now().plusDays(1).plusHours(3),
 
-                .patientNote("테스트 환자")
-                .reportRequired(false)
-                .postStatus(PostStatus.MATCHED)
-                .build()
+                patientNote = "테스트 환자",
+                reportRequired = false,
+                postStatus = PostStatus.MATCHED,
+                )
 
         postRepository.save(expiredMatchedPost)
 
         // 이미 승인된 지원 생성
-        val application = Application.builder()
-                .post(expiredMatchedPost)
-                .escort(escort)
-                .build()
+        val application = Application(expiredMatchedPost, escort)
 
         application.accept()
         applicationRepository.save(application)
@@ -2077,10 +2053,7 @@ class ApplicationControllerTest {
         val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        val application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        val application = Application(post, escort)
 
         application.accept()
         post.match()
@@ -2167,10 +2140,7 @@ class ApplicationControllerTest {
         val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        val application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        val application = Application(post, escort)
 
         application.accept()
         post.match()
@@ -2206,10 +2176,7 @@ class ApplicationControllerTest {
         val escort1 = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        val application = Application.builder()
-                .post(post)
-                .escort(escort1)
-                .build()
+        val application = Application(post, escort1)
 
         application.accept()
         post.match()
@@ -2274,10 +2241,7 @@ class ApplicationControllerTest {
         val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        val application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        val application = Application(post, escort)
 
         applicationRepository.save(application)
 
@@ -2310,10 +2274,7 @@ class ApplicationControllerTest {
         val escort = userRepository.findByUsername("escort1")
                 .orElseThrow()
 
-        val application = Application.builder()
-                .post(post)
-                .escort(escort)
-                .build()
+        val application = Application(post, escort)
 
         application.accept()
         post.match()
@@ -2396,7 +2357,7 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.msg")
                         .value("지원자 프로필 조회가 완료되었습니다."))
                 .andExpect(jsonPath("$.data.escortId")
-                        .value(application.escort!!.id))
+                        .value(application.escort.id))
                 .andExpect(jsonPath("$.data.name")
                         .value("동행인1"))
                 .andExpect(jsonPath("$.data.verified").exists())
@@ -2543,26 +2504,26 @@ class ApplicationControllerTest {
         val client = userRepository.findByUsername("client1")
                 .orElseThrow()
 
-        val post = Post.builder()
-                .client(client)
-                .title(title)
-                .content("결제 상태별 승인 테스트")
-                .region("수원")
-                .hospitalName("아주대학교병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2795))
-                .hospitalLng(BigDecimal.valueOf(127.0476))
-                .pickupAddress("경기도 수원시 팔달구")
-                .pickupLat(BigDecimal.valueOf(37.2636))
-                .pickupLng(BigDecimal.valueOf(127.0286))
-                .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().minusDays(1))
-                .recruitEndAt(LocalDateTime.now().plusDays(2))
-                .escortStartAt(LocalDateTime.now().plusDays(3))
-                .escortEndAt(LocalDateTime.now().plusDays(3).plusHours(3))
-                .patientNote("테스트 환자")
-                .reportRequired(false)
-                .build()
+        val post = Post(
+                client = client,
+                title = title,
+                content = "결제 상태별 승인 테스트",
+                region = "수원",
+                hospitalName = "아주대학교병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2795),
+                hospitalLng = BigDecimal.valueOf(127.0476),
+                pickupAddress = "경기도 수원시 팔달구",
+                pickupLat = BigDecimal.valueOf(37.2636),
+                pickupLng = BigDecimal.valueOf(127.0286),
+                hourlyPay = 15000,
+                recruitStartAt = LocalDateTime.now().minusDays(1),
+                recruitEndAt = LocalDateTime.now().plusDays(2),
+                escortStartAt = LocalDateTime.now().plusDays(3),
+                escortEndAt = LocalDateTime.now().plusDays(3).plusHours(3),
+                patientNote = "테스트 환자",
+                reportRequired = false,
+                )
 
         return postRepository.save(post)
     }
@@ -2748,7 +2709,7 @@ class ApplicationControllerTest {
         val secondApplication = applicationRepository
                 .findAllByPostIdWithEscort(testPostId)
                 .stream()
-                .filter { application -> application.escort!!.username.equals("escort7") }
+                .filter { application -> application.escort.username.equals("escort7") }
                 .findFirst()
                 .orElseThrow()
 
@@ -2799,35 +2760,32 @@ class ApplicationControllerTest {
                 .orElseThrow()
 
         // 모집 마감 시간이 이미 지난 매칭 공고
-        val expiredMatchedPost = Post.builder()
-                .client(client)
-                .title("모집 마감 지난 매칭 공고")
-                .content("모집 마감 후 노쇼 재매칭 테스트")
-                .region("수원")
-                .hospitalName("아주대학교병원")
-                .hospitalAddress("경기도 수원시")
-                .hospitalLat(BigDecimal.valueOf(37.2795))
-                .hospitalLng(BigDecimal.valueOf(127.0476))
-                .pickupAddress("경기도 수원시 팔달구")
-                .pickupLat(BigDecimal.valueOf(37.2636))
-                .pickupLng(BigDecimal.valueOf(127.0286))
-                .hourlyPay(15000)
-                .recruitStartAt(LocalDateTime.now().minusDays(2))
-                .recruitEndAt(LocalDateTime.now().minusMinutes(1))
-                .escortStartAt(LocalDateTime.now().plusDays(1))
-                .escortEndAt(LocalDateTime.now().plusDays(1).plusHours(3))
-                .patientNote("테스트 환자")
-                .reportRequired(false)
-                .postStatus(PostStatus.MATCHED)
-                .build()
+        val expiredMatchedPost = Post(
+                client = client,
+                title = "모집 마감 지난 매칭 공고",
+                content = "모집 마감 후 노쇼 재매칭 테스트",
+                region = "수원",
+                hospitalName = "아주대학교병원",
+                hospitalAddress = "경기도 수원시",
+                hospitalLat = BigDecimal.valueOf(37.2795),
+                hospitalLng = BigDecimal.valueOf(127.0476),
+                pickupAddress = "경기도 수원시 팔달구",
+                pickupLat = BigDecimal.valueOf(37.2636),
+                pickupLng = BigDecimal.valueOf(127.0286),
+                hourlyPay = 15000,
+                recruitStartAt = LocalDateTime.now().minusDays(2),
+                recruitEndAt = LocalDateTime.now().minusMinutes(1),
+                escortStartAt = LocalDateTime.now().plusDays(1),
+                escortEndAt = LocalDateTime.now().plusDays(1).plusHours(3),
+                patientNote = "테스트 환자",
+                reportRequired = false,
+                postStatus = PostStatus.MATCHED,
+                )
 
         postRepository.save(expiredMatchedPost)
         savePayment(expiredMatchedPost, PaymentStatus.DONE)
 
-        val application = Application.builder()
-                .post(expiredMatchedPost)
-                .escort(escort)
-                .build()
+        val application = Application(expiredMatchedPost, escort)
 
         application.accept()
         applicationRepository.save(application)

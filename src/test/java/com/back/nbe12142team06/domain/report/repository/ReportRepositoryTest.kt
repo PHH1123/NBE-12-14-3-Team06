@@ -67,10 +67,7 @@ class ReportRepositoryTest {
         )
         em.persist(post)
 
-        application = Application.builder()
-            .post(post)
-            .escort(escort)
-            .build()
+        application = Application(post, escort)
         em.persist(application)
     }
 

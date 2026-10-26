@@ -30,32 +30,32 @@ class NoShowPenaltyTest {
         Role.ESCORT, Gender.MALE, LocalDate.of(2000, 1, 1), "010-5678-5678", "서울"
     )
 
-    private fun createPost(client: User): Post = Post.builder()
-        .id(3L)
-        .title("정형외과 동행 구합니다")
-        .content("무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.")
-        .region("서울")
-        .hospitalName("서울성모병원")
-        .hospitalAddress("서울 서초구 반포대로 222")
-        .hospitalLat(BigDecimal.valueOf(37.5012743))
-        .hospitalLng(BigDecimal.valueOf(127.0051893))
-        .pickupAddress("서울 서초구 잠원동 10-1")
-        .pickupLat(BigDecimal.valueOf(37.5160000))
-        .pickupLng(BigDecimal.valueOf(127.0200000))
-        .hourlyPay(15_000)
-        .recruitStartAt(LocalDateTime.now().minusDays(10))
-        .recruitEndAt(LocalDateTime.now().minusDays(5))
-        .escortStartAt(LocalDateTime.now().minusDays(3))
-        .escortEndAt(LocalDateTime.now().minusDays(3).plusHours(10))
-        .client(client)
-        .build()
+    private fun createPost(client: User): Post = Post(
+        id = 3L,
+        title = "정형외과 동행 구합니다",
+        content = "무릎 수술 후 검진 예약이 있어 동행인이 필요합니다.",
+        region = "서울",
+        hospitalName = "서울성모병원",
+        hospitalAddress = "서울 서초구 반포대로 222",
+        hospitalLat = BigDecimal.valueOf(37.5012743),
+        hospitalLng = BigDecimal.valueOf(127.0051893),
+        pickupAddress = "서울 서초구 잠원동 10-1",
+        pickupLat = BigDecimal.valueOf(37.5160000),
+        pickupLng = BigDecimal.valueOf(127.0200000),
+        hourlyPay = 15_000,
+        recruitStartAt = LocalDateTime.now().minusDays(10),
+        recruitEndAt = LocalDateTime.now().minusDays(5),
+        escortStartAt = LocalDateTime.now().minusDays(3),
+        escortEndAt = LocalDateTime.now().minusDays(3).plusHours(10),
+        client = client,
+    )
 
     private fun createApplication(escort: User): Application {
         val client = User(
             "client01", "password1!", "client01@email.com", "의뢰인",
             Role.CLIENT, Gender.MALE, LocalDate.of(1960, 11, 11), "010-1234-1234", "서울"
         )
-        return Application.builder().id(5L).post(createPost(client)).escort(escort).build()
+        return Application(id = 5L, post = createPost(client), escort = escort)
     }
 
     private fun createSettlement(application: Application, escort: User, id: Long): Settlement = Settlement(

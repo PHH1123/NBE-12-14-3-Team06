@@ -111,10 +111,7 @@ class ReportControllerTest {
         )
         postRepository.save(post)
 
-        val application = Application.builder()
-            .post(post)
-            .escort(escort)
-            .build()
+        val application = Application(post, escort)
         applicationRepository.save(application)
 
         testApplicationId = application.id!!
@@ -397,8 +394,8 @@ class ReportControllerTest {
 
         val masked = reportMasker.mask(
             origin,
-            application.post!!.client,
-            application.escort!!,
+            application.post.client,
+            application.escort,
         )
 
         assertThat(masked).doesNotContain("의뢰인1")

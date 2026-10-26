@@ -76,7 +76,7 @@ class ApplicationEscortAutoProgressServiceTest {
 
         // 진행 중인 공고 + 승인된 지원 + 이동수단(병원행, 귀가)
         post = postWithStatus(client, PostStatus.IN_PROGRESS)
-        application = applicationRepository.save(Application.builder().post(post).escort(escort).build())
+        application = applicationRepository.save(Application(post, escort))
         application.accept()
         application = applicationRepository.save(application)
 
@@ -90,18 +90,18 @@ class ApplicationEscortAutoProgressServiceTest {
     }
 
     private fun newPost(owner: User): Post {
-        return postRepository.save(Post.builder()
-            .client(owner)
-            .title("취소 테스트 공고").content("내용").region("서울")
-            .hospitalName("테스트 병원").hospitalAddress("서울시")
-            .hospitalLat(HOSPITAL_LAT).hospitalLng(HOSPITAL_LNG)
-            .pickupAddress("서울시").pickupLat(HOME_LAT).pickupLng(HOME_LNG)
-            .hourlyPay(15000)
-            .recruitStartAt(LocalDateTime.now()).recruitEndAt(LocalDateTime.now().plusDays(1))
-            .escortStartAt(LocalDateTime.now().plusDays(2))
-            .escortEndAt(LocalDateTime.now().plusDays(2).plusHours(3))
-            .patientNote("테스트").reportRequired(false)
-            .build())
+        return postRepository.save(Post(
+            client = owner,
+            title = "취소 테스트 공고",content = "내용",region = "서울",
+            hospitalName = "테스트 병원",hospitalAddress = "서울시",
+            hospitalLat = HOSPITAL_LAT,hospitalLng = HOSPITAL_LNG,
+            pickupAddress = "서울시",pickupLat = HOME_LAT,pickupLng = HOME_LNG,
+            hourlyPay = 15000,
+            recruitStartAt = LocalDateTime.now(),recruitEndAt = LocalDateTime.now().plusDays(1),
+            escortStartAt = LocalDateTime.now().plusDays(2),
+            escortEndAt = LocalDateTime.now().plusDays(2).plusHours(3),
+            patientNote = "테스트",reportRequired = false,
+            ))
     }
 
     private fun postWithStatus(owner: User, status: PostStatus): Post {
@@ -127,12 +127,12 @@ class ApplicationEscortAutoProgressServiceTest {
         var minute = 0
         for (progress in EscortProgress.values()) {
             if (progress == EscortProgress.NOT_STARTED) continue
-            escortProgressLogRepository.save(EscortProgressLog.builder()
-                .application(application)
-                .progress(progress)
-                .occurredAt(base.plusMinutes((minute++).toLong()))
-                .source(EscortProgressLog.ProgressSource.BUTTON)
-                .build())
+            escortProgressLogRepository.save(EscortProgressLog(
+                application = application,
+                progress = progress,
+                occurredAt = base.plusMinutes((minute++).toLong()),
+                source = EscortProgressLog.ProgressSource.BUTTON,
+            ))
             if (progress == target) break
         }
 
@@ -262,7 +262,7 @@ class ApplicationEscortAutoProgressServiceTest {
             .doesNotThrowAnyException()
         assertThat(currentProgress()).isEqualTo(EscortProgress.AT_HOSPITAL)
         assertThat(escortProgressLogRepository.findAll().stream()
-            .filter { log -> log.application!!.id == application.id }
+            .filter { log -> log.application.id == application.id }
             .filter { log -> log.progress == EscortProgress.AT_HOSPITAL }
             .count()).isEqualTo(1L)
     }

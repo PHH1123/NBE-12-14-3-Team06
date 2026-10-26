@@ -208,10 +208,7 @@ class PostControllerTest {
             ),
         )
 
-        val application = Application.builder()
-            .post(postRepository.findById(postId).orElseThrow())
-            .escort(escort)
-            .build()
+        val application = Application(postRepository.findById(postId).orElseThrow(), escort)
         application.accept()
         return applicationRepository.save(application).id!!
     }
@@ -882,18 +879,18 @@ class PostControllerTest {
         val arrivedAt = LocalDateTime.now()
 
         escortProgressLogRepository.save(
-            EscortProgressLog.builder()
-                .application(applicationRepository.findById(applicationId).orElseThrow())
-                .progress(EscortProgress.DEPARTED)
-                .occurredAt(departedAt)
-                .build(),
+            EscortProgressLog(
+                application = applicationRepository.findById(applicationId).orElseThrow(),
+                progress = EscortProgress.DEPARTED,
+                occurredAt = departedAt,
+            ),
         )
         escortProgressLogRepository.save(
-            EscortProgressLog.builder()
-                .application(applicationRepository.findById(applicationId).orElseThrow())
-                .progress(EscortProgress.ARRIVED_HOME)
-                .occurredAt(arrivedAt)
-                .build(),
+            EscortProgressLog(
+                application = applicationRepository.findById(applicationId).orElseThrow(),
+                progress = EscortProgress.ARRIVED_HOME,
+                occurredAt = arrivedAt,
+            ),
         )
 
         // 실제 토스 API 이용하지 않도록 아래를 추가했습니다.
@@ -920,7 +917,7 @@ class PostControllerTest {
         assertThat(result.escortEndAt.hour).isEqualTo(arrivedAt.hour)
         assertThat(result.escortEndAt.minute).isEqualTo(arrivedAt.minute)
 
-        val escortId = applicationRepository.findById(applicationId).orElseThrow().escort!!.id
+        val escortId = applicationRepository.findById(applicationId).orElseThrow().escort.id
         val escortProfile = escortProfileRepository.findById(escortId).orElseThrow()
         assertThat(escortProfile.completedCount).isEqualTo(1)
     }
@@ -952,11 +949,11 @@ class PostControllerTest {
         val applicationId = setUpAcceptedApplication(postId, "27")
 
         escortProgressLogRepository.save(
-            EscortProgressLog.builder()
-                .application(applicationRepository.findById(applicationId).orElseThrow())
-                .progress(EscortProgress.DEPARTED)
-                .occurredAt(LocalDateTime.now().minusHours(1))
-                .build(),
+            EscortProgressLog(
+                application = applicationRepository.findById(applicationId).orElseThrow(),
+                progress = EscortProgress.DEPARTED,
+                occurredAt = LocalDateTime.now().minusHours(1),
+            ),
         )
         // ARRIVED_HOME 로그는 안 만듦
 
@@ -1160,7 +1157,7 @@ class PostControllerTest {
         val post = postRepository.findById(postId).orElseThrow()
         val escort = saveUser("escortA", "escortA@test.com", Role.ESCORT)
         val application = applicationRepository.saveAndFlush(
-            Application.builder().post(post).escort(escort).build(),
+            Application(post, escort),
         )
         val cookie = login("escortA", "pw1234!")
 

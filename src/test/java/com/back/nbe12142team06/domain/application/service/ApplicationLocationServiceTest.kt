@@ -149,12 +149,12 @@ class ApplicationLocationServiceTest {
         `when`(application.activePostId).thenReturn(POST_ID)
         `when`(application.post).thenReturn(post)
         `when`(escortProgressLogRepository.findTopByApplicationOrderByOccurredAtDescIdDesc(application))
-            .thenReturn(Optional.of(EscortProgressLog.builder()
-                .application(application)
-                .progress(EscortProgress.TO_HOME)
-                .occurredAt(LocalDateTime.now().minusMinutes(10))
-                .build()))
-        `when`(application.post!!.client).thenReturn(client)
+            .thenReturn(Optional.of(EscortProgressLog(
+                application = application,
+                progress = EscortProgress.TO_HOME,
+                occurredAt = LocalDateTime.now().minusMinutes(10),
+            )))
+        `when`(application.post.client).thenReturn(client)
 
         applicationService.updateProgress(APPLICATION_ID, ESCORT_ID, EscortProgress.ARRIVED_HOME)
 

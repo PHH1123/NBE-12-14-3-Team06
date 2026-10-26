@@ -51,7 +51,7 @@ import java.time.LocalDateTime
  *   (서버를 언제 재시작하든 그 시점의 "오늘"로 다시 세팅됩니다.)
  * - 시급은 10,000 ~ 14,000원 사이로 다양하게 분포시킵니다.
  * - 전부 "방금 전"으로만 보이지 않도록, 등록일(createdAt)을 분/시간/일 단위로 다르게 backdate 합니다.
- *   createdAt 은 @CreatedDate(updatable = false) 라 엔티티 빌더로는 못 바꾸므로, 저장 후 네이티브 UPDATE 로 직접 보정합니다.
+ *   createdAt 은 @CreatedDate(updatable = false) 라 엔티티 생성자로는 못 바꾸므로, 저장 후 네이티브 UPDATE 로 직접 보정합니다.
  *
  * 테스트 계정 (전부 비밀번호 "password1!"):
  * - client01 김의뢰 · client02 이의뢰 · client03 박의뢰
@@ -279,26 +279,26 @@ class BaseInitData(
             val seed = seeds[i]
             val client = clients[i % clients.size]
 
-            val post = Post.builder()
-                .client(client)
-                .title(seed.title)
-                .content(seed.content)
-                .patientNote(seed.patientNote)
-                .region(seed.region)
-                .hospitalName(seed.hospitalName)
-                .hospitalAddress(seed.hospitalAddress)
-                .hospitalLat(seed.hospitalLat)
-                .hospitalLng(seed.hospitalLng)
-                .pickupAddress(seed.pickupAddress)
-                .pickupLat(seed.pickupLat)
-                .pickupLng(seed.pickupLng)
-                .hourlyPay(seed.hourlyPay)
-                .recruitStartAt(seed.recruitStartAt)
-                .recruitEndAt(seed.recruitEndAt)
-                .escortStartAt(seed.escortStartAt)
-                .escortEndAt(seed.escortEndAt)
-                .postStatus(seed.postStatus)
-                .build()
+            val post = Post(
+                client = client,
+                title = seed.title,
+                content = seed.content,
+                patientNote = seed.patientNote,
+                region = seed.region,
+                hospitalName = seed.hospitalName,
+                hospitalAddress = seed.hospitalAddress,
+                hospitalLat = seed.hospitalLat,
+                hospitalLng = seed.hospitalLng,
+                pickupAddress = seed.pickupAddress,
+                pickupLat = seed.pickupLat,
+                pickupLng = seed.pickupLng,
+                hourlyPay = seed.hourlyPay,
+                recruitStartAt = seed.recruitStartAt,
+                recruitEndAt = seed.recruitEndAt,
+                escortStartAt = seed.escortStartAt,
+                escortEndAt = seed.escortEndAt,
+                postStatus = seed.postStatus,
+            )
             postRepository.save(post)
 
             rideRepository.save(createRide(RideDirection.TO_HOSPITAL, RideSelect.TAXI, post))

@@ -36,7 +36,7 @@ class ReportService(
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
         // 보고서는 해당 동행 건을 수행한 동행인만 작성 가능
-        if (application.escort!!.id != actorId) {
+        if (application.escort.id != actorId) {
             throw ForbiddenException(51, "본인이 수행한 동행 건에만 보고서를 작성할 수 있습니다.")
         }
 
@@ -65,8 +65,8 @@ class ReportService(
 
             // 알림
             noticeService.send(
-                application.post!!.client.id,
-                C_REPORT_WRITE.of(application.post!!.title),
+                application.post.client.id,
+                C_REPORT_WRITE.of(application.post.title),
                 U_REPORT_WRITE.of(applicationId),
             )
 
@@ -90,8 +90,8 @@ class ReportService(
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
         // 진료 내용은 민감정보이므로 해당 동행 건의 의뢰인과 동행인만 조회 가능
-        val clientId = application.post!!.client.id
-        val escortId = application.escort!!.id
+        val clientId = application.post.client.id
+        val escortId = application.escort.id
 
         if (actorId != clientId && actorId != escortId) {
             throw ForbiddenException(52, "본인의 동행 건만 조회할 수 있습니다.")

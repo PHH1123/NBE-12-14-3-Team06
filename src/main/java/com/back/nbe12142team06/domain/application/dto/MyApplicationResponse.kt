@@ -24,17 +24,17 @@ data class MyApplicationResponse(
 ) {
     constructor(application: Application) : this(
         application.id,
-        application.post!!.id,
+        application.post.id,
         application.status,
-        application.post!!.postStatus,
-        application.post!!.title,
-        application.post!!.hospitalName,
-        application.post!!.region,
-        application.post!!.hospitalAddress,
-        application.post!!.escortStartAt,
-        application.post!!.escortEndAt,
-        application.post!!.hourlyPay,
-        application.post!!.escortHours,
-        application.post!!.content,
+        application.post.postStatus,
+        application.post.title,
+        application.post.hospitalName,
+        application.post.region,
+        application.post.hospitalAddress,
+        application.post.escortStartAt,
+        application.post.escortEndAt,
+        application.post.hourlyPay,
+        application.post.escortHours,
+        application.post.content,
     )
 }
