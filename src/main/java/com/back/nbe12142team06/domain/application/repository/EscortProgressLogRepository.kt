@@ -19,5 +19,5 @@ interface EscortProgressLogRepository : JpaRepository<EscortProgressLog, Long> {
 
     fun findTopByApplicationOrderByOccurredAtDescIdDesc(
         application: Application,
-    ): Optional<EscortProgressLog>
+    ): EscortProgressLog?
 }

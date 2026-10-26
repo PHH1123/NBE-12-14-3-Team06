@@ -321,8 +321,8 @@ open class ApplicationService(
 
     private fun currentProgressOf(application: Application): EscortProgress =
         escortProgressLogRepository.findTopByApplicationOrderByOccurredAtDescIdDesc(application)
-            .map { it.progress }
-            .orElse(EscortProgress.NOT_STARTED) ?: EscortProgress.NOT_STARTED
+            ?.progress
+            ?: EscortProgress.NOT_STARTED
 
     private fun nextProgressOf(current: EscortProgress): EscortProgress? = when (current) {
         EscortProgress.NOT_STARTED -> EscortProgress.DEPARTED

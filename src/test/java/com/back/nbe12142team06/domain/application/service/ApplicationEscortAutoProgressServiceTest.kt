@@ -166,8 +166,8 @@ class ApplicationEscortAutoProgressServiceTest {
 
     private fun currentProgress(): EscortProgress = escortProgressLogRepository
         .findTopByApplicationOrderByOccurredAtDescIdDesc(application)
-        .map { log -> log.progress }
-        .orElse(EscortProgress.NOT_STARTED) ?: EscortProgress.NOT_STARTED
+        ?.progress
+        ?: EscortProgress.NOT_STARTED
 
     // ===== 병원 도착 (TO_HOSPITAL -> AT_HOSPITAL) =====
 

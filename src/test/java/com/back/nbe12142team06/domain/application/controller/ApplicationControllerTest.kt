@@ -2097,8 +2097,7 @@ class ApplicationControllerTest {
 
         // 마지막 진행 상태가 ARRIVED_HOME인지 확인
         val latestProgress = escortProgressLogRepository
-                .findTopByApplicationOrderByOccurredAtDescIdDesc(application)
-                .orElseThrow()
+                .findTopByApplicationOrderByOccurredAtDescIdDesc(application)!!
                 .progress
 
         assertEquals(
