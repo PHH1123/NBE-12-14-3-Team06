@@ -247,8 +247,8 @@ class ApplicationEscortAutoProgressServiceTest {
         givenProgress(EscortProgress.TO_HOSPITAL)
         sendLocation(at(HOSPITAL_LAT, HOSPITAL_LNG, 0.001, GOOD_ACCURACY))
         applicationService.updateProgress(application.id, escort.id, EscortProgress.TO_HOME)
-        val autoLog = escortProgressLogRepository.findByApplicationAndProgress(application, EscortProgress.AT_HOSPITAL).orElseThrow()
-        val buttonLog = escortProgressLogRepository.findByApplicationAndProgress(application, EscortProgress.TO_HOME).orElseThrow()
+        val autoLog = escortProgressLogRepository.findByApplicationAndProgress(application, EscortProgress.AT_HOSPITAL)!!
+        val buttonLog = escortProgressLogRepository.findByApplicationAndProgress(application, EscortProgress.TO_HOME)!!
         assertThat(autoLog.source).isEqualTo(EscortProgressLog.ProgressSource.AUTO_GPS)
         assertThat(buttonLog.source).isEqualTo(EscortProgressLog.ProgressSource.BUTTON)
     }

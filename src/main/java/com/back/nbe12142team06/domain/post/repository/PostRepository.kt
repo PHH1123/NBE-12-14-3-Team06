@@ -63,7 +63,7 @@ interface PostRepository : JpaRepository<Post, Long> {
             "FROM Post p JOIN FETCH p.client " +
             "WHERE p.id = :id",
     )
-    fun findByIdWithClient(@Param("id") id: Long): Optional<Post>
+    fun findByIdWithClient(@Param("id") id: Long): Post?
 
     // 내가 작성한 공고 목록 — 결제 상태와 무관하게(READY·PARTIAL_CANCELED 등도) 본인 소유 공고는 전부 보여줘야 하므로
     // search()/findAllWithClient() 의 "결제 DONE만" 조건을 넣지 않는다.

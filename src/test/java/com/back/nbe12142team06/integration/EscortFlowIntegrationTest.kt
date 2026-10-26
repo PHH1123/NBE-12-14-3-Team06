@@ -381,11 +381,10 @@ class EscortFlowIntegrationTest {
         // 계획/실제 동행 시간이 같은 경로에서 정산 금액을 검증하기 위한 테스트 데이터 조정이다.
         val application = applicationRepository.findById(applicationId).orElseThrow()
         val arrivedAt = escortProgressLogRepository
-            .findByApplicationAndProgress(application, EscortProgress.ARRIVED_HOME)
-            .orElseThrow().occurredAt
+            .findByApplicationAndProgress(application, EscortProgress.ARRIVED_HOME)!!
+            .occurredAt
         val departedLog = escortProgressLogRepository
-            .findByApplicationAndProgress(application, EscortProgress.DEPARTED)
-            .orElseThrow()
+            .findByApplicationAndProgress(application, EscortProgress.DEPARTED)!!
         escortProgressLogRepository.delete(departedLog)
         escortProgressLogRepository.saveAndFlush(
             EscortProgressLog(

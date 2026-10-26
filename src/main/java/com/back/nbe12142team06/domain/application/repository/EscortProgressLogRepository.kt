@@ -10,7 +10,7 @@ interface EscortProgressLogRepository : JpaRepository<EscortProgressLog, Long> {
     fun findByApplicationAndProgress(
         application: Application,
         progress: EscortProgress,
-    ): Optional<EscortProgressLog>
+    ): EscortProgressLog?
 
     fun existsByApplicationAndProgress(
         application: Application,

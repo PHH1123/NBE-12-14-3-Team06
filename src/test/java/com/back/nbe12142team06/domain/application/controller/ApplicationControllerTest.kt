@@ -2089,8 +2089,7 @@ class ApplicationControllerTest {
         // 모든 진행 단계가 실제로 저장됐는지 확인
         for (progress in progressList) {
             val savedProgress = escortProgressLogRepository
-                    .findByApplicationAndProgress(application, progress)
-                    .orElseThrow()
+                    .findByApplicationAndProgress(application, progress)!!
                     .progress
 
             assertEquals(progress, savedProgress)
@@ -2120,8 +2119,7 @@ class ApplicationControllerTest {
                 .findByApplicationAndProgress(
                         application,
                         EscortProgress.DEPARTED
-                )
-                .orElseThrow()
+                )!!
                 .occurredAt
 
         assertEquals(

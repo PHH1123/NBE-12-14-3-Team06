@@ -61,7 +61,7 @@ class PostService(
 
     fun findById(postId: Long): Post {
         return postRepository.findByIdWithClient(postId)
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
     }
 
     private fun getUser(userId: Long): User {
@@ -147,7 +147,7 @@ class PostService(
     fun modify(postId: Long, userId: Long, request: PostWriteRequest) {
         val user = getUser(userId)
         val post = postRepository.findByIdWithClient(postId)
-            .orElseThrow { NotFoundException(1, "${postId}번 공고가 없습니다.") }
+            ?:throw NotFoundException(1, "${postId}번 공고가 없습니다.")
 
         if (user.role != Role.CLIENT && user.role != Role.ADMIN) {
             throw ForbiddenException(12, "공고 수정 권한이 없습니다. 의뢰인으로 로그인 해주세요.")
@@ -299,17 +299,15 @@ class PostService(
             ?: throw NotFoundException(21, "매칭된 지원 내역이 없습니다.")
 
         // 출발(DEPARTED) 시각 조회
-        val departedAt = escortProgressLogRepository
+        val departedAt = (escortProgressLogRepository
             .findByApplicationAndProgress(application, EscortProgress.DEPARTED)
-            .map { it.occurredAt }
-            .orElseThrow { NotFoundException(22, "동행 출발 기록이 없습니다.") }
-            ?: throw NotFoundException(22, "동행 출발 기록이 없습니다.")
+            ?.occurredAt
+            ?: throw NotFoundException(22, "동행 출발 기록이 없습니다."))
 
         // 귀가완료(ARRIVED_HOME) 시각 조회
         val arrivedAt = escortProgressLogRepository
             .findByApplicationAndProgress(application, EscortProgress.ARRIVED_HOME)
-            .map { it.occurredAt }
-            .orElseThrow { NotFoundException(23, "귀가완료 기록이 없습니다.") }
+            ?.occurredAt
             ?: throw NotFoundException(23, "귀가완료 기록이 없습니다.")
 
         // 동행 매니저 프로필 존재 확인 — 외부 결제 API(validPayment)보다 먼저 검증한다.
