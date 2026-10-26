@@ -69,31 +69,31 @@ class ApplyCancelReapplyTest {
         val phoneTag = tag.substring(tag.length - 7)
 
         val client = userRepository.save(
-            User.builder()
-                .username("apply-client-$tag")
-                .password("pw")
-                .email("apply-client-$tag@test.com")
-                .name("의뢰인")
-                .role(Role.CLIENT)
-                .gender(Gender.MALE)
-                .birthDate(LocalDate.of(1970, 1, 1))
-                .phoneNum("010${phoneTag}1")
-                .region("수원")
-                .build(),
+            User(
+                username = "apply-client-$tag",
+                password = "pw",
+                email = "apply-client-$tag@test.com",
+                name = "의뢰인",
+                role = Role.CLIENT,
+                gender = Gender.MALE,
+                birthDate = LocalDate.of(1970, 1, 1),
+                phoneNum = "010${phoneTag}1",
+                region = "수원",
+            ),
         )
 
         val escort = userRepository.save(
-            User.builder()
-                .username("apply-escort-$tag")
-                .password("pw")
-                .email("apply-escort-$tag@test.com")
-                .name("동행인")
-                .role(Role.ESCORT)
-                .gender(Gender.FEMALE)
-                .birthDate(LocalDate.of(1995, 1, 1))
-                .phoneNum("010${phoneTag}2")
-                .region("수원")
-                .build(),
+            User(
+                username = "apply-escort-$tag",
+                password = "pw",
+                email = "apply-escort-$tag@test.com",
+                name = "동행인",
+                role = Role.ESCORT,
+                gender = Gender.FEMALE,
+                birthDate = LocalDate.of(1995, 1, 1),
+                phoneNum = "010${phoneTag}2",
+                region = "수원",
+            ),
         )
 
         val escortProfile = EscortProfile(escort, "자기소개", "국민은행", "동행인", "1234567890")
