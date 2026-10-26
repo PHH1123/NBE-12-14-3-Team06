@@ -4,12 +4,12 @@ import com.back.nbe12142team06.domain.report.dto.ReportSummary
 import com.back.nbe12142team06.domain.report.entity.Report
 import com.back.nbe12142team06.domain.report.repository.ReportRepository
 import com.back.nbe12142team06.global.exception.NotFoundException
-import com.fasterxml.jackson.core.JsonProcessingException
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import tools.jackson.core.JacksonException
+import tools.jackson.databind.ObjectMapper
 
 /**
  * 트랜잭션 경계를 분리하기 위한 클래스.
@@ -62,7 +62,7 @@ class ReportSummaryUpdater(
 
         try {
             report.applySummary(objectMapper.writeValueAsString(summary))
-        } catch (e: JsonProcessingException) {
+        } catch (e: JacksonException) {
             log.error("요약 결과 직렬화 실패 - reportId: {}", reportId, e)
         }
     }

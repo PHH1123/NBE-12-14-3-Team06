@@ -1,14 +1,13 @@
 package com.back.nbe12142team06.domain.report.summarizer
 
 import com.back.nbe12142team06.domain.report.dto.ReportSummary
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.model.ChatResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Component
+import tools.jackson.databind.ObjectMapper
 import java.nio.charset.StandardCharsets
 
 /**
@@ -29,7 +28,6 @@ class ClaudeReportSummarizer(
 
     // 응답에 우리가 모르는 필드가 섞여도 깨지지 않도록 설정한다.
     private val objectMapper: ObjectMapper = ObjectMapper()
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     override fun summarize(maskedContent: String): ReportSummary {
         val response = chatClient.prompt()

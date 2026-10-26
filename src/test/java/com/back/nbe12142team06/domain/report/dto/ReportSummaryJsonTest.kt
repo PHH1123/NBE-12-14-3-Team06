@@ -1,17 +1,15 @@
 package com.back.nbe12142team06.domain.report.dto
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import tools.jackson.databind.ObjectMapper
 
 // ClaudeReportSummarizer 와 ReportSummaryUpdater 가 쓰는 Jackson(com.fasterxml)으로
 // ReportSummary 를 읽고 쓸 수 있는지 확인한다. 실제 Claude 호출 경로는 테스트(Fake 사용)에서 타지 않아 따로 둔다.
 class ReportSummaryJsonTest {
 
     private val objectMapper: ObjectMapper = ObjectMapper()
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     @Test
     @DisplayName("요약 JSON 을 ReportSummary 로 읽는다 (모르는 필드는 무시, 없는 항목은 null)")
