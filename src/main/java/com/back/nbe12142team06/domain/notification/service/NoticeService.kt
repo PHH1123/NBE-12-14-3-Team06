@@ -7,7 +7,6 @@ import com.back.nbe12142team06.domain.notification.repository.NotificationReposi
 import com.back.nbe12142team06.global.exception.ForbiddenException
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.exception.NotFoundException
-import lombok.RequiredArgsConstructor
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -17,7 +16,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.io.IOException
 
 @Service
-@RequiredArgsConstructor
 class NoticeService(
     private val notificationRepository: NotificationRepository,
     private val emitterRepository: EmitterRepository,
@@ -30,14 +28,14 @@ class NoticeService(
         val sseEmitter = SseEmitter(300000L)
         emitterRepository.save(userId, emitterId, sseEmitter)
 
-        // 연결 전송
-        sendToClient(sseEmitter, emitterId, "connect")
-
         // 연결 종료 시 인메모리 해시맵에서 제거 예약
         sseEmitter.onCompletion { emitterRepository.delete(userId, emitterId) }
 
         sseEmitter.onTimeout { sseEmitter.complete() }
         sseEmitter.onError { sseEmitter.complete() }
+
+        // 연결 전송
+        sendToClient(sseEmitter, emitterId, "connect")
 
         return sseEmitter
     }
