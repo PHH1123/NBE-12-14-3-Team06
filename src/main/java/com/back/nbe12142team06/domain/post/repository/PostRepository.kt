@@ -77,7 +77,7 @@ interface PostRepository : JpaRepository<Post, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Post p WHERE p.id = :id")
-    fun findByIdWithLock(@Param("id") id: Long): Optional<Post>
+    fun findByIdWithLock(@Param("id") id: Long): Post?
 
     //상태코드 만료처리
     fun findAllByPostStatusAndRecruitEndAtBefore(postStatus: PostStatus, dateTime: LocalDateTime): List<Post>

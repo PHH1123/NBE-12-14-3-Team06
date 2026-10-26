@@ -194,7 +194,7 @@ class PostService(
     fun delete(postId: Long, userId: Long) {
         val user = getUser(userId)
         val post = postRepository.findByIdWithLock(postId)
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
 
         if (user.role != Role.CLIENT && user.role != Role.ADMIN) {
             throw ForbiddenException(14, "공고 삭제 권한이 없습니다.")
@@ -222,7 +222,7 @@ class PostService(
         val user = getUser(userId)
         //Post post = findById(postId);
         val post = postRepository.findByIdWithLock(postId)
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
 
         if (user.role != Role.CLIENT && user.role != Role.ADMIN) {
             throw ForbiddenException(16, "매칭 취소 권한이 없습니다.")
@@ -278,7 +278,7 @@ class PostService(
         val user = getUser(userId)
         // 실시간 위치 저장·진행 단계 변경과 같은 Post 락으로 종료 처리를 직렬화한다.
         val post = postRepository.findByIdWithLock(postId)
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
 
         if (user.role != Role.CLIENT && user.role != Role.ADMIN) {
             throw ForbiddenException(18, "공고 동행완료 처리 권한이 없습니다.")
@@ -377,7 +377,7 @@ class PostService(
         getUser(userId)
 
         val post = postRepository.findByIdWithLock(postId)
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
 
         // 모집 중(OPEN)이거나 매칭된(MATCHED) 공고만 취소할 수 있다.
         if (post.postStatus != PostStatus.OPEN && post.postStatus != PostStatus.MATCHED) {

@@ -72,8 +72,8 @@ class ApplicationLocationServiceTest {
 
     private fun prepareLocationWrite() {
         prepareAcceptedApplication()
-        `when`(applicationRepository.findPostIdById(APPLICATION_ID)).thenReturn(Optional.of(POST_ID))
-        `when`(postRepository.findByIdWithLock(POST_ID)).thenReturn(Optional.of(post))
+        `when`(applicationRepository.findPostIdById(APPLICATION_ID)).thenReturn(POST_ID)
+        `when`(postRepository.findByIdWithLock(POST_ID)).thenReturn(post)
         `when`(post.postStatus).thenReturn(PostStatus.IN_PROGRESS)
     }
 
@@ -140,9 +140,9 @@ class ApplicationLocationServiceTest {
 
     @Test
     fun arrivedHomeClearsAllLocationColumnsImmediately() {
-        `when`(applicationRepository.findPostIdById(APPLICATION_ID)).thenReturn(Optional.of(POST_ID))
-        `when`(postRepository.findByIdWithLock(POST_ID)).thenReturn(Optional.of(post))
-        `when`(applicationRepository.findByIdWithLock(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findPostIdById(APPLICATION_ID)).thenReturn(POST_ID)
+        `when`(postRepository.findByIdWithLock(POST_ID)).thenReturn(post)
+        `when`(applicationRepository.findByIdWithLock(APPLICATION_ID)).thenReturn(application)
         `when`(application.escort).thenReturn(escort)
         `when`(escort.id).thenReturn(ESCORT_ID)
         `when`(application.status).thenReturn(ApplicationStatus.ACCEPTED)

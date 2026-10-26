@@ -54,5 +54,5 @@ interface UserRepository : JpaRepository<User, Long> {
     // 비관적 잠금 조회 (탈퇴, 정지, 지원 수락/취소 동시성 제어)
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.id = :id")
-    fun findByIdWithLock(@Param("id") id: Long): Optional<User>
+    fun findByIdWithLock(@Param("id") id: Long): User?
 }

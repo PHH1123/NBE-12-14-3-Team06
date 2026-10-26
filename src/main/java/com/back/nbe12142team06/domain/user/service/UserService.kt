@@ -182,7 +182,7 @@ class UserService(
     @Transactional
     fun deleteMyProfile(id: Long) {
         val user = userRepository.findByIdWithLock(id)
-            .orElseThrow { UnauthorizedException(3, "회원 정보를 찾을 수 없습니다. 다시 로그인해주세요.") }
+            ?: throw UnauthorizedException(3, "회원 정보를 찾을 수 없습니다. 다시 로그인해주세요.")
 
         if (user.role == Role.ADMIN) {
             throw InvalidException(3, "관리자는 자신의 계정을 탈퇴시킬 수 없습니다.")
@@ -449,7 +449,7 @@ class UserService(
     // 정지 대상 회원 조회 (잠금) + 관리자 정지 불가 검사
     private fun findPenaltyTarget(userId: Long): User {
         val user = userRepository.findByIdWithLock(userId)
-            .orElseThrow { NotFoundException(1, "회원 정보를 찾을 수 없습니다.") }
+            ?: throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
 
         // 관리자에게 정지 불가
         if (user.role == Role.ADMIN) {

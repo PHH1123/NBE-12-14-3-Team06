@@ -91,15 +91,15 @@ interface ApplicationRepository : JpaRepository<Application, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Application a WHERE a.id = :id")
-    fun findByIdWithLock(@Param("id") id: Long?): Optional<Application>
+    fun findByIdWithLock(@Param("id") id: Long?): Application?
 
     // 지원 ID로 공고 ID만 조회
     @Query("SELECT a.post.id FROM Application a WHERE a.id = :id")
-    fun findPostIdById(@Param("id") id: Long?): Optional<Long>
+    fun findPostIdById(@Param("id") id: Long?): Long?
 
     // 지원 ID로 동행매니저 ID만 조회
     @Query("SELECT a.escort.id FROM Application a WHERE a.id = :id")
-    fun findEscortIdById(@Param("id") id: Long?): Optional<Long>
+    fun findEscortIdById(@Param("id") id: Long?): Long?
 
     // 위치 컬럼만 조건부 UPDATE하여 지원 상태 변경과의 충돌을 방지한다.
     // ACCEPTED + IN_PROGRESS + 귀가 완료 전인 지원에서만 허용한다.

@@ -76,15 +76,15 @@ class ApplicationCancelServiceTest {
         val application = mock(Application::class.java)
         val post = mock(Post::class.java)
 
-        `when`(applicationRepository.findEscortIdById(applicationId)).thenReturn(Optional.of(escortId))
-        `when`(userRepository.findByIdWithLock(escortId)).thenReturn(Optional.of(escort))
-        `when`(applicationRepository.findPostIdById(applicationId)).thenReturn(Optional.of(postId))
-        `when`(applicationRepository.findByIdWithLock(applicationId)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findEscortIdById(applicationId)).thenReturn(escortId)
+        `when`(userRepository.findByIdWithLock(escortId)).thenReturn(escort)
+        `when`(applicationRepository.findPostIdById(applicationId)).thenReturn(postId)
+        `when`(applicationRepository.findByIdWithLock(applicationId)).thenReturn(application)
 
         `when`(escort.id).thenReturn(escortId)
         `when`(application.status).thenReturn(ApplicationStatus.ACCEPTED)
         `when`(post.postStatus).thenReturn(status)
-        `when`(postRepository.findByIdWithLock(postId)).thenReturn(Optional.of(post))
+        `when`(postRepository.findByIdWithLock(postId)).thenReturn(post)
 
         // when & then
         val exception = assertThrows(InvalidException::class.java) {
@@ -110,11 +110,11 @@ class ApplicationCancelServiceTest {
         val application = mock(Application::class.java)
         val post = mock(Post::class.java)
 
-        `when`(applicationRepository.findEscortIdById(applicationId)).thenReturn(Optional.of(escortId))
-        `when`(userRepository.findByIdWithLock(escortId)).thenReturn(Optional.of(escort))
-        `when`(applicationRepository.findPostIdById(applicationId)).thenReturn(Optional.of(postId))
-        `when`(postRepository.findByIdWithLock(postId)).thenReturn(Optional.of(post))
-        `when`(applicationRepository.findByIdWithLock(applicationId)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findEscortIdById(applicationId)).thenReturn(escortId)
+        `when`(userRepository.findByIdWithLock(escortId)).thenReturn(escort)
+        `when`(applicationRepository.findPostIdById(applicationId)).thenReturn(postId)
+        `when`(postRepository.findByIdWithLock(postId)).thenReturn(post)
+        `when`(applicationRepository.findByIdWithLock(applicationId)).thenReturn(application)
 
         `when`(escort.id).thenReturn(escortId)
         `when`(application.status).thenReturn(ApplicationStatus.PENDING)
@@ -141,10 +141,10 @@ class ApplicationCancelServiceTest {
         val post = mock(Post::class.java)
         val escortProfile = mock(EscortProfile::class.java)
 
-        `when`(applicationRepository.findEscortIdById(applicationId)).thenReturn(Optional.of(escortId))
-        `when`(userRepository.findByIdWithLock(escortId)).thenReturn(Optional.of(escort))
-        `when`(applicationRepository.findPostIdById(applicationId)).thenReturn(Optional.of(postId))
-        `when`(applicationRepository.findByIdWithLock(applicationId)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findEscortIdById(applicationId)).thenReturn(escortId)
+        `when`(userRepository.findByIdWithLock(escortId)).thenReturn(escort)
+        `when`(applicationRepository.findPostIdById(applicationId)).thenReturn(postId)
+        `when`(applicationRepository.findByIdWithLock(applicationId)).thenReturn(application)
         `when`(application.escort).thenReturn(escort)
         `when`(escort.id).thenReturn(escortId)
         `when`(application.status).thenReturn(ApplicationStatus.ACCEPTED)
@@ -154,7 +154,7 @@ class ApplicationCancelServiceTest {
         `when`(post.recruitEndAt).thenReturn(LocalDateTime.now().plusDays(1))
         `when`(post.client).thenReturn(client)
 
-        `when`(postRepository.findByIdWithLock(postId)).thenReturn(Optional.of(post))
+        `when`(postRepository.findByIdWithLock(postId)).thenReturn(post)
         `when`(escortProfileRepository.findById(escortId)).thenReturn(Optional.of(escortProfile))
 
         // when

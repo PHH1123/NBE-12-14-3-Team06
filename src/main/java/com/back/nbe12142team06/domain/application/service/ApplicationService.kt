@@ -56,6 +56,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -95,7 +96,7 @@ open class ApplicationService(
     @Transactional
     open fun apply(postId: Long?, userId: Long?): ApplicationApplyResponse {
         val post = postRepository.findByIdWithLock(requireNotNull(postId) { "The given id must not be null" })
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
 
         if (post.postStatus != PostStatus.OPEN) {
             throw InvalidException(21, "모집 중인 공고에만 지원할 수 있습니다.")
@@ -104,8 +105,8 @@ open class ApplicationService(
             throw InvalidException(26, "모집 기간 내에만 지원할 수 있습니다.")
         }
 
-        val escort = userRepository.findById(requireNotNull(userId) { "The given id must not be null" })
-            .orElseThrow { NotFoundException(1, "회원 정보를 찾을 수 없습니다.") }
+        val escort = userRepository.findByIdOrNull(requireNotNull(userId) { "The given id must not be null" })
+            ?:throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
         if (escort.userStatus != UserStatus.ACTIVE) {
             throw ForbiddenException(31, "활성 상태의 회원만 지원할 수 있습니다.")
         }
@@ -113,9 +114,9 @@ open class ApplicationService(
             throw InvalidException(22, "동행인만 공고에 지원할 수 있습니다.")
         }
 
-        val escortProfile = escortProfileRepository.findById(requireNotNull(userId) { "The given id must not be null" })
-            .orElseThrow { InvalidException(23, "동행 매니저 프로필을 등록한 후 지원할 수 있습니다.") }
-        if (escortProfile.verified != true) {
+        val escortProfile = escortProfileRepository.findByIdOrNull(userId)
+            ?: throw InvalidException(23, "동행 매니저 프로필을 등록한 후 지원할 수 있습니다.")
+        if (!escortProfile.verified) {
             throw ForbiddenException(21, "교육 영상 시청을 완료한 후 지원할 수 있습니다.")
         }
         if (applicationRepository.existsByPostAndEscortAndStatusNot(post, escort, ApplicationStatus.CANCELED)) {
@@ -135,8 +136,8 @@ open class ApplicationService(
 
     @Transactional(readOnly = true)
     open fun list(postId: Long?, userId: Long?, pageable: Pageable): Page<ApplicationListResponse> {
-        val post = postRepository.findById(requireNotNull(postId) { "The given id must not be null" })
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+        val post = postRepository.findByIdOrNull(requireNotNull(postId) { "The given id must not be null" })
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
         if (post.client.id != userId) {
             throw ForbiddenException(22, "본인 공고의 지원 목록만 조회할 수 있습니다.")
         }
@@ -149,15 +150,15 @@ open class ApplicationService(
     open fun accept(applicationId: Long?, userId: Long?): ApplicationAcceptResponse {
         // User → Post → Application 순서로 잠금 획득: Java 구현의 동시성 제어 순서를 유지한다.
         val escortId = applicationRepository.findEscortIdById(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val escort = userRepository.findByIdWithLock(escortId)
-            .orElseThrow { NotFoundException(1, "회원 정보를 찾을 수 없습니다.") }
+            ?: throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
         val postId = applicationRepository.findPostIdById(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = postRepository.findByIdWithLock(postId)
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
         val application = applicationRepository.findByIdWithLock(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
         if (post.client.id != userId) {
             throw ForbiddenException(23, "본인 공고의 지원만 승인할 수 있습니다.")
@@ -203,11 +204,11 @@ open class ApplicationService(
     @Transactional
     open fun reject(applicationId: Long?, userId: Long?) {
         val postId = applicationRepository.findPostIdById(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = postRepository.findByIdWithLock(postId)
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
         val application = applicationRepository.findByIdWithLock(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
         if (post.client.id != userId) {
             throw ForbiddenException(24, "본인 공고의 지원만 거절할 수 있습니다.")
@@ -229,15 +230,15 @@ open class ApplicationService(
     open fun cancel(applicationId: Long?, userId: Long?) {
         // 승인과 동일한 User → Post → Application 잠금 순서.
         val escortId = applicationRepository.findEscortIdById(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val escort = userRepository.findByIdWithLock(escortId)
-            .orElseThrow { NotFoundException(1, "회원 정보를 찾을 수 없습니다.") }
+            ?: throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
         val postId = applicationRepository.findPostIdById(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = postRepository.findByIdWithLock(postId)
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
         val application = applicationRepository.findByIdWithLock(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
         if (escort.id != userId) {
             throw ForbiddenException(25, "본인이 지원한 내역만 취소할 수 있습니다.")
@@ -251,8 +252,8 @@ open class ApplicationService(
             if (post.postStatus == PostStatus.IN_PROGRESS || post.postStatus == PostStatus.COMPLETED) {
                 throw InvalidException(36, "동행 진행 중이거나 완료된 공고는 지원을 취소할 수 없습니다.")
             }
-            val escortProfile = escortProfileRepository.findById(userId)
-                .orElseThrow { NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.") }
+            val escortProfile = escortProfileRepository.findByIdOrNull(userId)
+                ?: throw NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.")
             application.noShow()
             escortProfile.increaseNoShowCount()
             val refreshed = escortService.refreshGrade(escortProfile)
@@ -292,9 +293,9 @@ open class ApplicationService(
         for (candidate in applications) {
             // 조회 후 상태가 바뀔 수 있으므로 잠금을 잡은 다음 재검증한다.
             val post = postRepository.findByIdWithLock(requireNotNull(candidate.post.id) { "Post ID must not be null" })
-                .orElseThrow { NotFoundException(11, "공고가 없습니다.") }
+                ?: throw NotFoundException(11, "공고가 없습니다.")
             val application = applicationRepository.findByIdWithLock(candidate.id)
-                .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+                ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
             if (application.status == ApplicationStatus.PENDING && post.postStatus == PostStatus.OPEN) {
                 application.cancelWithoutPenalty()
                 continue
@@ -346,11 +347,11 @@ open class ApplicationService(
         source: EscortProgressLog.ProgressSource,
     ) {
         val postId = applicationRepository.findPostIdById(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = postRepository.findByIdWithLock(postId)
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
         val application = applicationRepository.findByIdWithLock(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
         if (application.escort.id != userId) {
             throw ForbiddenException(26, "본인의 동행 진행 상태만 변경할 수 있습니다.")
@@ -407,8 +408,8 @@ open class ApplicationService(
 
     @Transactional(readOnly = true)
     open fun getProgress(applicationId: Long?, userId: Long?): ApplicationProgressResponse {
-        val application = applicationRepository.findById(requireNotNull(applicationId) { "The given id must not be null" })
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+        val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val isEscort = application.escort.id == userId
         val isClient = application.post.client.id == userId
         if (!isEscort && !isClient) {
@@ -419,15 +420,15 @@ open class ApplicationService(
 
     @Transactional(readOnly = true)
     open fun getEscortProfile(applicationId: Long?, userId: Long?): ApplicationEscortProfileResponse {
-        val application = applicationRepository.findById(requireNotNull(applicationId) { "The given id must not be null" })
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+        val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = application.post
         if (post.client.id != userId) {
             throw ForbiddenException(20, "본인 공고의 지원자 프로필만 조회할 수 있습니다.")
         }
         val escort = application.escort
-        val escortProfile = escortProfileRepository.findById(escort.id)
-            .orElseThrow { NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.") }
+        val escortProfile = escortProfileRepository.findByIdOrNull(escort.id)
+            ?: throw NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.")
         val rating = if (escortProfile.ratingCount == 0) {
             0.0
         } else {
@@ -452,8 +453,8 @@ open class ApplicationService(
 
     @Transactional(readOnly = true)
     open fun getClientProfile(applicationId: Long?, userId: Long?): ApplicationClientProfileResponse {
-        val application = applicationRepository.findById(requireNotNull(applicationId) { "The given id must not be null" })
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+        val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         if (application.escort.id != userId) {
             throw ForbiddenException(28, "매칭된 의뢰인의 프로필만 조회할 수 있습니다.")
         }
@@ -461,8 +462,8 @@ open class ApplicationService(
             throw ForbiddenException(33, "승인된 동행에서만 의뢰인 정보를 조회할 수 있습니다.")
         }
         val client = application.post.client
-        val clientProfile = clientProfileRepository.findById(client.id)
-            .orElseThrow { NotFoundException(2, "의뢰인 프로필이 존재하지 않습니다.") }
+        val clientProfile = clientProfileRepository.findByIdOrNull(client.id)
+            ?: throw NotFoundException(2, "의뢰인 프로필이 존재하지 않습니다.")
         return ApplicationClientProfileResponse(
             client.id,
             client.name,
@@ -475,8 +476,8 @@ open class ApplicationService(
 
     @Transactional(readOnly = true)
     open fun getMyApplications(userId: Long?): List<MyApplicationResponse> {
-        val escort = userRepository.findById(requireNotNull(userId) { "The given id must not be null" })
-            .orElseThrow { NotFoundException(1, "회원 정보를 찾을 수 없습니다.") }
+        val escort = userRepository.findByIdOrNull(requireNotNull(userId) { "The given id must not be null" })
+            ?: throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
         if (escort.role != Role.ESCORT) {
             throw InvalidException(32, "동행 매니저만 지원 내역을 조회할 수 있습니다.")
         }
@@ -490,11 +491,11 @@ open class ApplicationService(
     @Transactional
     open fun saveLocation(applicationId: Long?, userId: Long?, request: ApplicationLocationRequest) {
         val postId = applicationRepository.findPostIdById(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = postRepository.findByIdWithLock(postId)
-            .orElseThrow { NotFoundException(11, "${postId}번 공고가 없습니다.") }
-        val application = applicationRepository.findById(requireNotNull(applicationId) { "The given id must not be null" })
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+            ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
+        val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
         if (application.escort.id != userId) {
             throw ForbiddenException(29, "본인이 진행하는 동행에서만 실시간 위치를 보낼 수 있습니다.")
@@ -572,8 +573,8 @@ open class ApplicationService(
 
     @Transactional(readOnly = true)
     open fun getLocation(applicationId: Long?, userId: Long?): ApplicationLocationResponse {
-        val application = applicationRepository.findById(requireNotNull(applicationId) { "The given id must not be null" })
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+        val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val isEscort = application.escort.id == userId
         val isClient = application.post.client.id == userId
         if (!isEscort && !isClient) {
