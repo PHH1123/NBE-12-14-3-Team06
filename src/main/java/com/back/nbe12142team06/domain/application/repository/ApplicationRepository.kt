@@ -16,7 +16,6 @@ import org.springframework.data.repository.query.Param
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
-import java.util.Optional
 
 interface ApplicationRepository : JpaRepository<Application, Long> {
     // 취소되지 않은 동일 공고 중복 지원 방지

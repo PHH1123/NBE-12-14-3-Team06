@@ -98,7 +98,7 @@ class ReportService(
         }
 
         val report = reportRepository.findByApplicationId(applicationId)
-            .orElseThrow { NotFoundException(52, "작성된 보고서가 없습니다.") }
+            ?: throw NotFoundException(52, "작성된 보고서가 없습니다.")
 
         return ReportDto(report)
     }
