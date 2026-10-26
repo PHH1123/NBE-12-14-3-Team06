@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
-import java.util.stream.Stream
 
 @Tag(name = "결제", description = "결제 승인, 검증, 조회 및 취소 관련 API")
 @RestController
@@ -53,7 +52,7 @@ class PaymentController(
 
         return RsData(
             "200-43", "결제 정보를 불러왔습니다.",
-            payments.stream().map { payment: Payment -> PaymentResponse(payment) }.toList())
+            payments.map { payment: Payment -> PaymentResponse(payment) })
     }
 
     @Operation(
