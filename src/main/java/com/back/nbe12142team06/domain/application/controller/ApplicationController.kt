@@ -73,7 +73,7 @@ open class ApplicationController(
         @AuthenticationPrincipal actor: SecurityUser,
     ): RsData<Void> {
         applicationService.reject(applicationId, actor.id)
-        return RsData("200-23", "지원 거절이 완료되었습니다.", null)
+        return RsData("200-23", "지원 거절이 완료되었습니다.")
     }
 
     @Operation(summary = "지원 취소", description = "동행자 본인이 지원을 취소합니다.")
@@ -83,7 +83,7 @@ open class ApplicationController(
         @AuthenticationPrincipal actor: SecurityUser,
     ): RsData<Void> {
         applicationService.cancel(applicationId, actor.id)
-        return RsData("200-24", "지원 취소가 완료되었습니다.", null)
+        return RsData("200-24", "지원 취소가 완료되었습니다.")
     }
 
     @Operation(summary = "동행 진행 상태 변경", description = "승인된 동행의 진행 상태를 변경합니다.")
@@ -94,7 +94,7 @@ open class ApplicationController(
         @Valid @RequestBody request: EscortProgressRequest,
     ): RsData<Void> {
         applicationService.updateProgress(applicationId, actor.id, request.progress!!)
-        return RsData("200-25", "동행 진행 상태가 변경되었습니다.", null)
+        return RsData("200-25", "동행 진행 상태가 변경되었습니다.")
     }
 
     @Operation(summary = "동행 진행 상태 조회", description = "승인된 동행의 현재 진행 단계를 조회합니다. 동행 매니저 본인 또는 그 공고를 작성한 의뢰인만 볼 수 있습니다.")
@@ -144,7 +144,7 @@ open class ApplicationController(
         @Valid @RequestBody request: ApplicationLocationRequest,
     ): RsData<Void> {
         applicationService.saveLocation(applicationId, actor.id, request)
-        return RsData("200-30", "실시간 위치가 저장되었습니다.", null)
+        return RsData("200-30", "실시간 위치가 저장되었습니다.")
     }
 
     @Operation(summary = "동행 실시간 위치 조회", description = "동행 진행 중에만 최근 위치를 조회합니다. 해당 동행 매니저 본인과 공고 작성 의뢰인만 볼 수 있으며, 귀가 완료 시 위치정보가 삭제됩니다.")
