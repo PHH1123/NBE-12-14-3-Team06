@@ -1,11 +1,12 @@
 package com.back.nbe12142team06.domain.education.entity
 
 import jakarta.persistence.*
-import org.hibernate.annotations.Check
 
 @Entity
-@Check(constraints = "duration_sec > 0")
-@Table(name = "education_video")
+@Table(
+    name = "education_video",
+    check = [CheckConstraint(name = "chk_duration_sec", constraint = "duration_sec > 0")],
+)
 class EducationVideo internal constructor() {  // JPA용 기본 생성자
 
     @Id
