@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 
 // 리뷰 작성용
-@JvmRecord
 data class ReviewWriteRequest(
     @field:NotNull(message = "별점은 필수 항목입니다.")
     @field:Min(value = 1, message = "별점은 1점 이상이어야 합니다.")

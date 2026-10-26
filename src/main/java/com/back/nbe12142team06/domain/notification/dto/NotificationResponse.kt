@@ -3,7 +3,6 @@ package com.back.nbe12142team06.domain.notification.dto
 import com.back.nbe12142team06.domain.notification.entity.Notification
 import java.time.LocalDateTime
 
-@JvmRecord
 data class NotificationResponse(
     val id: Long,
     val content: String,

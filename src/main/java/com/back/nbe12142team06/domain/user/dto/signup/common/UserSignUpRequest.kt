@@ -5,7 +5,7 @@ import com.back.nbe12142team06.domain.user.enums.Role
 import jakarta.validation.constraints.*
 import java.time.LocalDate
 
-// email 을 정규화해서 보관해야 해서 data class / @JvmRecord 대신 일반 클래스로 둔다
+// email 을 정규화해서 보관해야 해서 data class 대신 일반 클래스로 둔다
 class UserSignUpRequest(
     @field:NotBlank(message = "아이디는 필수 항목입니다.")
     val username: String?,

@@ -4,7 +4,6 @@ import com.back.nbe12142team06.domain.chat.entity.ChatMessage
 import com.back.nbe12142team06.domain.chat.entity.MessageType
 import java.time.LocalDateTime
 
-@JvmRecord
 data class ChatMessageResponse(
     val chatMessageId: Long,
     val senderId: Long,

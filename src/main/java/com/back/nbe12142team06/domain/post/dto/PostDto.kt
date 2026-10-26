@@ -4,7 +4,6 @@ import com.back.nbe12142team06.domain.post.entity.Post
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
-@JvmRecord
 data class PostDto(
     val id: Long?,
     val clientUserId: Long?,

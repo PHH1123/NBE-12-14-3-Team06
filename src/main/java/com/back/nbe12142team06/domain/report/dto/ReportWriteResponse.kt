@@ -3,7 +3,6 @@ package com.back.nbe12142team06.domain.report.dto
 import com.back.nbe12142team06.domain.report.entity.Report
 import java.time.LocalDateTime
 
-@JvmRecord
 data class ReportWriteResponse(
     val id: Long?,
     val applicationId: Long?,

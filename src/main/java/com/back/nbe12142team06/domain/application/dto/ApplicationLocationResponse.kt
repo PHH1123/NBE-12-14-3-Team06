@@ -4,7 +4,6 @@ import com.back.nbe12142team06.domain.application.entity.Application
 import java.math.BigDecimal
 import java.time.Instant
 
-@JvmRecord
 data class ApplicationLocationResponse(
     val lat: BigDecimal?,
     val lng: BigDecimal?,

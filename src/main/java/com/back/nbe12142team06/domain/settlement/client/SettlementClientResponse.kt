@@ -1,6 +1,5 @@
 package com.back.nbe12142team06.domain.settlement.client
 
-@JvmRecord
 data class SettlementClientResponse( // 거래고유번호(API)
     val api_tran_id: String,  // 거래일시(밀리세컨드)
     val api_tran_dtm: String,  // 응답코드(API)
@@ -50,7 +49,6 @@ data class SettlementClientResponse( // 거래고유번호(API)
         )
     )
 
-    @JvmRecord
     data class Res( // 거래순번
         val tran_no: Int,  // 거래고유번호(참가은행)
         val bank_tran_id: String,  // 거래일자(참가은행)

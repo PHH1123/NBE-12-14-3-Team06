@@ -5,7 +5,6 @@ import com.back.nbe12142team06.domain.payment.entity.PaymentStatus
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
-@JvmRecord
 data class PaymentResponse(
     val id: Long?,
     val amount: Int,

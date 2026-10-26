@@ -3,7 +3,6 @@ package com.back.nbe12142team06.domain.post.dto
 import com.back.nbe12142team06.domain.post.entity.Post
 import java.time.LocalDateTime
 
-@JvmRecord
 data class PostWriteResponse(
     val id: Long?,
     val title: String,

@@ -11,7 +11,6 @@ import java.time.LocalDateTime
 // 공고 등록용
 // 필수 항목도 타입은 null 을 허용한다. 값이 빠진 요청이 JSON 변환에서 막히지 않고 검증 메시지(@NotBlank 등)로 응답되게 하기 위해서다.
 // 숫자·불리언은 값이 없으면 0 / false 가 되고 @Min 검증에서 걸러진다 (Java record 와 같은 동작).
-@JvmRecord
 data class PostWriteRequest(
 
     @field:NotBlank(message = "제목은 필수 항목입니다.")

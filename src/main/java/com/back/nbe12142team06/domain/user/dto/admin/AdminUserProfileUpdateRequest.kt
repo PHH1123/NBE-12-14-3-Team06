@@ -3,7 +3,7 @@ package com.back.nbe12142team06.domain.user.dto.admin
 import jakarta.validation.constraints.*
 import java.time.LocalDate
 
-// email 을 정규화해서 보관해야 해서 data class / @JvmRecord 대신 일반 클래스로 둔다
+// email 을 정규화해서 보관해야 해서 data class 대신 일반 클래스로 둔다
 class AdminUserProfileUpdateRequest(
     email: String?,  // 아래 email 프로퍼티에서 정규화해서 보관
 

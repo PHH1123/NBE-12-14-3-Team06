@@ -3,7 +3,6 @@ package com.back.nbe12142team06.domain.settlement.dto
 import com.back.nbe12142team06.domain.settlement.entity.Settlement
 import com.back.nbe12142team06.domain.settlement.entity.SettlementStatus
 
-@JvmRecord
 data class SettlementAnalyticsResponse(
     val totalSettlementAmount: Long,
     val settlementCount: Long,

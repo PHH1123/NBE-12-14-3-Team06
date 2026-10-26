@@ -2,7 +2,6 @@ package com.back.nbe12142team06.domain.user.dto.profile
 
 import com.back.nbe12142team06.domain.user.entity.EscortProfile
 
-@JvmRecord
 data class EscortProfileModifyResponse(
     val userId: Long?,
     val name: String,

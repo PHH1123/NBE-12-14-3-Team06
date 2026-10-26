@@ -2,7 +2,6 @@ package com.back.nbe12142team06.domain.user.dto.signup.common
 
 import com.back.nbe12142team06.domain.user.entity.User
 
-@JvmRecord
 data class UserSignUpResponse(
     val id: Long?,
     val name: String,

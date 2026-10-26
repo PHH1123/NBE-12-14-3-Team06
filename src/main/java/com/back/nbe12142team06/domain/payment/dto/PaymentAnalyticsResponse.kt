@@ -2,7 +2,6 @@ package com.back.nbe12142team06.domain.payment.dto
 
 import com.back.nbe12142team06.domain.payment.entity.Payment
 
-@JvmRecord
 data class PaymentAnalyticsResponse(
     val paidAmount: Long,
     val canceledAmount: Long,

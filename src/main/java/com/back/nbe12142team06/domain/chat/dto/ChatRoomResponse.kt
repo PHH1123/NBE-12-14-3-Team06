@@ -5,7 +5,6 @@ import com.back.nbe12142team06.domain.user.enums.Role
 import com.back.nbe12142team06.global.exception.NotFoundException
 import java.time.LocalDateTime
 
-@JvmRecord
 data class ChatRoomResponse(
     val chatRoomId: Long,
     val partnerId: Long,

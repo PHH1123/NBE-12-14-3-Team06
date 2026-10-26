@@ -3,7 +3,6 @@ package com.back.nbe12142team06.domain.user.dto.profile
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 
-@JvmRecord
 data class ClientProfileRequest(
     @field:NotBlank(message = "보호자 이름은 필수 항목입니다.")
     @field:Size(max = 50, message = "보호자 이름은 50자 이하여야 합니다.")

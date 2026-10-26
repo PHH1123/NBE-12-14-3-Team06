@@ -3,7 +3,6 @@ package com.back.nbe12142team06.domain.user.dto.admin
 import com.back.nbe12142team06.domain.user.entity.User
 import org.springframework.data.domain.Page
 
-@JvmRecord
 data class AdminUserPageResponse(
     val content: List<AdminUserResponse>,
     val page: Int,

@@ -8,7 +8,6 @@ import com.back.nbe12142team06.domain.user.enums.UserStatus
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-@JvmRecord
 data class UserResponse(
     val username: String,
     val email: String,
