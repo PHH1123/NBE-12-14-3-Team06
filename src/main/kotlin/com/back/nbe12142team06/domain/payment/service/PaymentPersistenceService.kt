@@ -52,16 +52,15 @@ class PaymentPersistenceService(
 
     @Transactional
     fun paymentSaveDb(
-        response: ResponseEntity<TossConfirmResponse>,
+        response: TossConfirmResponse,
         paymentId: Long,
         tossPaymentKey: String,
         tossOrderId: String
     ): Payment {
-        val body = response.getBody()
         val payment: Payment = paymentRepository.findByIdFetchJoin(paymentId)
             ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")
         // 승인 시 상태 변경, 더티 체킹으로 자동 변경
-        payment.approvePayment(tossOrderId, tossPaymentKey, body?.method)
+        payment.approvePayment(tossOrderId, tossPaymentKey, response.method)
         return payment
     }
 

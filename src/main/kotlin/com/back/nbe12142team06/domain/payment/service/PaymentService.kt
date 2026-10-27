@@ -26,7 +26,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Service
 class PaymentService(
@@ -47,7 +46,7 @@ class PaymentService(
         val tossOrderId = request.orderId
         val amount = request.amount
 
-        // 2. 외부 API 호출
+        // 외부 API 호출
         val response: ResponseEntity<TossConfirmResponse>
         try {
             response = tossPaymentClient.callApiConfirm(tossPaymentKey, tossOrderId, amount)
@@ -56,9 +55,31 @@ class PaymentService(
             paymentPersistenceService.failedConfirm(paymentId)
             throw e
         }
-        // 3. DB 반영
+
+        // 결과 검증
+        val body = response.body
+            ?: run {
+                log.error("토스 결제 승인 API 실패 - 응답 값이 없습니다.")
+                rollbackConfirm(
+                    paymentId = paymentId,
+                    tossPaymentKey = tossPaymentKey,
+                    amount = amount
+                )
+                throw InternalServerErrorException(43, "토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다.")
+            }
+        if (body.paymentKey != tossPaymentKey || body.orderId != tossOrderId || body.totalAmount != amount) {
+            log.error("토스 결제 승인 API 실패 - 사용자 결제 승인 요청 값과 토스 결제 승인 응답 값이 일치하지 않습니다.")
+            rollbackConfirm(
+                paymentId = paymentId,
+                tossPaymentKey = tossPaymentKey,
+                amount = amount
+            )
+            throw InternalServerErrorException(43, "토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다.")
+        }
+
+        // DB 반영
         try {
-            payment = paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId)
+            payment = paymentPersistenceService.paymentSaveDb(body, paymentId, tossPaymentKey, tossOrderId)
         } catch (e: NotFoundException) {
             log.error("결제 승인 실패", e)
             rollbackConfirm(paymentId, tossPaymentKey, amount)
@@ -102,13 +123,13 @@ class PaymentService(
         isPartialCancel: Boolean,
         createNewPayment: Boolean
     ): Payment {
-        if (payment.paymentStatus == PaymentStatus.CANCELED) {
+        if (payment.paymentStatus == PaymentStatus.CANCELED ||
+            payment.paymentStatus == PaymentStatus.PARTIAL_CANCELED
+        ) {
             throw InvalidException(44, "이미 취소된 결제입니다.")
         }
 
-        if (!(payment.paymentStatus == PaymentStatus.DONE ||
-                    payment.paymentStatus == PaymentStatus.PARTIAL_CANCELED)
-        ) {
+        if (payment.paymentStatus != PaymentStatus.DONE) {
             throw InvalidException(45, "결제 완료 상태가 아닙니다.")
         }
 
@@ -117,7 +138,27 @@ class PaymentService(
         val cancelReason = request.cancelReason
 
         // 외부 API 요청
-        tossPaymentClient.callApiCancel(cancelReason, tossPaymentKey, cancelAmount.toString())
+        val response = tossPaymentClient.callApiCancel(cancelReason, tossPaymentKey, cancelAmount.toString())
+        val body = response.body
+        if (body != null) {
+            if (payment.paymentKey != body.paymentKey ||
+                payment.orderId != body.orderId ||
+                payment.balanceAmount.subtract(cancelAmount).compareTo(BigDecimal(body.balanceAmount)) != 0
+            ) {
+                log.error(
+                    "토스 결제 취소 API 데이터 불일치 - 실제 취소 처리된 것으로 예상되며 정확한 정보는 토스 측에서 직접 확인해야 합니다. 취소 요청은 DB에 반영됩니다. 사용자 취소 요청 값 - paymentKey: {}, orderId: {}, cancelAmount: {} - 토스 취소 응답 값 - paymentKey: {}, orderId: {}, totalAmount: {}, balanceAmount: {}",
+                    payment.paymentKey,
+                    payment.orderId,
+                    cancelAmount,
+                    body.paymentKey,
+                    body.orderId,
+                    body.totalAmount,
+                    body.balanceAmount
+                )
+            }
+        } else {
+            log.error("토스 결제 취소 API 실패 - 응답 값이 없습니다. 결제는 취소 처리는 했지만 실제 취소 여부는 토스 측에서 직접 확인해야 합니다.")
+        }
 
         // DB 반영
         try {

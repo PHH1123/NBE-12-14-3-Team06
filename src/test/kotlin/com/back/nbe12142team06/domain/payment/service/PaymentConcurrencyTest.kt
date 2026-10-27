@@ -110,11 +110,14 @@ class PaymentConcurrencyTest {
         val savedPost = postRepository.save(createPost(savedClient))
         val savedPayment = paymentRepository.save(createPayment(savedPost, PaymentStatus.READY))
 
+        val paymentKey = "tempPaymentKey"
+        val orderId = "tempOrderId"
+
         val request = PaymentConfirmRequest(
-            "tempPaymentKey", "tempOrderId", savedPayment.amount.toString()
+            paymentKey, orderId, savedPayment.amount.toString()
         )
 
-        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", savedPayment.amount.toString())))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", savedPayment.amount.toString(), paymentKey, orderId)))
             .whenever(tossPaymentClient)
             .callApiConfirm(request.paymentKey, request.orderId, request.amount)
 

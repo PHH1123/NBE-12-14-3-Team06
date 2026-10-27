@@ -6,6 +6,7 @@ import com.back.nbe12142team06.domain.notification.service.NoticeService
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest
 import com.back.nbe12142team06.domain.payment.dto.PaymentConfirmRequest
+import com.back.nbe12142team06.domain.payment.dto.TossCancelResponse
 import com.back.nbe12142team06.domain.payment.entity.Payment
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository
@@ -23,6 +24,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -130,6 +132,19 @@ class PaymentServiceTest {
         val idField = User::class.java.getDeclaredField("id")
         idField.isAccessible = true
         idField.set(user, id)
+    }
+
+    private fun stubCancelFlow(payment: Payment) {
+        doAnswer { inv ->
+            val cancelAmount = BigDecimal(inv.getArgument<String>(2))
+            ResponseEntity.ok(TossCancelResponse(
+                method = "카드",
+                totalAmount = payment.amount.toString(),
+                balanceAmount = payment.balanceAmount.subtract(cancelAmount).toString(),
+                paymentKey = payment.paymentKey!!,
+                orderId = payment.orderId!!,
+            ))
+        }.whenever(tossPaymentClient).callApiCancel(any(), any(), any())
     }
 
     @Test
@@ -274,6 +289,7 @@ class PaymentServiceTest {
 
         doReturn(listOf(payment)).whenever(paymentPersistenceService).findByPostId(any())
         doReturn(payment).whenever(paymentPersistenceService).paymentPartialCancelDb(any(), any(), any())
+        stubCancelFlow(payment)
 
         paymentService.validPayment(
             post,
@@ -326,6 +342,7 @@ class PaymentServiceTest {
 
         doReturn(listOf(payment)).whenever(paymentPersistenceService).findByPostId(any())
         doReturn(payment).whenever(paymentPersistenceService).paymentCancelDb(any(), any(), any())
+        stubCancelFlow(payment)
 
         // when
         paymentService.cancel(post)
@@ -339,7 +356,7 @@ class PaymentServiceTest {
     private fun stubConfirmFlow(payment: Payment) {
         doReturn(payment).whenever(paymentPersistenceService).findById(any(), any())
         doReturn(1).whenever(paymentRepository).paymentInProgress(any())
-        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", payment.amount.toString())))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", payment.amount.toString(), "pk", "order")))
             .whenever(tossPaymentClient).callApiConfirm(any(), any(), any())
     }
 
@@ -446,6 +463,7 @@ class PaymentServiceTest {
         val payment = createPayment(post, PaymentStatus.DONE)
 
         doReturn(payment).whenever(paymentPersistenceService).paymentPartialCancelDb(any(), any(), any())
+        stubCancelFlow(payment)
 
         paymentService.cancel(payment, PaymentCancelRequest("사유"), BigDecimal.valueOf(50_000), false, false)
 
@@ -501,6 +519,7 @@ class PaymentServiceTest {
         doReturn(payment).whenever(paymentPersistenceService).paymentCancelDb(any(), any(), any())
         // 취소 선점 성공 (다른 요청이 선점하지 않은 상태)
         doReturn(1).whenever(paymentRepository).paymentCanceling(any(), any())
+        stubCancelFlow(payment)
 
         val canceledPayment = paymentService.cancel(client.id, payment.requiredId, PaymentCancelRequest("사유"))
 
@@ -540,6 +559,8 @@ class PaymentServiceTest {
 
         doReturn(listOf(firstPayment, secondPayment)).whenever(paymentPersistenceService).findByPostId(any())
         doReturn(firstPayment).whenever(paymentPersistenceService).paymentCancelDb(any(), any(), any())
+        stubCancelFlow(firstPayment)
+        stubCancelFlow(secondPayment)
 
         paymentService.cancel(post)
 
