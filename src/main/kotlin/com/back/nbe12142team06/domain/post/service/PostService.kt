@@ -361,7 +361,7 @@ class PostService(
         // 공고마다 cancel 을 태워서 잠금과 상태 검증을 그대로 쓴다.
         for (post in posts) {
             try {
-                cancel(post.id!!, clientId)
+                cancel(post.requiredId, clientId)
             } catch (e: InvalidException) {
                 // 목록을 읽은 뒤 동행이 시작되는 등 공고 상태가 바뀐 경우.
                 // 일부 공고만 취소된 채로 끝나지 않도록 예외를 던져 호출한 쪽의 트랜잭션(탈퇴·정지)을 통째로 롤백한다.

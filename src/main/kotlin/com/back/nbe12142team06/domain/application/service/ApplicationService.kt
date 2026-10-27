@@ -16,6 +16,7 @@ import com.back.nbe12142team06.domain.application.enums.ApplicationStatus
 import com.back.nbe12142team06.domain.application.enums.EscortProgress
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository
+import com.back.nbe12142team06.domain.notification.entity.NotificationContent
 import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_ACCEPT
 import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_APPLY
 import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_CANCELED
@@ -23,6 +24,7 @@ import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_
 import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_PROGRESS_AT_HOSPITAL
 import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_REJECT
 import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_UPDATED_PROGRESS
+import com.back.nbe12142team06.domain.notification.entity.NotificationUrl
 import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_ACCEPT
 import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_APPLY
 import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_CANCELED
@@ -287,18 +289,27 @@ open class ApplicationService(
         )
         for (candidate in applications) {
             // 조회 후 상태가 바뀔 수 있으므로 잠금을 잡은 다음 재검증한다.
-            val post = postRepository.findByIdWithLock(requireNotNull(candidate.post.id) { "Post ID must not be null" })
+            val post = postRepository.findByIdWithLock(candidate.post.requiredId)
                 ?: throw NotFoundException(11, "공고가 없습니다.")
             val application = applicationRepository.findByIdWithLock(candidate.id)
                 ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
             if (application.status == ApplicationStatus.PENDING && post.postStatus == PostStatus.OPEN) {
                 application.cancelWithoutPenalty()
+                noticeService.send(
+                    receiverId = post.client.id,
+                    content = C_APPLICATION_CANCELED.of(application.escort.name, post.title),
+                    url = U_APPLICATION_CANCELED.of(post.requiredId),
+                )
                 continue
             }
             if (application.status == ApplicationStatus.ACCEPTED && post.postStatus == PostStatus.MATCHED) {
                 application.cancelWithoutPenalty()
                 post.matchedCancel()
                 paymentService.cancel(post)
+                noticeService.send(
+                    receiverId = post.client.id,
+                    content = NotificationContent.C_ESCORT_DELETE_APPLICATION_CANCEL.of(),
+                )
                 continue
             }
             throw InvalidException(35, "지원 또는 공고 상태가 변경되어 취소할 수 없습니다.")
