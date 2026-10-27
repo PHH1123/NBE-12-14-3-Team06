@@ -19,7 +19,7 @@ import { useActionDialog } from '@/components/ui/useActionDialog';
 import { PROGRESS_ORDER, fetchProgress } from '@/features/application';
 import { useRequireAuth } from '@/features/auth';
 import { useChatWidget } from '@/features/chat';
-import { LiveMap, useEscortLocation } from '@/features/location';
+import { LiveMap, LocationLegend, useLiveLocations, useShareLocation } from '@/features/location';
 import { fetchPendingPayment, type PaymentDto } from '@/features/payment';
 import { buildKakaoTCallUrl } from '@/lib/kakaoT';
 import { completeEscort, fetchClientEscortCase } from '../api';
@@ -97,13 +97,22 @@ function ProgressTimeline({ escort }: { escort: ClientEscortCase }) {
 }
 
 function LiveLocationCard({ escort, applicationId }: { escort: ClientEscortCase; applicationId: number }) {
-  const ongoing = !escort.postCompleted && (escort.stage === 'ongoing' || escort.stage === 'arrived' || escort.stage === 'finishing');
-  const { location, trail, error } = useEscortLocation(applicationId, ongoing);
+  const ongoing = !escort.postCompleted && (escort.stage === 'ready' || escort.stage === 'ongoing' || escort.stage === 'arrived' || escort.stage === 'finishing');
+  // 내 위치(의뢰인)는 서버로 보내고(share), 동행 매니저의 위치와 두 사람이 가까운지는 서버에서 받아 옵니다(live).
+  // 출발 전부터 귀가 완료 전까지 서로 위치를 보내고 봅니다.
+  const share = useShareLocation(applicationId, ongoing);
+  const live = useLiveLocations(applicationId, ongoing);
+  const { error } = live;
   const [mapFailed, setMapFailed] = useState(false);
-  const showMap = ongoing && !!location && !mapFailed && !error;
+  // 내 위치는 이 기기에서 방금 잰 값을 우선 씁니다.
+  const myPosition = share.position ?? live.client?.position;
+  const showMap = ongoing && (!!live.escort || !!myPosition) && !mapFailed && !error;
   const statusText = !ongoing
     ? escort.stage === 'ready' ? '위치 공유 대기 중' : '위치 공유 종료'
-    : error ? '위치 확인 필요' : location ? '실시간 위치 공유 중' : '위치 확인 중';
+    : error ? '위치 확인 필요'
+      : live.escort && myPosition ? '서로 위치 공유 중'
+        : live.escort ? '매니저 위치 공유 중' : '위치 확인 중';
+  const sharingProblem = ongoing && (share.status === 'denied' || share.status === 'unsupported') ? share.message : undefined;
   return (
     <section className={`${CARD} overflow-hidden`}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E1E5E8] bg-[#F7F8F8] px-6 py-3.5 text-xs">
@@ -111,23 +120,34 @@ function LiveLocationCard({ escort, applicationId }: { escort: ClientEscortCase;
           <span aria-hidden="true" className={`h-2 w-2 rounded-full ${showMap ? 'bg-[#2F7D5B]' : 'bg-[#67717C]'}`} />
           {statusText}
         </span>
-        {location?.updatedAtLabel && <span className="text-[#67717C]">최근 업데이트 {location.updatedAtLabel}</span>}
+        {live.escort?.updatedAtLabel && <span className="text-[#67717C]">최근 업데이트 {live.escort.updatedAtLabel}</span>}
       </div>
       <div className={`relative flex items-center justify-center overflow-hidden ${showMap ? 'aspect-[16/10] bg-[#F2F5F7]' : 'min-h-[230px] bg-[#F2F5F7] sm:min-h-[260px]'}`}>
         {showMap ? (
-          <LiveMap position={location.position} trail={trail} onError={() => setMapFailed(true)} />
+          <LiveMap me="client" escort={live.escort?.position} client={myPosition} trail={live.trail} onError={() => setMapFailed(true)} />
         ) : (
           <div className="flex max-w-sm flex-col items-center gap-3 px-6 py-8 text-center">
             <MapPin className="h-8 w-8 text-[#8197AC]" aria-hidden="true" />
-            <p className="text-sm font-semibold text-[#14243A]">{ongoing ? error || mapFailed ? '위치 정보를 표시할 수 없습니다.' : '매니저 위치를 기다리고 있습니다.' : statusText}</p>
+            <p className="text-sm font-semibold text-[#14243A]">{ongoing ? error || mapFailed ? '위치 정보를 표시할 수 없습니다.' : '서로의 위치를 기다리고 있습니다.' : statusText}</p>
             <p className="text-xs leading-5 text-[#67717C]">
               {ongoing
-                ? error || (mapFailed ? '지도를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.' : '매니저의 위치가 전송되면 실제 지도가 표시됩니다.')
-                : escort.stage === 'ready' ? '동행이 시작되면 매니저가 공유한 위치를 이곳에서 확인할 수 있습니다.' : '동행이 종료되어 위치 공유가 중지되었습니다.'}
+                ? error || (mapFailed ? '지도를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.' : '매니저와 내 위치가 전송되면 실제 지도가 표시됩니다.')
+                : escort.stage === 'ready' ? '동행이 시작되면 매니저와 서로의 위치를 이곳에서 확인할 수 있습니다.' : '동행이 종료되어 위치 공유가 중지되었습니다.'}
             </p>
           </div>
         )}
       </div>
+      {ongoing && (
+        <div className="space-y-1.5 border-t border-[#E1E5E8] px-5 py-3">
+          <LocationLegend me="client" escortKnown={!!live.escort} clientKnown={!!myPosition} />
+          {live.nearby && (
+            <p role="status" className="text-xs font-semibold text-[#2F7D5B]">
+              동행 매니저와 가까워졌습니다{live.distanceMeters !== undefined ? ` (약 ${live.distanceMeters}m)` : ''}.
+            </p>
+          )}
+          {sharingProblem && <p role="alert" className="text-xs text-[#B34035]">{sharingProblem}</p>}
+        </div>
+      )}
       <div className="flex flex-col gap-1 px-5 py-4 text-xs text-[#67717C] sm:flex-row sm:items-center sm:justify-between">
         <span>출발지: {escort.meetingPlace}</span>
         <span className="font-semibold text-[#14243A]">목적지: {escort.hospitalName}</span>

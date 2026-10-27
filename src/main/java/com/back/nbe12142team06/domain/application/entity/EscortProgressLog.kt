@@ -34,27 +34,15 @@ class EscortProgressLog protected constructor() {
     lateinit var occurredAt: LocalDateTime
         protected set
 
-    @field:Enumerated(EnumType.STRING)
-    @field:Column(length = 20)
-    var source: ProgressSource? = null
-        protected set
-
-    enum class ProgressSource {
-        BUTTON,
-        AUTO_GPS,
-    }
-
     // Kotlin 코드에서는 이름 있는 인자로 생성할 수 있다.
     constructor(
         application: Application,
         progress: EscortProgress = EscortProgress.NOT_STARTED,
         occurredAt: LocalDateTime,
-        source: ProgressSource? = null,
     ) : this() {
         this.application = application
         this.progress = progress
         this.occurredAt = occurredAt
-        this.source = source
     }
 
 }

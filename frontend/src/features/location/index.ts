@@ -4,6 +4,16 @@
  */
 export { sendLocation, fetchLocation } from './api';
 export { useShareLocation } from './lib/useShareLocation';
-export { useEscortLocation } from './lib/useEscortLocation';
+export { useLiveLocations } from './lib/useLiveLocations';
 export { default as LiveMap } from './components/LiveMap';
-export type { EscortLocationDto, SendLocationRequest, EscortLocation, LatLng, ShareStatus } from './types';
+export { default as LocationLegend } from './components/LocationLegend';
+export type {
+  LiveLocationsDto,
+  LocationPointDto,
+  SendLocationRequest,
+  LiveLocations,
+  LocationView,
+  LocationRole,
+  LatLng,
+  ShareStatus,
+} from './types';

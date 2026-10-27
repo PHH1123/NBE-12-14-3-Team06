@@ -359,6 +359,16 @@ class EscortFlowIntegrationTest {
         assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.MATCHED)
 
         // 10. 동행 단계 순차 변경
+        // 출발 버튼은 두 사람이 가까울 때만 가능하다: 먼저 같은 자리에서 위치를 보낸다 (실제 API)
+        for (cookie in listOf(escortCookie, clientCookie)) {
+            mvc.perform(
+                post("/api/v1/applications/{applicationId}/location", applicationId)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"lat": 37.5665, "lng": 126.9780, "accuracy": 10}""")
+            ).andExpect(status().isOk())
+        }
+
         mvc.perform(
             patch("/api/v1/applications/{applicationId}/progress", applicationId)
                 .cookie(escortCookie)

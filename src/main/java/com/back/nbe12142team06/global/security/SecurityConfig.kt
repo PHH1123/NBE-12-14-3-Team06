@@ -58,7 +58,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.PATCH, "/api/v1/applications/*/accept", "/api/v1/applications/*/reject")
                     .hasRole("CLIENT")
                     .requestMatchers(HttpMethod.GET, "/api/v1/applications/*/escort-profile").hasRole("CLIENT")
-                    .requestMatchers(HttpMethod.POST, "/api/v1/applications/*/location").hasRole("ESCORT")
+                    .requestMatchers(HttpMethod.POST, "/api/v1/applications/*/location").hasAnyRole("CLIENT", "ESCORT")
                     .requestMatchers(HttpMethod.GET, "/api/v1/applications/*/location").hasAnyRole("CLIENT", "ESCORT")
 
                     // 보고서(작성: 동행인 / 조회: 해당 동행 건의 의뢰인·동행인), 리뷰 작성(의뢰인)

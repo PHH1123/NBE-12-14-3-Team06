@@ -544,6 +544,13 @@ class ApplicationConcurrencyTest {
 
         val applicationId = application.id
 
+        // 출발(DEPARTED)은 두 사람이 가까울 때만 가능하므로 같은 자리의 최신 위치를 넣어 둔다
+        val now = java.time.Instant.now()
+        transactionTemplate.executeWithoutResult {
+            applicationRepository.updateLocation(applicationId, BigDecimal("37.5665000"), BigDecimal("126.9780000"), BigDecimal.TEN, now)
+            applicationRepository.updateClientLocation(applicationId, BigDecimal("37.5665000"), BigDecimal("126.9780000"), BigDecimal.TEN, now)
+        }
+
         val executorService = Executors.newFixedThreadPool(2)
 
         val readyLatch = CountDownLatch(2)
