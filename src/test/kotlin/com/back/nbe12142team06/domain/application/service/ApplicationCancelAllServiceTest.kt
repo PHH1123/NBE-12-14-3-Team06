@@ -83,7 +83,7 @@ class ApplicationCancelAllServiceTest {
         ))
     }
 
-    private fun newPost(owner: User): Post {
+    private fun newPost(owner: User, recruitEndAt: LocalDateTime = LocalDateTime.now().plusDays(1)): Post {
         return postRepository.save(Post(
             client = owner,
             title = "지원취소 테스트 공고",
@@ -98,7 +98,7 @@ class ApplicationCancelAllServiceTest {
             pickupLng = BigDecimal.valueOf(126.9800),
             hourlyPay = 15000,
             recruitStartAt = LocalDateTime.now(),
-            recruitEndAt = LocalDateTime.now().plusDays(1),
+            recruitEndAt = recruitEndAt,
             escortStartAt = LocalDateTime.now().plusDays(2),
             escortEndAt = LocalDateTime.now().plusDays(2).plusHours(3),
             patientNote = "테스트",
@@ -128,10 +128,35 @@ class ApplicationCancelAllServiceTest {
     }
 
     @Test
-    @DisplayName("ACCEPTED 지원은 패널티 없이 취소되고 MATCHED 공고도 취소된다")
-    fun 승인된_지원은_패널티없이_취소된다() {
-        // given: 지원이 승인되어 공고가 매칭된 상황
+    @DisplayName("모집 마감 전에 ACCEPTED 지원이 취소되면 공고는 다시 OPEN 되고 환불하지 않는다")
+    fun 모집마감전_승인된_지원이_취소되면_공고가_재오픈된다() {
+        // given: 모집 마감 전(recruitEndAt = 내일)에 매칭된 공고
         val post = newPost(client)
+        post.match()
+        postRepository.save(post)
+
+        var application = Application(post, escort)
+        application.accept()
+        application = applicationRepository.save(application)
+
+        // when: 탈퇴·정지로 인한 일괄 지원취소
+        applicationService.cancelAllByEscort(escort.id)
+
+        // then: 지원은 취소되고 공고는 다시 모집 중
+        val result = applicationRepository.findById(application.id!!).orElseThrow()
+        val resultPost = postRepository.findById(post.id!!).orElseThrow()
+        assertThat(result.status).isEqualTo(ApplicationStatus.CANCELED)
+        assertThat(result.acceptedPostId).isNull()
+        assertThat(resultPost.postStatus).isEqualTo(PostStatus.OPEN)
+
+        verifyNoInteractions(paymentService)
+    }
+
+    @Test
+    @DisplayName("모집 마감 후 ACCEPTED 지원은 패널티 없이 취소되고 MATCHED 공고도 취소된다")
+    fun 승인된_지원은_패널티없이_취소된다() {
+        // given: 모집 마감 후(recruitEndAt = 1시간 전)에 지원이 승인되어 공고가 매칭된 상황
+        val post = newPost(client, LocalDateTime.now().minusHours(1))
         post.match()
         postRepository.save(post)
 
