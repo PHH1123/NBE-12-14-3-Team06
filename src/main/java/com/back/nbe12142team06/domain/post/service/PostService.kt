@@ -429,7 +429,8 @@ class PostService(
         )
     }
 
-    @Cacheable(cacheNames = ["postList"], key = "#condition + '-' + #pageable ")
+    // sync: 캐시가 비는 순간 동시에 들어온 같은 요청이 전부 DB 를 치지 않고, 한 요청만 조회하고 나머지는 그 결과를 기다린다
+    @Cacheable(cacheNames = ["postList"], key = "#condition + '-' + #pageable ", sync = true)
     fun searchDtos(condition: PostSearchConditionDto, pageable: Pageable): Page<PostDto> {
         return search(condition, pageable).map { PostDto(it, false) }
     }
