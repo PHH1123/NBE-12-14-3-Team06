@@ -329,6 +329,56 @@ class ApplicationLocationControllerTest {
     }
 
     @Test
+    @DisplayName("[위치] 출발 버튼은 위치를 보내지 않았거나 100m 밖이면 400-37 로 거절되고 상태가 바뀌지 않는다")
+    fun 가깝지_않으면_출발할_수_없다() {
+        // 아무도 위치를 보내지 않음
+        pressProgress(EscortProgress.DEPARTED)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.statusCode").value("400-37"))
+
+        // 한쪽만 보냄
+        sendLocation(escortCookie, baseLat, baseLng).andExpect(status().isOk())
+        pressProgress(EscortProgress.DEPARTED).andExpect(status().isBadRequest()).andExpect(jsonPath("$.statusCode").value("400-37"))
+
+        // 둘 다 보냈지만 약 220m 떨어져 있음
+        sendLocation(clientCookie, baseLat.add(BigDecimal("0.002")), baseLng).andExpect(status().isOk())
+        pressProgress(EscortProgress.DEPARTED).andExpect(status().isBadRequest()).andExpect(jsonPath("$.statusCode").value("400-37"))
+
+        assertThat(latestProgressOrNull()).isNull()
+        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.MATCHED)
+    }
+
+    @Test
+    @DisplayName("[위치] 가까워도 한쪽 위치가 30초보다 오래됐으면 출발할 수 없다")
+    fun 위치가_오래되면_출발할_수_없다() {
+        sendLocation(escortCookie, baseLat, baseLng).andExpect(status().isOk())
+        sendLocation(clientCookie, baseLat.add(BigDecimal("0.0005")), baseLng).andExpect(status().isOk())
+        transactionTemplate.executeWithoutResult {
+            applicationRepository.updateClientLocation(
+                applicationId, baseLat.add(BigDecimal("0.0005")), baseLng, BigDecimal.TEN, Instant.now().minusSeconds(120),
+            )
+        }
+
+        pressProgress(EscortProgress.DEPARTED)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.statusCode").value("400-37"))
+    }
+
+    @Test
+    @DisplayName("[위치] 출발 이후 단계(병원 이동 중~귀가 완료)는 서로 멀리 있어도 동행 매니저가 누르면 변경된다")
+    fun 출발_이후_단계는_거리와_상관없다() {
+        startTrip()
+        sendLocation(escortCookie, baseLat, baseLng).andExpect(status().isOk())
+        sendLocation(clientCookie, baseLat.add(BigDecimal("0.05")), baseLng).andExpect(status().isOk())
+        readLocation(escortCookie).andExpect(jsonPath("$.data.nearby").value(false))
+
+        for (step in listOf(EscortProgress.TO_HOSPITAL, EscortProgress.AT_HOSPITAL, EscortProgress.TO_HOME)) {
+            pressProgress(step).andExpect(status().isOk())
+            assertThat(latestProgressOrNull()).isEqualTo(step)
+        }
+    }
+
+    @Test
     @DisplayName("[위치] 공고가 이미 완료된 뒤에는 위치를 보내거나 조회할 수 없다")
     fun 동행_기간이_아니면_공유되지_않는다() {
         startTrip()

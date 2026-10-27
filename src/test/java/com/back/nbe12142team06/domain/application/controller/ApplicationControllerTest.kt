@@ -2059,6 +2059,7 @@ class ApplicationControllerTest {
         post.match()
 
         applicationRepository.save(application)
+        placeEscortAndClientTogether(application)
 
         val progressList = listOf(
                 EscortProgress.DEPARTED,
@@ -2280,6 +2281,7 @@ class ApplicationControllerTest {
         post.match()
 
         applicationRepository.save(application)
+        placeEscortAndClientTogether(application)
 
         val progressList = listOf(
                 EscortProgress.DEPARTED,
@@ -2814,5 +2816,16 @@ class ApplicationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.statusCode").value("400-21"))
                 .andExpect(jsonPath("$.msg").value("모집 중인 공고에만 지원할 수 있습니다."))
+    }
+
+    // 출발 버튼(DEPARTED)은 두 사람이 가까울 때만 누를 수 있으므로, 같은 자리에서 방금 보낸 위치를 넣어 둔다.
+    private fun placeEscortAndClientTogether(application: Application) {
+        val now = java.time.Instant.now()
+        ReflectionTestUtils.setField(application, "lat", BigDecimal("37.5665000"))
+        ReflectionTestUtils.setField(application, "lng", BigDecimal("126.9780000"))
+        ReflectionTestUtils.setField(application, "locationUpdatedAt", now)
+        ReflectionTestUtils.setField(application, "clientLat", BigDecimal("37.5665000"))
+        ReflectionTestUtils.setField(application, "clientLng", BigDecimal("126.9780000"))
+        ReflectionTestUtils.setField(application, "clientLocationUpdatedAt", now)
     }
 }

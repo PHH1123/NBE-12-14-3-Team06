@@ -349,6 +349,17 @@ open class ApplicationService(
         if (progress != nextProgress) {
             throw InvalidException(31, "동행 진행 상태를 순서대로 변경해야 합니다.")
         }
+        // 출발 버튼만 의뢰인과 가까워졌을 때(반경 100m, 두 위치 모두 최근) 누를 수 있다. 나머지 단계는 거리와 무관하다.
+        if (progress == EscortProgress.DEPARTED) {
+            val proximity = proximityOf(
+                application.lat, application.lng, application.locationUpdatedAt,
+                application.clientLat, application.clientLng, application.clientLocationUpdatedAt,
+                Instant.now(),
+            )
+            if (!proximity.nearby) {
+                throw InvalidException(37, "의뢰인과 가까워져야 출발할 수 있습니다.")
+            }
+        }
 
         val occurredAt = LocalDateTime.now()
         escortProgressLogRepository.save(

@@ -86,7 +86,7 @@ open class ApplicationController(
         return RsData("200-24", "지원 취소가 완료되었습니다.")
     }
 
-    @Operation(summary = "동행 진행 상태 변경", description = "승인된 동행의 진행 상태를 변경합니다.")
+    @Operation(summary = "동행 진행 상태 변경", description = "승인된 동행의 진행 상태를 변경합니다. 출발(DEPARTED)은 의뢰인과 100m 이내로 가까워졌을 때만 가능하며(그렇지 않으면 400-37), 나머지 단계는 동행 매니저가 직접 누릅니다.")
     @PatchMapping("/{applicationId}/progress")
     open fun updateProgress(
         @PathVariable("applicationId") applicationId: Long?,
