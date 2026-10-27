@@ -26,6 +26,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
@@ -117,7 +118,7 @@ class ApplicationEscortAutoProgressServiceTest {
         return postRepository.save(post)
     }
 
-    private fun statusOf(post: Post): PostStatus = postRepository.findById(post.requiredId).orElseThrow().postStatus
+    private fun statusOf(post: Post): PostStatus = postRepository.findByIdOrNull(post.requiredId)!!.postStatus
 
     // ===== 준비·확인 도우미 =====
 

@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
@@ -203,9 +204,9 @@ class ReviewControllerTest {
         em.clear()
 
         // 동행 매니저 평점 반영 확인
-        val escortId = applicationRepository.findById(acceptedApplicationId!!)
-            .orElseThrow().escort.id
-        val escortProfile = escortProfileRepository.findById(escortId).orElseThrow()
+        val escortId = applicationRepository.findByIdOrNull(acceptedApplicationId!!)!!
+            .escort.id
+        val escortProfile = escortProfileRepository.findByIdOrNull(escortId)!!
         assertThat(escortProfile.ratingCount).isEqualTo(1)
         assertThat(escortProfile.averageRating).isEqualTo(5.0)
     }
@@ -300,7 +301,7 @@ class ReviewControllerTest {
     fun 리뷰_작성_중복() {
         reviewRepository.save(
             Review(
-                application = applicationRepository.findById(acceptedApplicationId!!).orElseThrow(),
+                application = applicationRepository.findByIdOrNull(acceptedApplicationId!!)!!,
                 rating = 5,
                 tags = setOf(ReviewTag.KIND),
                 content = "기존 리뷰",
@@ -372,7 +373,7 @@ class ReviewControllerTest {
     fun 리뷰_목록_조회_성공() {
         reviewRepository.save(
             Review(
-                application = applicationRepository.findById(acceptedApplicationId!!).orElseThrow(),
+                application = applicationRepository.findByIdOrNull(acceptedApplicationId!!)!!,
                 rating = 5,
                 tags = setOf(ReviewTag.KIND, ReviewTag.PUNCTUAL),
                 content = "어머니를 세심하게 챙겨주셨습니다.",
@@ -425,7 +426,7 @@ class ReviewControllerTest {
         // acceptedApplication 의 동행인(escort1)에게 리뷰 작성
         reviewRepository.save(
             Review(
-                application = applicationRepository.findById(acceptedApplicationId!!).orElseThrow(),
+                application = applicationRepository.findByIdOrNull(acceptedApplicationId!!)!!,
                 rating = 5,
                 content = "escort1 리뷰",
             )
@@ -434,7 +435,7 @@ class ReviewControllerTest {
         // pendingApplication 의 동행인(other1)에게 리뷰 작성
         reviewRepository.save(
             Review(
-                application = applicationRepository.findById(pendingApplicationId!!).orElseThrow(),
+                application = applicationRepository.findByIdOrNull(pendingApplicationId!!)!!,
                 rating = 1,
                 content = "other1 리뷰",
             )

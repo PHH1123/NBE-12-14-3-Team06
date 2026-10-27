@@ -19,6 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.util.ReflectionTestUtils
 import org.springframework.transaction.support.TransactionTemplate
@@ -106,11 +107,11 @@ class EscortGradeServiceTest {
     // 저장이 끝난 뒤의 객체를 그대로 넘기면 영속성 컨텍스트 밖의 객체라 변경 감지가 되지 않는다.
     private fun refresh(escort: EscortProfile): Boolean =
         transactionTemplate.execute {
-            escortService.refreshGrade(escortProfileRepository.findById(escort.requiredId).orElseThrow())
-        } == true
+            escortService.refreshGrade(escortProfileRepository.findByIdOrNull(escort.requiredId)!!)
+        }
 
     private fun storedGradeOf(escort: EscortProfile): EscortGrade =
-        escortProfileRepository.findById(escort.requiredId).orElseThrow().grade
+        escortProfileRepository.findByIdOrNull(escort.requiredId)!!.grade
 
     private fun historiesOf(escort: EscortProfile): List<EscortGradeHistory> =
         escortGradeHistoryRepository.findAllByEscortProfileUserId(escort.requiredId)

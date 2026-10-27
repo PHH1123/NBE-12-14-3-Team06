@@ -34,6 +34,7 @@ import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
@@ -147,7 +148,7 @@ class SettlementServiceTest {
         em.flush()
         em.clear()
 
-        assertThat(settlementRepository.findById(settlement.requiredId).get().settlementStatus)
+        assertThat(settlementRepository.findByIdOrNull(settlement.requiredId)!!.settlementStatus)
             .isEqualTo(SettlementStatus.FAILED)
     }
 
@@ -169,7 +170,7 @@ class SettlementServiceTest {
         em.flush()
         em.clear()
 
-        assertThat(settlementRepository.findById(settlement.requiredId).get().settlementStatus)
+        assertThat(settlementRepository.findByIdOrNull(settlement.requiredId)!!.settlementStatus)
             .isEqualTo(SettlementStatus.COMPLETED)
     }
 
@@ -214,7 +215,7 @@ class SettlementServiceTest {
         em.flush()
         em.clear()
 
-        val completedSettlement = settlementRepository.findById(settlement.requiredId).get()
+        val completedSettlement = settlementRepository.findByIdOrNull(settlement.requiredId)!!
         assertThat(completedSettlement.settlementStatus).isEqualTo(SettlementStatus.COMPLETED)
         // 정산 예정일(내일)은 그대로 유지된다
         assertThat(completedSettlement.settledDate).isEqualTo(LocalDate.now().plusDays(1))

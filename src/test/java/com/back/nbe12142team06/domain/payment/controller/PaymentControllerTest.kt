@@ -36,6 +36,7 @@ import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.test.context.ActiveProfiles
@@ -337,7 +338,7 @@ class PaymentControllerTest {
 
         // 취소 선점(@Modifying clearAutomatically) 이 영속성 컨텍스트를 비우므로
         // 반환된 엔티티가 아니라 DB 에 반영된 결제를 다시 읽어 확인한다
-        val canceledPayment = paymentRepository.findById(savedPayment1Id).get()
+        val canceledPayment = paymentRepository.findByIdOrNull(savedPayment1Id)!!
 
         assertThat(canceledPayment.paymentStatus).isEqualTo(PaymentStatus.CANCELED)
         assertThat(canceledPayment.cancelReason).isEqualTo("결제 취소 사유")
@@ -393,7 +394,7 @@ class PaymentControllerTest {
             .andExpect(jsonPath("$.data.orderId").value("order_test"))
             .andExpect(jsonPath("$.data.amount").value("60000"))
 
-        assertThat(paymentRepository.findById(savedPayment2Id).get().paymentStatus)
+        assertThat(paymentRepository.findByIdOrNull(savedPayment2Id)!!.paymentStatus)
             .isEqualTo(PaymentStatus.DONE)
     }
 
@@ -470,7 +471,7 @@ class PaymentControllerTest {
             .andExpect(jsonPath("$.statusCode").value("204-41"))
             .andExpect(jsonPath("$.msg").value("결제 취소 성공했습니다."))
 
-        assertThat(paymentRepository.findById(savedPayment1Id).get().paymentStatus)
+        assertThat(paymentRepository.findByIdOrNull(savedPayment1Id)!!.paymentStatus)
             .isEqualTo(PaymentStatus.CANCELED)
     }
 

@@ -22,6 +22,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.transaction.annotation.Transactional
@@ -104,10 +105,10 @@ class NoShowPenaltyNotCreatedTest {
 
         applicationService.cancel(application.requiredId, escort.id)
 
-        assertThat(applicationRepository.findById(application.requiredId).orElseThrow().status)
+        assertThat(applicationRepository.findByIdOrNull(application.requiredId)!!.status)
             .isEqualTo(ApplicationStatus.CANCELED)
         assertThat(noShowPenaltyRepository.findByEscortIdAndStatus(escort.id)).isEmpty()
-        assertThat(escortProfileRepository.findById(escort.id).orElseThrow().noShowCount).isEqualTo(0)
+        assertThat(escortProfileRepository.findByIdOrNull(escort.id)!!.noShowCount).isEqualTo(0)
     }
 
     @Test
@@ -119,14 +120,14 @@ class NoShowPenaltyNotCreatedTest {
 
         applicationService.cancelAllByEscort(escort.id)
 
-        assertThat(applicationRepository.findById(accepted.requiredId).orElseThrow().status)
+        assertThat(applicationRepository.findByIdOrNull(accepted.requiredId)!!.status)
             .isEqualTo(ApplicationStatus.CANCELED)
-        assertThat(applicationRepository.findById(pending.requiredId).orElseThrow().status)
+        assertThat(applicationRepository.findByIdOrNull(pending.requiredId)!!.status)
             .isEqualTo(ApplicationStatus.CANCELED)
 
         // 승인된 지원을 취소했어도 탈퇴·정지 경로에는 패널티가 없다
         assertThat(noShowPenaltyRepository.findByEscortIdAndStatus(escort.id)).isEmpty()
-        assertThat(escortProfileRepository.findById(escort.id).orElseThrow().noShowCount).isEqualTo(0)
+        assertThat(escortProfileRepository.findByIdOrNull(escort.id)!!.noShowCount).isEqualTo(0)
     }
 
     @Test
@@ -137,12 +138,12 @@ class NoShowPenaltyNotCreatedTest {
 
         postService.cancel(post.requiredId, client.id)
 
-        assertThat(applicationRepository.findById(accepted.requiredId).orElseThrow().status)
+        assertThat(applicationRepository.findByIdOrNull(accepted.requiredId)!!.status)
             .isEqualTo(ApplicationStatus.CANCELED)
-        assertThat(postRepository.findById(post.requiredId).orElseThrow().postStatus)
+        assertThat(postRepository.findByIdOrNull(post.requiredId)!!.postStatus)
             .isEqualTo(PostStatus.CANCELED)
         assertThat(noShowPenaltyRepository.findByEscortIdAndStatus(escort.id)).isEmpty()
-        assertThat(escortProfileRepository.findById(escort.id).orElseThrow().noShowCount).isEqualTo(0)
+        assertThat(escortProfileRepository.findByIdOrNull(escort.id)!!.noShowCount).isEqualTo(0)
     }
 
     @Test
@@ -153,9 +154,9 @@ class NoShowPenaltyNotCreatedTest {
 
         postService.matchedCancel(post.requiredId, client.id)
 
-        assertThat(applicationRepository.findById(accepted.requiredId).orElseThrow().status)
+        assertThat(applicationRepository.findByIdOrNull(accepted.requiredId)!!.status)
             .isEqualTo(ApplicationStatus.CANCELED)
         assertThat(noShowPenaltyRepository.findByEscortIdAndStatus(escort.id)).isEmpty()
-        assertThat(escortProfileRepository.findById(escort.id).orElseThrow().noShowCount).isEqualTo(0)
+        assertThat(escortProfileRepository.findByIdOrNull(escort.id)!!.noShowCount).isEqualTo(0)
     }
 }

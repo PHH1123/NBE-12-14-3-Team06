@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import org.springframework.transaction.annotation.Transactional
@@ -100,7 +101,7 @@ class NoticeServiceTest {
             .allSatisfy { assertThat(it.isRead).isTrue() }
 
         // 다른 사용자의 알림은 건드리지 않는다
-        assertThat(notificationRepository.findById(othersNotification.requiredId).get().isRead).isFalse()
+        assertThat(notificationRepository.findByIdOrNull(othersNotification.requiredId)!!.isRead).isFalse()
     }
 
     @Test
@@ -147,7 +148,7 @@ class NoticeServiceTest {
         // 남의 알림은 읽음 처리도 되지 않는다
         em.flush()
         em.clear()
-        assertThat(notificationRepository.findById(notification.requiredId).get().isRead).isFalse()
+        assertThat(notificationRepository.findByIdOrNull(notification.requiredId)!!.isRead).isFalse()
     }
 
     @Test
@@ -204,7 +205,7 @@ class NoticeServiceTest {
 
         em.flush()
         em.clear()
-        assertThat(notificationRepository.findById(notification.requiredId).get().deletedAt).isNull()
+        assertThat(notificationRepository.findByIdOrNull(notification.requiredId)!!.deletedAt).isNull()
     }
 
     @Test

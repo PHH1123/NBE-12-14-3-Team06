@@ -132,7 +132,7 @@ class PaymentNotTransactionServiceTest {
         val updatedCount = paymentPersistenceService.confirmUpdateStatus(payment.requiredId)
 
         // 테스트에 트랜잭션이 없으므로 아래 조회는 새 트랜잭션에서 커밋된 상태를 읽는다
-        val reloaded = paymentRepository.findById(payment.requiredId).get()
+        val reloaded = paymentRepository.findByIdOrNull(payment.requiredId)!!
 
         assertThat(updatedCount).isEqualTo(1)
         assertThat(reloaded.paymentStatus).isEqualTo(PaymentStatus.IN_PROGRESS)
@@ -170,7 +170,7 @@ class PaymentNotTransactionServiceTest {
             .hasMessage("토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다.")
 
         // 예외가 그대로 전파됐지만 삭제는 자기 트랜잭션에서 커밋되어 남아 있어야 한다
-        assertThat(paymentRepository.findById(paymentId)).isEmpty()
+        assertThat(paymentRepository.findByIdOrNull(paymentId)).isNull()
     }
 
     @Test
@@ -224,9 +224,9 @@ class PaymentNotTransactionServiceTest {
         assertThat(counts[3]).isEqualTo(0)
 
         // 성공 건은 CANCELED 로 커밋되고, 실패 건은 다음 스케줄링에서 다시 시도되도록 DELETED 로 남는다
-        assertThat(paymentRepository.findById(succeedPayment.requiredId).get().paymentStatus)
+        assertThat(paymentRepository.findByIdOrNull(succeedPayment.requiredId)!!.paymentStatus)
             .isEqualTo(PaymentStatus.CANCELED)
-        assertThat(paymentRepository.findById(failedPayment.requiredId).get().paymentStatus)
+        assertThat(paymentRepository.findByIdOrNull(failedPayment.requiredId)!!.paymentStatus)
             .isEqualTo(PaymentStatus.DELETED)
     }
 
@@ -252,9 +252,9 @@ class PaymentNotTransactionServiceTest {
         assertThat(counts[3]).isEqualTo(1)
 
         verify(tossPaymentClient, times(1)).callApiCancel(any(), any(), any())
-        assertThat(paymentRepository.findById(paidPayment.requiredId).get().paymentStatus)
+        assertThat(paymentRepository.findByIdOrNull(paidPayment.requiredId)!!.paymentStatus)
             .isEqualTo(PaymentStatus.CANCELED)
-        assertThat(paymentRepository.findById(unpaidPayment.requiredId).get().paymentStatus)
+        assertThat(paymentRepository.findByIdOrNull(unpaidPayment.requiredId)!!.paymentStatus)
             .isEqualTo(PaymentStatus.CANCELED)
     }
 

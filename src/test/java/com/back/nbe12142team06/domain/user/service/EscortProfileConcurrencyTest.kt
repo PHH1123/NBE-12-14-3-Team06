@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.OptimisticLockingFailureException
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDate
@@ -113,7 +114,7 @@ class EscortProfileConcurrencyTest {
             // 교육 이수
             race(verifySucceeded) {
                 transactionTemplate.executeWithoutResult {
-                    val profile = escortProfileRepository.findById(userId).orElseThrow()
+                    val profile = escortProfileRepository.findByIdOrNull(userId)!!
                     escortProfileRepository.verify(profile.requiredId, LocalDateTime.now())
                 } // 여기서 커밋 → @Version 비교
             }
@@ -129,7 +130,7 @@ class EscortProfileConcurrencyTest {
             done.await(10, TimeUnit.SECONDS)
         }
 
-        val result = escortProfileRepository.findById(userId).orElseThrow()
+        val result = escortProfileRepository.findByIdOrNull(userId)!!
 
         assertThat(finished).`as`("제한 시간 내 종료").isTrue()
         assertThat(unexpected).`as`("예상하지 못한 예외").isEmpty()

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
@@ -184,7 +185,7 @@ class UserServiceTest {
         em.flush()
         em.clear()
 
-        val profileCheck = escortProfileRepository.findById(saved.id).orElseThrow()
+        val profileCheck = escortProfileRepository.findByIdOrNull(saved.id)!!
 
         assertThat(profileCheck.bankName).isEqualTo("오픈은행")
         assertThat(profileCheck.accountNumber).isEqualTo("123-000000-123")
@@ -203,7 +204,7 @@ class UserServiceTest {
         em.clear()
 
         assertThat(released).isEqualTo(1)
-        val found = userRepository.findById(user.id).orElseThrow()
+        val found = userRepository.findByIdOrNull(user.id)!!
         assertThat(found.userStatus).isEqualTo(UserStatus.ACTIVE)
     }
 
@@ -220,7 +221,7 @@ class UserServiceTest {
         em.clear()
 
         assertThat(released).isZero()
-        val found = userRepository.findById(user.id).orElseThrow()
+        val found = userRepository.findByIdOrNull(user.id)!!
         assertThat(found.userStatus).isEqualTo(UserStatus.SUSPENDED)
     }
 }

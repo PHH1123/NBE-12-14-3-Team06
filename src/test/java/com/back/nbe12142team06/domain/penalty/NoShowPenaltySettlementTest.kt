@@ -27,6 +27,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.util.ReflectionTestUtils
@@ -138,7 +139,7 @@ class NoShowPenaltySettlementTest {
     @DisplayName("[NoShowPenaltyService] 지원 승인 후 취소 패널티")
     fun noShow() {
         // 패널티 적용 되었는지 검증
-        val escortProfile = escortProfileRepository.findById(escort.id).get()
+        val escortProfile = escortProfileRepository.findByIdOrNull(escort.id)!!
         assertThat(escortProfile.noShowCount).isEqualTo(1)
 
         // 동행 시작 -> 동행 완료까지

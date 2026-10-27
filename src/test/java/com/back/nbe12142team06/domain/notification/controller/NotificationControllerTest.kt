@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
@@ -165,7 +166,7 @@ class NotificationControllerTest {
 
         em.flush()
         em.clear()
-        assertThat(notificationRepository.findById(notification.requiredId).get().isRead).isTrue()
+        assertThat(notificationRepository.findByIdOrNull(notification.requiredId)!!.isRead).isTrue()
     }
 
     @Test
@@ -217,7 +218,7 @@ class NotificationControllerTest {
         // 소프트 딜리트되어 목록에서 빠진다
         em.flush()
         em.clear()
-        assertThat(notificationRepository.findById(notification.requiredId).get().deletedAt).isNotNull()
+        assertThat(notificationRepository.findByIdOrNull(notification.requiredId)!!.deletedAt).isNotNull()
         mvc.perform(get("/api/v1/notification").cookie(clientCookie))
             .andExpect(jsonPath("$.data.content.length()").value(0))
     }

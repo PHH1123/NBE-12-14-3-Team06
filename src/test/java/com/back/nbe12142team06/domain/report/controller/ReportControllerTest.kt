@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
@@ -225,7 +226,7 @@ class ReportControllerTest {
 
         reportRepository.save(
             Report(
-                application = applicationRepository.findById(testApplicationId).orElseThrow(),
+                application = applicationRepository.findByIdOrNull(testApplicationId)!!,
                 title = "기존 보고서",
                 department = Department.ORTHOPEDICS,
                 purpose = "기존 목적",
@@ -283,7 +284,7 @@ class ReportControllerTest {
 
         reportRepository.save(
             Report(
-                application = applicationRepository.findById(testApplicationId).orElseThrow(),
+                application = applicationRepository.findByIdOrNull(testApplicationId)!!,
                 title = "9월 22일 정형외과 진료 결과",
                 department = Department.ORTHOPEDICS,
                 purpose = "무릎 통증 검사",
@@ -310,7 +311,7 @@ class ReportControllerTest {
 
         reportRepository.save(
             Report(
-                application = applicationRepository.findById(testApplicationId).orElseThrow(),
+                application = applicationRepository.findByIdOrNull(testApplicationId)!!,
                 title = "정형외과 진료 결과",
                 department = Department.ORTHOPEDICS,
                 purpose = "무릎 통증 검사",
@@ -387,7 +388,7 @@ class ReportControllerTest {
     @DisplayName("[ReportMasker] 외부 API 전송 전 실명과 연락처가 마스킹된다")
     fun 마스킹_적용() {
 
-        val application = applicationRepository.findById(testApplicationId).orElseThrow()
+        val application = applicationRepository.findByIdOrNull(testApplicationId)!!
 
         val origin = "의뢰인1 어르신께서 무릎 통증을 호소하셨습니다. " +
             "보호자 연락처는 010-9999-8888 입니다. 동행인1 이 함께 이동했습니다."

@@ -41,6 +41,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.support.TransactionTemplate
@@ -333,11 +334,9 @@ class ApplicationConcurrencyTest {
         saveVerifiedProfile(escort2, "5678")
 
         // 기존 동행인 조회
-        val escort1 = userRepository.findById(escortId)
-                .orElseThrow()
+        val escort1 = userRepository.findByIdOrNull(escortId)!!
 
-        val post = postRepository.findById(postId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
 
         // 같은 공고에 서로 다른 동행인 2명이 지원한 상태 생성
         var application1 = Application(post, escort1)
@@ -420,8 +419,7 @@ class ApplicationConcurrencyTest {
         doneLatch.await()
 
         // 최종 DB 상태 확인
-        val resultPost = postRepository.findById(postId)
-                .orElseThrow()
+        val resultPost = postRepository.findByIdOrNull(postId)!!
 
         val acceptedCount = applicationRepository
                         .findAllByPostAndStatus(
@@ -444,11 +442,9 @@ class ApplicationConcurrencyTest {
     fun concurrentAcceptAndCancel() {
 
         // 테스트용 지원 1건 생성
-        val escort = userRepository.findById(escortId)
-                .orElseThrow()
+        val escort = userRepository.findByIdOrNull(escortId)!!
 
-        val post = postRepository.findById(postId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
 
         var application = Application(post, escort)
 
@@ -522,11 +518,9 @@ class ApplicationConcurrencyTest {
 
         doneLatch.await()
 
-        val resultApplication = applicationRepository.findById(applicationId)
-                        .orElseThrow()
+        val resultApplication = applicationRepository.findByIdOrNull(applicationId)!!
 
-        val resultPost = postRepository.findById(postId)
-                        .orElseThrow()
+        val resultPost = postRepository.findByIdOrNull(postId)!!
 
         System.out.println(
                 "최종 지원 상태 = "
@@ -575,11 +569,9 @@ class ApplicationConcurrencyTest {
     @DisplayName("같은 진행 상태 변경 요청이 동시에 들어오면 중복 로그가 생성되지 않아야 한다")
     fun concurrentProgressUpdate() {
 
-        val escort = userRepository.findById(escortId)
-                .orElseThrow()
+        val escort = userRepository.findByIdOrNull(escortId)!!
 
-        val post = postRepository.findById(postId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
 
         var application = Application(post, escort)
 
@@ -648,9 +640,9 @@ class ApplicationConcurrencyTest {
     @DisplayName("서로 다른 공고에서 같은 동행인을 동시에 승인")
     fun concurrentAcceptSameEscortDifferentPosts() {
 
-        val client = userRepository.findById(clientId).orElseThrow()
-        val escort = userRepository.findById(escortId).orElseThrow()
-        val post1 = postRepository.findById(postId).orElseThrow()
+        val client = userRepository.findByIdOrNull(clientId)!!
+        val escort = userRepository.findByIdOrNull(escortId)!!
+        val post1 = postRepository.findByIdOrNull(postId)!!
 
         // 기존 공고와 시간이 겹치는 두 번째 공고
         var post2 = Post(
@@ -764,11 +756,9 @@ class ApplicationConcurrencyTest {
     fun concurrentAcceptAndBan() {
 
         // given: 승인 대기 중인 지원 생성
-        val escort = userRepository.findById(escortId)
-                .orElseThrow()
+        val escort = userRepository.findByIdOrNull(escortId)!!
 
-        val post = postRepository.findById(postId)
-                .orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
 
         val application = Application(post, escort)
 
@@ -827,15 +817,12 @@ class ApplicationConcurrencyTest {
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
             // then: 최종 DB 상태 확인
-            val resultEscort = userRepository.findById(escortId)
-                    .orElseThrow()
+            val resultEscort = userRepository.findByIdOrNull(escortId)!!
 
             val resultApplication = applicationRepository
-                    .findById(applicationId)
-                    .orElseThrow()
+                    .findByIdOrNull(applicationId)!!
 
-            val resultPost = postRepository.findById(postId)
-                    .orElseThrow()
+            val resultPost = postRepository.findByIdOrNull(postId)!!
 
             System.out.println("승인 예외 = " + acceptError.get())
             System.out.println("정지 예외 = " + suspendError.get())

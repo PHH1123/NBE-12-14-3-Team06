@@ -22,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -191,7 +192,7 @@ class ChatServiceLifecycleTest {
 
         // 퇴장 안내가 마지막 채팅으로 남는다
         val leaveContent = client.name + leaveRoomMessage
-        assertThat(chatRoomRepository.findById(chatRoom.requiredId).get().lastChatContent)
+        assertThat(chatRoomRepository.findByIdOrNull(chatRoom.requiredId)!!.lastChatContent)
             .isEqualTo(leaveContent)
 
         // 남아 있는 쪽은 퇴장 메시지를 LEAVE 타입으로 본다

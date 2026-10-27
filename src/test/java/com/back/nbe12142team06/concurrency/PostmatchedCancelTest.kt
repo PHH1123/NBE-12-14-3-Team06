@@ -23,6 +23,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.support.TransactionTemplate
 import java.math.BigDecimal
@@ -223,8 +224,8 @@ class PostmatchedCancelTest {
         executorService.shutdown()
 
         // 5. 최종 DB 상태로 검증
-        val resultPost = postRepository.findById(postId).orElseThrow()
-        val resultApplication = applicationRepository.findById(applicationId).orElseThrow()
+        val resultPost = postRepository.findByIdOrNull(postId)!!
+        val resultApplication = applicationRepository.findByIdOrNull(applicationId)!!
 
         println("최종 공고 상태 = " + resultPost.postStatus)
         println("최종 지원 상태 = " + resultApplication.status)

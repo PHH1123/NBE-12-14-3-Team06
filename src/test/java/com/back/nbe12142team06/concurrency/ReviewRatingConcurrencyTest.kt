@@ -22,6 +22,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -214,7 +215,7 @@ class ReviewRatingConcurrencyTest {
         assertThat(failures).isEmpty()
         assertThat(successCount.get()).isEqualTo(2)
 
-        val escortProfile = escortProfileRepository.findById(escortId).orElseThrow()
+        val escortProfile = escortProfileRepository.findByIdOrNull(escortId)!!
 
         // EscortProfileRepository.addRating() 은 엔티티를 읽어 절대값으로 덮어쓰는 대신
         // DB 에서 "현재 값 + 증가분" 을 원자적으로 계산하는 벌크 UPDATE 라, 두 트랜잭션이
