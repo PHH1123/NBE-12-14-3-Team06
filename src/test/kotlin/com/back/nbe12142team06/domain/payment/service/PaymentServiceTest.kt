@@ -339,7 +339,7 @@ class PaymentServiceTest {
     private fun stubConfirmFlow(payment: Payment) {
         doReturn(payment).whenever(paymentPersistenceService).findById(any(), any())
         doReturn(1).whenever(paymentRepository).paymentInProgress(any())
-        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", payment.amount.toString())))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", payment.amount.toString(), "pk", "order")))
             .whenever(tossPaymentClient).callApiConfirm(any(), any(), any())
     }
 

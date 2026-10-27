@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.payment.client
 
+import com.back.nbe12142team06.domain.payment.dto.TossCancelResponse
 import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse
 import com.back.nbe12142team06.global.exception.InternalServerErrorException
 import org.slf4j.LoggerFactory
@@ -34,7 +35,7 @@ class TossPaymentClientDev(
                 tossOrderId,
                 amount
             )
-            return ResponseEntity.ok(TossConfirmResponse("카드", amount))
+            return ResponseEntity.ok(TossConfirmResponse("카드", amount, tossPaymentKey, tossOrderId))
         }
 
         val requestBody = objectMapper.createObjectNode()
@@ -69,14 +70,14 @@ class TossPaymentClientDev(
         cancelReason: String,
         tossPaymentKey: String,
         amount: String
-    ): ResponseEntity<TossConfirmResponse> {
+    ): ResponseEntity<TossCancelResponse> {
         if (isSeedPaymentKey(tossPaymentKey)) {
             log.info(
                 "[시드 결제] 실제 토스 API 호출 없이 취소 처리 - cancelReason: {}, amount: {}",
                 cancelReason,
                 amount
             )
-            return ResponseEntity.ok(TossConfirmResponse("카드", amount))
+            return ResponseEntity.ok(TossCancelResponse("카드", amount, tossPaymentKey, "test-order-id"))
         }
 
         val requestBody = objectMapper.createObjectNode()
@@ -84,14 +85,14 @@ class TossPaymentClientDev(
             .put("cancelAmount", amount)
             .toPrettyString()
 
-        val response: ResponseEntity<TossConfirmResponse>
+        val response: ResponseEntity<TossCancelResponse>
         try {
             response = tossRestClient.run {
                 post()
                     .uri("/v1/payments/$tossPaymentKey/cancel")
                     .body(requestBody)
                     .retrieve()
-                    .toEntity<TossConfirmResponse>()
+                    .toEntity<TossCancelResponse>()
             }
         } catch (e: RuntimeException) {
             throw InternalServerErrorException(44, e.message!!)

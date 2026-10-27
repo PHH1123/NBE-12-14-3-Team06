@@ -211,7 +211,7 @@ class PaymentNotTransactionServiceTest {
             createPayment(failedPost, PaymentStatus.DELETED, "pk-failed")
         )
 
-        doReturn(ResponseEntity.ok(TossConfirmResponse("카드", succeedPayment.amount.toString())))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("카드", succeedPayment.amount.toString(), succeedPayment.paymentKey!!, succeedPayment.orderId!!)))
             .whenever(tossPaymentClient).callApiCancel(any(), eq("pk-succeed"), any())
         doThrow(InternalServerErrorException(44, "토스 결제 취소 API 호출 실패, 결제 취소에 실패했습니다."))
             .whenever(tossPaymentClient).callApiCancel(any(), eq("pk-failed"), any())
@@ -240,7 +240,7 @@ class PaymentNotTransactionServiceTest {
         // 결제 전에 공고가 삭제된 건은 토스에 취소할 결제가 없다
         val unpaidPayment = paymentRepository.save(createPayment(unpaidPost, PaymentStatus.DELETED))
 
-        doReturn(ResponseEntity.ok(TossConfirmResponse("카드", paidPayment.amount.toString())))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("카드", paidPayment.amount.toString(), paidPayment.paymentKey!!, paidPayment.orderId!!)))
             .whenever(tossPaymentClient).callApiCancel(any(), eq("pk-paid"), any())
 
         val counts = paymentService.cancelPostAndPaymentCallApi()
@@ -266,7 +266,7 @@ class PaymentNotTransactionServiceTest {
         val payment = paymentRepository.save(createPayment(post, PaymentStatus.DONE, "pk-cancel"))
         val paymentId = payment.requiredId
 
-        doReturn(ResponseEntity.ok(TossConfirmResponse("카드", payment.amount.toString())))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("카드", payment.amount.toString(), payment.paymentKey!!, payment.orderId!!)))
             .whenever(tossPaymentClient).callApiCancel(any(), any(), any())
 
         paymentService.cancel(client.id, paymentId, PaymentCancelRequest("첫 번째 취소"))
@@ -291,7 +291,7 @@ class PaymentNotTransactionServiceTest {
         val paymentId = payment.requiredId
         val userId = client.id
 
-        doReturn(ResponseEntity.ok(TossConfirmResponse("카드", payment.amount.toString())))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("카드", payment.amount.toString(), payment.paymentKey!!, payment.orderId!!)))
             .whenever(tossPaymentClient).callApiCancel(any(), any(), any())
 
         val executor = Executors.newFixedThreadPool(2)

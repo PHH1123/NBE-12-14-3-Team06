@@ -6,6 +6,7 @@ import com.back.nbe12142team06.domain.application.enums.EscortProgress
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient
+import com.back.nbe12142team06.domain.payment.dto.TossCancelResponse
 import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository
@@ -896,7 +897,7 @@ class PostControllerTest {
 
         // 실제 토스 API 이용하지 않도록 아래를 추가했습니다.
         given(tossPaymentClient.callApiCancel(any(), any(), any()))
-            .willReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "30000")))
+            .willReturn(ResponseEntity.ok(TossCancelResponse("계좌이체", "30000", "tempPaymentKey", "tempOrderId")))
 
         val resultActions = mvc
             .perform(

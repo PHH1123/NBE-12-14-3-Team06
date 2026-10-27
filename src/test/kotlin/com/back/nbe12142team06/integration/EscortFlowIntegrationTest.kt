@@ -10,6 +10,7 @@ import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRe
 import com.back.nbe12142team06.domain.education.entity.EducationVideo
 import com.back.nbe12142team06.domain.education.repository.EducationVideoRepository
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient
+import com.back.nbe12142team06.domain.payment.dto.TossCancelResponse
 import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository
@@ -103,9 +104,10 @@ class EscortFlowIntegrationTest {
 
         // 실제 토스 API를 호출하지 않는다. confirm/cancel 모두 스텁한다.
         given(tossPaymentClient.callApiConfirm(anyString(), anyString(), anyString()))
-            .willReturn(ResponseEntity.ok(TossConfirmResponse("카드", "30000")))
+            .willAnswer{ invocation ->
+                ResponseEntity.ok(TossConfirmResponse("카드", invocation.getArgument(2), invocation.getArgument(0), invocation.getArgument(1)))}
         given(tossPaymentClient.callApiCancel(anyString(), anyString(), anyString()))
-            .willReturn(ResponseEntity.ok(TossConfirmResponse("카드", "30000")))
+            .willReturn(ResponseEntity.ok(TossCancelResponse("카드", "30000", "tempPaymentKey", "tempOrderId")))
     }
 
     @AfterEach

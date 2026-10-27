@@ -26,7 +26,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Service
 class PaymentService(
@@ -47,7 +46,7 @@ class PaymentService(
         val tossOrderId = request.orderId
         val amount = request.amount
 
-        // 2. 외부 API 호출
+        // 외부 API 호출
         val response: ResponseEntity<TossConfirmResponse>
         try {
             response = tossPaymentClient.callApiConfirm(tossPaymentKey, tossOrderId, amount)
@@ -56,9 +55,31 @@ class PaymentService(
             paymentPersistenceService.failedConfirm(paymentId)
             throw e
         }
-        // 3. DB 반영
+
+        // 결과 검증
+        val body = response.body
+            ?: run {
+                log.error("토스 결제 승인 API 실패 - 응답 값이 없습니다.")
+                rollbackConfirm(
+                    paymentId = paymentId,
+                    tossPaymentKey = tossPaymentKey,
+                    amount = amount
+                )
+                throw InternalServerErrorException(43, "토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다.")
+            }
+        if (body.paymentKey != tossPaymentKey || body.orderId != tossOrderId || body.totalAmount != amount) {
+            log.error("토스 결제 승인 API 실패 - 사용자 결제 승인 요청 값과 토스 결제 승인 응답 값이 일치하지 않습니다.")
+            rollbackConfirm(
+                paymentId = paymentId,
+                tossPaymentKey = tossPaymentKey,
+                amount = amount
+            )
+            throw InternalServerErrorException(43, "토스 결제 승인 API 호출 실패, 결제 승인에 실패했습니다.")
+        }
+
+        // DB 반영
         try {
-            payment = paymentPersistenceService.paymentSaveDb(response, paymentId, tossPaymentKey, tossOrderId)
+            payment = paymentPersistenceService.paymentSaveDb(body, paymentId, tossPaymentKey, tossOrderId)
         } catch (e: NotFoundException) {
             log.error("결제 승인 실패", e)
             rollbackConfirm(paymentId, tossPaymentKey, amount)

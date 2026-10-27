@@ -186,7 +186,7 @@ class PaymentControllerTest {
         val orderId = "temp"
         val amount = "60000"
 
-        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", amount)))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", amount, paymentKey, orderId)))
             .whenever(tossPaymentClient).callApiConfirm(any(), any(), any())
 
         val payment = paymentService.confirm(
@@ -331,7 +331,7 @@ class PaymentControllerTest {
     fun requestCancel() {
         val cancelReason = "결제 취소 사유"
 
-        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000")))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000", "paymentKey", "orderId")))
             .whenever(tossPaymentClient).callApiCancel(any(), any(), any())
 
         paymentService.cancel(savedUser1Id, savedPayment1Id, PaymentCancelRequest(cancelReason))
@@ -374,7 +374,7 @@ class PaymentControllerTest {
     @Test
     @DisplayName("[PaymentController] POST 결제 승인 - 성공 응답 규약")
     fun requestConfirmApi() {
-        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000")))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000", "pk_test", "order_test")))
             .whenever(tossPaymentClient).callApiConfirm(any(), any(), any())
 
         val resultActions = mvc.perform(
@@ -454,7 +454,7 @@ class PaymentControllerTest {
     @Test
     @DisplayName("[PaymentController] DELETE 결제 취소 - 성공 응답 규약")
     fun requestCancelApi() {
-        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000")))
+        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000", "paymentKey", "orderId")))
             .whenever(tossPaymentClient).callApiCancel(any(), any(), any())
 
         val resultActions = mvc.perform(
