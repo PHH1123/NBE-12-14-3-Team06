@@ -85,4 +85,9 @@ interface PostRepository : JpaRepository<Post, Long> {
     fun findAllByClientIdAndPostStatusIn(clientId: Long, statuses: Collection<PostStatus>): List<Post>
 
     fun existsByClientIdAndPostStatus(clientId: Long, postStatus: PostStatus): Boolean
+
+    // 부하 테스트 시드가 이미 만든 공고를 다시 만들지 않으려고 쓴다.
+    fun existsByClientIdAndTitle(clientId: Long, title: String): Boolean
+
+    fun countByTitleStartingWith(prefix: String): Long
 }

@@ -1,0 +1,31 @@
+{
+  "label": "sync1",
+  "at": "2026-10-27T05:47:24.557Z",
+  "config": {
+    "vus": 50,
+    "duration": "30s",
+    "locSleep": 1
+  },
+  "apis": {
+    "posts_list": {
+      "avg": 8.298026666666667,
+      "p95": 42.415249999999986,
+      "p99": 60.86012,
+      "max": 80.696,
+      "count": 1500,
+      "rps": 50,
+      "errorRate": 0,
+      "hikariActiveMax": 8,
+      "hikariPendingMax": 0
+    }
+  },
+  "hikari": {
+    "activeMax": 8,
+    "activeAvg": 0.3,
+    "pendingMax": 0
+  },
+  "cpu": {
+    "avg": 0.007703039113472229,
+    "max": 0.08242909499177602
+  }
+}

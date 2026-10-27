@@ -16,7 +16,9 @@ import java.time.LocalDateTime
  * 결제 엔티티
  * 의뢰인 -> 플랫폼 결제
  */
+// 공고 목록의 "공고별 최신 결제" 하위 쿼리(MAX(id) WHERE post_id = ?)가 payment 전체를 훑지 않게 한다
 @Entity
+@Table(name = "payment", indexes = [Index(name = "idx_payment_post_id_id", columnList = "post_id, id")])
 class Payment(
     id: Long? = null,
     amount: BigDecimal,
