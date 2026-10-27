@@ -37,13 +37,11 @@ class TossPaymentClientDev(
             return ResponseEntity.ok(TossConfirmResponse("카드", amount))
         }
 
-        val requestBody = objectMapper.apply {
-            createObjectNode()
-                .put("paymentKey", tossPaymentKey)
-                .put("orderId", tossOrderId)
-                .put("amount", amount)
-                .toPrettyString()
-        }
+        val requestBody = objectMapper.createObjectNode()
+            .put("paymentKey", tossPaymentKey)
+            .put("orderId", tossOrderId)
+            .put("amount", amount)
+            .toPrettyString()
 
         val response: ResponseEntity<TossConfirmResponse>
         try {
@@ -81,12 +79,10 @@ class TossPaymentClientDev(
             return ResponseEntity.ok(TossConfirmResponse("카드", amount))
         }
 
-        val requestBody = objectMapper.apply {
-            createObjectNode()
-                .put("cancelReason", cancelReason)
-                .put("cancelAmount", amount)
-                .toPrettyString()
-        }
+        val requestBody = objectMapper.createObjectNode()
+            .put("cancelReason", cancelReason)
+            .put("cancelAmount", amount)
+            .toPrettyString()
 
         val response: ResponseEntity<TossConfirmResponse>
         try {

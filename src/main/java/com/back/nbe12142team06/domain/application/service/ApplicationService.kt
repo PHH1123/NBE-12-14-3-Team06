@@ -8,6 +8,7 @@ import com.back.nbe12142team06.domain.application.dto.ApplicationListResponse
 import com.back.nbe12142team06.domain.application.dto.ApplicationLocationRequest
 import com.back.nbe12142team06.domain.application.dto.ApplicationLocationResponse
 import com.back.nbe12142team06.domain.application.dto.ApplicationProgressResponse
+import com.back.nbe12142team06.domain.application.dto.LocationPoint
 import com.back.nbe12142team06.domain.application.dto.MyApplicationResponse
 import com.back.nbe12142team06.domain.application.entity.Application
 import com.back.nbe12142team06.domain.application.entity.EscortProgressLog
@@ -49,8 +50,6 @@ import com.back.nbe12142team06.global.exception.ForbiddenException
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.exception.NotFoundException
 import com.back.nbe12142team06.global.geo.GeoUtils
-import jakarta.persistence.EntityManager
-import jakarta.persistence.PersistenceContext
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.CacheEvict
@@ -64,6 +63,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Period
+import kotlin.math.roundToInt
 
 @Service
 open class ApplicationService(
@@ -80,18 +80,13 @@ open class ApplicationService(
     private val escortService: EscortService,
     private val noticeService: NoticeService,
 ) {
-    @field:PersistenceContext
-    private lateinit var entityManager: EntityManager
+    // 의뢰인과 동행 매니저가 "가깝다"고 보는 반경(미터)과, 이보다 오래된 위치는 믿지 않는 기준(초).
+    // 테스트에서 Spring 컨텍스트를 사용하지 않을 때는 0 초기값이다.
+    @field:Value("\${escort.proximity.radius-meters:100}")
+    private var proximityRadiusMeters: Double = 0.0
 
-    // 위치 기반 자동 진행 기준. 테스트에서 Spring 컨텍스트를 사용하지 않을 때는 Java와 같이 0.0 초기값이다.
-    @field:Value("\${escort.geofence.hospital-radius-meters:200}")
-    private var hospitalRadiusMeters: Double = 0.0
-
-    @field:Value("\${escort.geofence.home-radius-meters:100}")
-    private var homeRadiusMeters: Double = 0.0
-
-    @field:Value("\${escort.geofence.max-accuracy-meters:50}")
-    private var maxAccuracyMeters: Double = 0.0
+    @field:Value("\${escort.proximity.stale-seconds:30}")
+    private var staleSeconds: Long = 0
 
     @Transactional
     open fun apply(postId: Long, userId: Long): ApplicationApplyResponse {
@@ -333,19 +328,10 @@ open class ApplicationService(
         EscortProgress.ARRIVED_HOME -> null
     }
 
-    // 버튼으로 동행 진행 단계를 변경한다.
+    // 동행 매니저가 버튼으로 동행 진행 단계를 변경한다. 위치로 단계가 자동 변경되지는 않는다.
+    // 잠금, 단계 검증, 로그 기록, 위치 삭제 순서를 유지한다.
     @Transactional
     open fun updateProgress(applicationId: Long?, userId: Long?, progress: EscortProgress) {
-        updateProgress(applicationId, userId, progress, EscortProgressLog.ProgressSource.BUTTON)
-    }
-
-    // 버튼/GPS 공통 변경 경로. 잠금, 단계 검증, 로그 기록, 위치 삭제 순서 유지.
-    private fun updateProgress(
-        applicationId: Long?,
-        userId: Long?,
-        progress: EscortProgress,
-        source: EscortProgressLog.ProgressSource,
-    ) {
         val postId = applicationRepository.findPostIdById(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = postRepository.findByIdWithLock(postId)
@@ -364,10 +350,21 @@ open class ApplicationService(
         if (progress != nextProgress) {
             throw InvalidException(31, "동행 진행 상태를 순서대로 변경해야 합니다.")
         }
+        // 출발 버튼만 의뢰인과 가까워졌을 때(반경 100m, 두 위치 모두 최근) 누를 수 있다. 나머지 단계는 거리와 무관하다.
+        if (progress == EscortProgress.DEPARTED) {
+            val proximity = proximityOf(
+                application.lat, application.lng, application.locationUpdatedAt,
+                application.clientLat, application.clientLng, application.clientLocationUpdatedAt,
+                Instant.now(),
+            )
+            if (!proximity.nearby) {
+                throw InvalidException(37, "의뢰인과 가까워져야 출발할 수 있습니다.")
+            }
+        }
 
         val occurredAt = LocalDateTime.now()
         escortProgressLogRepository.save(
-            EscortProgressLog(application, progress, occurredAt, source),
+            EscortProgressLog(application, progress, occurredAt),
         )
         rideService.move(application.activePostId!!, progress)
 
@@ -378,7 +375,7 @@ open class ApplicationService(
         if (progress == EscortProgress.DEPARTED) {
             post.startProgress(occurredAt)
         }
-        log.info("[동행 진행상태 변경] applicationId={}, progress={}, escortId={}, source={}", applicationId, progress, userId, source)
+        log.info("[동행 진행상태 변경] applicationId={}, progress={}, escortId={}", applicationId, progress, userId)
 
         when (progress) {
             EscortProgress.AT_HOSPITAL -> noticeService.send(
@@ -485,8 +482,10 @@ open class ApplicationService(
     }
 
     /**
-     * 마지막 위치 하나만 저장한다. 5초 단위 API이므로 조건부 UPDATE로 DB 컬럼만 갱신한다.
+     * 의뢰인 또는 동행 매니저의 위치를 저장한다. 사람마다 마지막 위치 1건만 DB 에 덮어쓴다.
+     * 5초 단위 API이므로 조건부 UPDATE로 DB 컬럼만 갱신하고, 이력은 DB 에 쌓지 않고 하트비트 로그로만 남긴다.
      * 공고 락을 먼저 획득하여 귀가 완료와 위치 저장을 순차 처리한다.
+     * 위치로 동행 진행 단계가 바뀌지는 않는다. 단계는 동행 매니저가 버튼으로만 바꾼다.
      */
     @Transactional
     open fun saveLocation(applicationId: Long?, userId: Long?, request: ApplicationLocationRequest) {
@@ -497,102 +496,137 @@ open class ApplicationService(
         val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
-        if (application.escort.id != userId) {
-            throw ForbiddenException(29, "본인이 진행하는 동행에서만 실시간 위치를 보낼 수 있습니다.")
+        val isEscort = application.escort.id == userId
+        val isClient = !isEscort && post.client.id == userId
+        if (!isEscort && !isClient) {
+            throw ForbiddenException(29, "해당 동행의 의뢰인 또는 동행 매니저만 실시간 위치를 보낼 수 있습니다.")
         }
         if (application.status != ApplicationStatus.ACCEPTED) {
             throw InvalidException(33, "승인된 동행에서만 실시간 위치를 보낼 수 있습니다.")
         }
-        if (post.postStatus != PostStatus.IN_PROGRESS) {
-            throw InvalidException(34, "동행이 진행 중일 때만 실시간 위치를 보낼 수 있습니다.")
+        if (post.postStatus !in LOCATION_SHARING_STATUSES) {
+            throw InvalidException(34, "출발 전부터 귀가 완료 전까지만 실시간 위치를 보낼 수 있습니다.")
         }
 
-        val prevLat = application.lat
-        val prevLng = application.lng
-        val updated = applicationRepository.updateLocation(
-            applicationId,
-            request.lat,
-            request.lng,
-            request.accuracy,
-            Instant.now(),
-        )
+        val now = Instant.now()
+        val updated = if (isEscort) {
+            applicationRepository.updateLocation(applicationId, request.lat, request.lng, request.accuracy, now)
+        } else {
+            applicationRepository.updateClientLocation(applicationId, request.lat, request.lng, request.accuracy, now)
+        }
+        // 위 확인 이후 저장하기 전에 귀가 완료·취소 등으로 동행이 끝난 경우 (조건부 UPDATE 가 0건)
         if (updated == 0) {
-            throw InvalidException(34, "동행이 진행 중일 때만 실시간 위치를 보낼 수 있습니다.")
+            throw InvalidException(34, "출발 전부터 귀가 완료 전까지만 실시간 위치를 보낼 수 있습니다.")
         }
-        autoAdvanceByLocation(application, prevLat, prevLng, request)
+
+        logLocationHeartbeat(application, isEscort, request, now)
     }
 
-    /** 위치가 조건에 부합하면 버튼과 동일한 updateProgress 로직으로 자동 전이한다. */
-    private fun autoAdvanceByLocation(
+    /**
+     * 위치 하트비트 로그. 좌표는 개인정보라 남기지 않고, 전송이 계속 오고 있다는 사실과 상대와의 거리만 남긴다.
+     * (info: 한 줄 요약, debug: 상대 위치가 얼마나 오래됐는지 등 상세)
+     */
+    private fun logLocationHeartbeat(
         application: Application,
-        prevLat: BigDecimal?,
-        prevLng: BigDecimal?,
+        senderIsEscort: Boolean,
         request: ApplicationLocationRequest,
+        now: Instant,
     ) {
-        if (request.accuracy != null && request.accuracy.toDouble() > maxAccuracyMeters) {
-            return
+        // 보낸 사람의 위치는 방금 받은 값, 상대의 위치는 DB 에 있던 값을 쓴다.
+        val proximity = if (senderIsEscort) {
+            proximityOf(
+                request.lat, request.lng, now,
+                application.clientLat, application.clientLng, application.clientLocationUpdatedAt,
+                now,
+            )
+        } else {
+            proximityOf(
+                application.lat, application.lng, application.locationUpdatedAt,
+                request.lat, request.lng, now,
+                now,
+            )
         }
-        val applicationId = application.id
-        val escortId = application.escort.id
-        val post = application.post
-
-        val target = when (currentProgressOf(application)) {
-            EscortProgress.DEPARTED -> if (
-                isWithin(post.pickupLat, post.pickupLng, prevLat, prevLng, homeRadiusMeters) &&
-                !isWithin(post.pickupLat, post.pickupLng, request.lat, request.lng, homeRadiusMeters)
-            ) EscortProgress.TO_HOSPITAL else null
-            EscortProgress.TO_HOSPITAL -> if (
-                isWithin(post.hospitalLat, post.hospitalLng, request.lat, request.lng, hospitalRadiusMeters)
-            ) EscortProgress.AT_HOSPITAL else null
-            EscortProgress.TO_HOME -> if (
-                isWithin(post.pickupLat, post.pickupLng, request.lat, request.lng, homeRadiusMeters)
-            ) EscortProgress.ARRIVED_HOME else null
-            else -> null
-        } ?: return
-
-        // 기존 엔티티의 상태가 캐시됐을 수 있으므로 비우고 잠금 조회로 재검증한다.
-        entityManager.clear()
-        try {
-            updateProgress(applicationId, escortId, target, EscortProgressLog.ProgressSource.AUTO_GPS)
-        } catch (e: InvalidException) {
-            // 버튼 변경이 먼저 발생했다면 자동 전이만 건너뛰고 위치 저장은 성공시킨다.
-            log.debug("[동행 진행 자동 변경 건너뜀] applicationId={}, target={}, reason={}", applicationId, target, e.message)
+        log.info(
+            "[위치 하트비트] applicationId={}, role={}, accuracy={}m, peerDistance={}m, nearby={}",
+            application.id, if (senderIsEscort) "ESCORT" else "CLIENT", request.accuracy, proximity.distanceMeters, proximity.nearby,
+        )
+        if (log.isDebugEnabled) {
+            val peerUpdatedAt = if (senderIsEscort) application.clientLocationUpdatedAt else application.locationUpdatedAt
+            log.debug(
+                "[위치 하트비트 상세] applicationId={}, role={}, peerUpdatedSecondsAgo={}",
+                application.id, if (senderIsEscort) "ESCORT" else "CLIENT", peerUpdatedAt?.let { now.epochSecond - it.epochSecond },
+            )
         }
     }
 
-    private fun isWithin(
-        baseLat: BigDecimal?,
-        baseLng: BigDecimal?,
-        lat: BigDecimal?,
-        lng: BigDecimal?,
-        radiusMeters: Double,
-    ): Boolean {
-        if (baseLat == null || baseLng == null || lat == null || lng == null) return false
-        return GeoUtils.distanceMeters(baseLat, baseLng, lat, lng) <= radiusMeters
+    private data class Proximity(val nearby: Boolean, val distanceMeters: Int?)
+
+    /**
+     * 두 사람이 가까운지 계산한다. 한쪽이라도 위치가 없거나 stale-seconds 보다 오래됐으면 가깝지 않은 것으로 본다.
+     */
+    private fun proximityOf(
+        escortLat: BigDecimal?, escortLng: BigDecimal?, escortUpdatedAt: Instant?,
+        clientLat: BigDecimal?, clientLng: BigDecimal?, clientUpdatedAt: Instant?,
+        now: Instant,
+    ): Proximity {
+        if (escortLat == null || escortLng == null || escortUpdatedAt == null ||
+            clientLat == null || clientLng == null || clientUpdatedAt == null
+        ) {
+            return Proximity(false, null)
+        }
+        val oldest = now.minusSeconds(staleSeconds)
+        if (escortUpdatedAt.isBefore(oldest) || clientUpdatedAt.isBefore(oldest)) {
+            return Proximity(false, null)
+        }
+        val distance = GeoUtils.distanceMeters(escortLat, escortLng, clientLat, clientLng)
+        return Proximity(distance <= proximityRadiusMeters, distance.roundToInt())
     }
 
+    /**
+     * 동행 중(출발 후 ~ 귀가 완료 전) 해당 동행의 의뢰인과 동행 매니저만, 서로의 최근 위치와 가까움 여부를 조회한다.
+     * 동행이 끝나면(귀가 완료·완료·취소) 아무도 조회할 수 없다.
+     */
     @Transactional(readOnly = true)
     open fun getLocation(applicationId: Long?, userId: Long?): ApplicationLocationResponse {
         val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val isEscort = application.escort.id == userId
-        val isClient = application.post.client.id == userId
+        val isClient = !isEscort && application.post.client.id == userId
         if (!isEscort && !isClient) {
             throw ForbiddenException(30, "본인의 동행 건만 실시간 위치를 조회할 수 있습니다.")
         }
         if (application.status != ApplicationStatus.ACCEPTED ||
-            application.post.postStatus != PostStatus.IN_PROGRESS ||
+            application.post.postStatus !in LOCATION_SHARING_STATUSES ||
             escortProgressLogRepository.existsByApplicationAndProgress(application, EscortProgress.ARRIVED_HOME)
         ) {
-            throw NotFoundException(31, "아직 공유된 실시간 위치가 없습니다.")
+            throw NotFoundException(31, "실시간 위치를 공유 중인 동행이 아닙니다.")
         }
-        if (application.lat == null || application.lng == null) {
-            throw NotFoundException(31, "아직 공유된 실시간 위치가 없습니다.")
-        }
-        return ApplicationLocationResponse(application)
+
+        val proximity = proximityOf(
+            application.lat, application.lng, application.locationUpdatedAt,
+            application.clientLat, application.clientLng, application.clientLocationUpdatedAt,
+            Instant.now(),
+        )
+        return ApplicationLocationResponse(
+            escort = if (application.lat != null && application.lng != null) {
+                LocationPoint(application.lat, application.lng, application.accuracy, application.locationUpdatedAt)
+            } else {
+                null
+            },
+            client = if (application.clientLat != null && application.clientLng != null) {
+                LocationPoint(application.clientLat, application.clientLng, application.clientAccuracy, application.clientLocationUpdatedAt)
+            } else {
+                null
+            },
+            nearby = proximity.nearby,
+            distanceMeters = proximity.distanceMeters,
+        )
     }
 
     companion object {
         private val log = LoggerFactory.getLogger(ApplicationService::class.java)
+
+        // 출발 버튼을 누르려면 둘의 거리를 알아야 하므로, 출발 전(MATCHED)부터 귀가 완료 전까지 위치를 공유한다.
+        private val LOCATION_SHARING_STATUSES = setOf(PostStatus.MATCHED, PostStatus.IN_PROGRESS)
     }
 }

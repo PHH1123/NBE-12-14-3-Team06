@@ -15,17 +15,17 @@ import com.back.nbe12142team06.domain.user.enums.Gender
 import com.back.nbe12142team06.domain.user.enums.Role
 import com.back.nbe12142team06.domain.user.repository.UserRepository
 import com.back.nbe12142team06.global.exception.ForbiddenException
+import com.back.nbe12142team06.global.testsupport.ThreadLocalQueryCounter
 import jakarta.persistence.EntityManager
-import jakarta.persistence.EntityManagerFactory
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
-import org.hibernate.SessionFactory
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.TestPropertySource
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -39,6 +39,13 @@ import java.util.concurrent.atomic.AtomicInteger
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
+// 쿼리 수를 현재 스레드 기준으로 세기 위해 Hibernate 훅을 끼운다 (ThreadLocalQueryCounter 주석 참고)
+@TestPropertySource(
+    properties = [
+        "spring.jpa.properties.hibernate.session_factory.statement_inspector=" +
+                "com.back.nbe12142team06.global.testsupport.ThreadLocalQueryCounter"
+    ]
+)
 class RideDetailAuthorizationTest {
 
     @field:Autowired private lateinit var rideService: RideService
@@ -47,7 +54,6 @@ class RideDetailAuthorizationTest {
     @field:Autowired private lateinit var postRepository: PostRepository
     @field:Autowired private lateinit var userRepository: UserRepository
     @field:Autowired private lateinit var em: EntityManager
-    @field:Autowired private lateinit var emf: EntityManagerFactory
 
     // 다른 테스트가 커밋해 둔 사용자와 username·email·전화번호가 겹치지 않도록 매 테스트마다 번호를 올린다
     // (공유 H2 testdb 를 쓰므로 고정값이면 실행 순서에 따라 USERS 유니크 제약을 위반한다)
@@ -146,17 +152,15 @@ class RideDetailAuthorizationTest {
     @Test
     @DisplayName("[RideService] 동행 매니저 권한 확인은 쿼리 1건만 더 쓴다")
     fun escortAuthorizationCostsOneExtraQuery() {
-        val statistics = emf.unwrap(SessionFactory::class.java).statistics
-        statistics.isStatisticsEnabled = true
-
-        statistics.clear()
-        rideService.findById(client.id, rideId)
-        val clientQueries = statistics.prepareStatementCount
+        val clientQueries = ThreadLocalQueryCounter.countQueries {
+            rideService.findById(client.id, rideId)
+        }
 
         em.clear()
-        statistics.clear()
-        rideService.findById(escort.id, rideId)
-        val escortQueries = statistics.prepareStatementCount
+
+        val escortQueries = ThreadLocalQueryCounter.countQueries {
+            rideService.findById(escort.id, rideId)
+        }
 
         // 의뢰인: 이동 조회 + 공고 지연 로딩
         assertThat(clientQueries).isEqualTo(2)

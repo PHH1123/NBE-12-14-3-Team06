@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.application.service
 
+import com.back.nbe12142team06.DatabaseCleaner
 import com.back.nbe12142team06.domain.application.entity.Application
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository
@@ -14,6 +15,7 @@ import com.back.nbe12142team06.domain.user.enums.Role
 import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository
 import com.back.nbe12142team06.domain.user.repository.UserRepository
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -42,6 +44,7 @@ class ApplicationCancelAllServiceTest {
     @field:Autowired private lateinit var userRepository: UserRepository
     @field:Autowired private lateinit var escortProfileRepository: EscortProfileRepository
     @field:Autowired private lateinit var passwordEncoder: PasswordEncoder
+    @field:Autowired private lateinit var databaseCleaner: DatabaseCleaner
     @field:MockitoBean private lateinit var paymentService: PaymentService
 
     companion object {
@@ -53,9 +56,17 @@ class ApplicationCancelAllServiceTest {
 
     @BeforeEach
     fun setUp() {
+        // @Transactional 을 걸지 않아 데이터가 커밋된 채 남으므로, 다른 비트랜잭션 테스트와 같은 관례로 비운다
+        databaseCleaner.clean()
+
         val seq = SEQ.incrementAndGet()
         client = saveUser("testClient$seq", Role.CLIENT, String.format("010-7001-%04d", seq))
         escort = saveUser("testEscort$seq", Role.ESCORT, String.format("010-7002-%04d", seq))
+    }
+
+    @AfterEach
+    fun tearDown() {
+        databaseCleaner.clean()
     }
 
     private fun saveUser(username: String, role: Role, phone: String): User {

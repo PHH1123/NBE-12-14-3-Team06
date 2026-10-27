@@ -86,7 +86,7 @@ open class ApplicationController(
         return RsData("200-24", "지원 취소가 완료되었습니다.")
     }
 
-    @Operation(summary = "동행 진행 상태 변경", description = "승인된 동행의 진행 상태를 변경합니다.")
+    @Operation(summary = "동행 진행 상태 변경", description = "승인된 동행의 진행 상태를 변경합니다. 출발(DEPARTED)은 의뢰인과 100m 이내로 가까워졌을 때만 가능하며(그렇지 않으면 400-37), 나머지 단계는 동행 매니저가 직접 누릅니다.")
     @PatchMapping("/{applicationId}/progress")
     open fun updateProgress(
         @PathVariable("applicationId") applicationId: Long,
@@ -136,7 +136,10 @@ open class ApplicationController(
         return RsData("200-29", "내 지원 목록 조회가 완료되었습니다.", responses)
     }
 
-    @Operation(summary = "동행 실시간 위치 전송", description = "동행 중인 동행 매니저가 현재 위치를 보냅니다. 가장 최근 위치 1건만 저장됩니다.")
+    @Operation(
+        summary = "동행 실시간 위치 전송",
+        description = "승인된 동행에서 출발 전부터 귀가 완료 전까지 의뢰인과 동행 매니저가 각자 현재 위치를 보냅니다. 사람마다 가장 최근 위치 1건만 저장됩니다.",
+    )
     @PostMapping("/{applicationId}/location")
     open fun saveLocation(
         @PathVariable("applicationId") applicationId: Long,
@@ -147,7 +150,10 @@ open class ApplicationController(
         return RsData("200-30", "실시간 위치가 저장되었습니다.")
     }
 
-    @Operation(summary = "동행 실시간 위치 조회", description = "동행 진행 중에만 최근 위치를 조회합니다. 해당 동행 매니저 본인과 공고 작성 의뢰인만 볼 수 있으며, 귀가 완료 시 위치정보가 삭제됩니다.")
+    @Operation(
+        summary = "동행 실시간 위치 조회",
+        description = "출발 전부터 귀가 완료 전까지 의뢰인과 동행 매니저의 최근 위치와 가까움 여부(nearby, 반경 100m)를 조회합니다. 해당 동행의 의뢰인과 동행 매니저만 서로의 위치를 볼 수 있으며, 귀가 완료 시 두 사람의 위치정보가 삭제됩니다.",
+    )
     @GetMapping("/{applicationId}/location")
     open fun getLocation(
         @PathVariable("applicationId") applicationId: Long,

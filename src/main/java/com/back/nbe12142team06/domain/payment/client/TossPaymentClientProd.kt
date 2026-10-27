@@ -59,12 +59,10 @@ class TossPaymentClientProd(
         amount: String
     ): ResponseEntity<TossConfirmResponse> {
 
-        val requestBody = objectMapper.apply {
-            createObjectNode()
-                .put("cancelReason", cancelReason)
-                .put("cancelAmount", amount)
-                .toPrettyString()
-        }
+        val requestBody = objectMapper.createObjectNode()
+            .put("cancelReason", cancelReason)
+            .put("cancelAmount", amount)
+            .toPrettyString()
 
         val response: ResponseEntity<TossConfirmResponse>
         try {

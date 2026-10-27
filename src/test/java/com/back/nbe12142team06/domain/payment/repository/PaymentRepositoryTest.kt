@@ -8,9 +8,8 @@ import com.back.nbe12142team06.domain.user.entity.User
 import com.back.nbe12142team06.domain.user.enums.Gender
 import com.back.nbe12142team06.domain.user.enums.Role
 import jakarta.persistence.EntityManager
-import jakarta.persistence.EntityManagerFactory
 import org.assertj.core.api.Assertions.assertThat
-import org.hibernate.SessionFactory
+import org.hibernate.Hibernate
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -33,7 +32,6 @@ class PaymentRepositoryTest {
 
     @field:Autowired private lateinit var paymentRepository: PaymentRepository
     @field:Autowired private lateinit var em: EntityManager
-    @field:Autowired private lateinit var emf: EntityManagerFactory
 
     private lateinit var client: User
     private lateinit var otherClient: User
@@ -200,18 +198,16 @@ class PaymentRepositoryTest {
         em.flush()
         em.clear()
 
-        val statistics = emf.unwrap(SessionFactory::class.java).statistics
-        statistics.isStatisticsEnabled = true
-        statistics.clear()
-
         val found = paymentRepository.findByIdFetchJoin(payment.requiredId)!!
-        val queryCountAfterFind = statistics.prepareStatementCount
 
-        // 지연 로딩이면 여기서 공고·의뢰인 조회 쿼리가 더 나간다
+        // 페치 조인이 동작했다면 두 연관은 프록시가 아니라 이미 채워진 상태다.
+        // 쿼리 수(SessionFactory.statistics)로 세지 않는 이유: 그 카운터는 SessionFactory 전체에
+        // 하나뿐이어서 @Async 알림 스레드가 날린 쿼리까지 함께 세고, 간헐적으로 어긋난다.
+        // post 가 프록시인 채로 post.client 를 건드리면 그 순간 초기화되므로 단정 순서가 중요하다.
+        assertThat(Hibernate.isInitialized(found.post)).isTrue()
+        assertThat(Hibernate.isInitialized(found.post.client)).isTrue()
+
         assertThat(found.post.title).isEqualTo("정형외과 동행 구합니다")
         assertThat(found.post.client.name).isEqualTo("김의뢰")
-
-        assertThat(queryCountAfterFind).isEqualTo(1)
-        assertThat(statistics.prepareStatementCount).isEqualTo(1)
     }
 }

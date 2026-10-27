@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.integration
 
+import com.back.nbe12142team06.DatabaseCleaner
 import com.back.nbe12142team06.domain.application.entity.Application
 import com.back.nbe12142team06.domain.application.entity.EscortProgressLog
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus
@@ -20,6 +21,7 @@ import com.back.nbe12142team06.domain.user.repository.EscortProfileRepository
 import com.jayway.jsonpath.JsonPath
 import jakarta.servlet.http.Cookie
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -87,16 +89,27 @@ class EscortFlowIntegrationTest {
     @field:Autowired
     private lateinit var transactionTemplate: TransactionTemplate
 
+    @field:Autowired
+    private lateinit var databaseCleaner: DatabaseCleaner
+
     @field:MockitoBean
     private lateinit var tossPaymentClient: TossPaymentClient
 
     @BeforeEach
-    fun stubToss() {
+    fun setUp() {
+        // @Transactional 을 걸지 않아 데이터가 커밋된 채 남으므로, 다른 비트랜잭션 테스트와 같은 관례로 비운다
+        databaseCleaner.clean()
+
         // 실제 토스 API를 호출하지 않는다. confirm/cancel 모두 스텁한다.
         given(tossPaymentClient.callApiConfirm(anyString(), anyString(), anyString()))
             .willReturn(ResponseEntity.ok(TossConfirmResponse("카드", "30000")))
         given(tossPaymentClient.callApiCancel(anyString(), anyString(), anyString()))
             .willReturn(ResponseEntity.ok(TossConfirmResponse("카드", "30000")))
+    }
+
+    @AfterEach
+    fun tearDown() {
+        databaseCleaner.clean()
     }
 
     // 공고 등록 후 지원 시점까지 시간이 흐른 상황을 재현한다.
@@ -346,6 +359,16 @@ class EscortFlowIntegrationTest {
         assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.MATCHED)
 
         // 10. 동행 단계 순차 변경
+        // 출발 버튼은 두 사람이 가까울 때만 가능하다: 먼저 같은 자리에서 위치를 보낸다 (실제 API)
+        for (cookie in listOf(escortCookie, clientCookie)) {
+            mvc.perform(
+                post("/api/v1/applications/{applicationId}/location", applicationId)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"lat": 37.5665, "lng": 126.9780, "accuracy": 10}""")
+            ).andExpect(status().isOk())
+        }
+
         mvc.perform(
             patch("/api/v1/applications/{applicationId}/progress", applicationId)
                 .cookie(escortCookie)
