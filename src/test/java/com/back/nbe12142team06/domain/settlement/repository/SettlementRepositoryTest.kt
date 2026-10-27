@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -201,7 +202,7 @@ class SettlementRepositoryTest {
 
         assertThat(settlementRepository.updateProcessing(pending.requiredId)).isEqualTo(1)
         assertThat(settlementRepository.updateProcessing(processing.requiredId)).isEqualTo(0)
-        assertThat(settlementRepository.findById(pending.requiredId).get().settlementStatus)
+        assertThat(settlementRepository.findByIdOrNull(pending.requiredId)!!.settlementStatus)
             .isEqualTo(SettlementStatus.PROCESSING)
     }
 

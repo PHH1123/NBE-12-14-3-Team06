@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
@@ -239,7 +240,7 @@ class AdminUserControllerTest {
         val postId = JsonPath.read<Number>(writeResponse, "$.data.id").toLong()
 
         // 모집 기간 안으로 들어오도록 모집 시작 시간을 과거로 변경
-        val savedPost = postRepository.findById(postId).orElseThrow()
+        val savedPost = postRepository.findByIdOrNull(postId)!!
         ReflectionTestUtils.setField(savedPost, "recruitStartAt", LocalDateTime.now().minusMinutes(1))
         em.flush()
 
@@ -720,7 +721,7 @@ class AdminUserControllerTest {
         em.flush()
         em.clear()
 
-        val user = userRepository.findById(user1Id).orElseThrow()
+        val user = userRepository.findByIdOrNull(user1Id)!!
         assertThat(user.userStatus).isEqualTo(UserStatus.SUSPENDED)
 
         val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)!!
@@ -761,7 +762,7 @@ class AdminUserControllerTest {
         signUp("user1")
         val user1Id = findUserId("user1")
 
-        val user = userRepository.findById(user1Id).orElseThrow()
+        val user = userRepository.findByIdOrNull(user1Id)!!
         userStatusHistoryRepository.save(user.ban(adminId, "영구 정지 테스트"))
         em.flush()
         em.clear()
@@ -788,7 +789,7 @@ class AdminUserControllerTest {
         em.flush()
         em.clear()
 
-        val admin = userRepository.findById(adminId).orElseThrow()
+        val admin = userRepository.findByIdOrNull(adminId)!!
         assertThat(admin.userStatus).isEqualTo(UserStatus.ACTIVE)
     }
 
@@ -850,7 +851,7 @@ class AdminUserControllerTest {
         em.flush()
         em.clear()
 
-        val user = userRepository.findById(user1Id).orElseThrow()
+        val user = userRepository.findByIdOrNull(user1Id)!!
         assertThat(user.userStatus).isEqualTo(UserStatus.BANNED)
 
         val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)!!
@@ -896,7 +897,7 @@ class AdminUserControllerTest {
         em.flush()
         em.clear()
 
-        val admin = userRepository.findById(adminId).orElseThrow()
+        val admin = userRepository.findByIdOrNull(adminId)!!
         assertThat(admin.userStatus).isEqualTo(UserStatus.ACTIVE)
     }
 
@@ -962,7 +963,7 @@ class AdminUserControllerTest {
         em.flush()
         em.clear()
 
-        val user = userRepository.findById(user1Id).orElseThrow()
+        val user = userRepository.findByIdOrNull(user1Id)!!
         assertThat(user.userStatus).isEqualTo(UserStatus.ACTIVE)
 
         val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)!!
@@ -997,7 +998,7 @@ class AdminUserControllerTest {
         em.flush()
         em.clear()
 
-        val user = userRepository.findById(user1Id).orElseThrow()
+        val user = userRepository.findByIdOrNull(user1Id)!!
         assertThat(user.userStatus).isEqualTo(UserStatus.ACTIVE)
 
         val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)!!

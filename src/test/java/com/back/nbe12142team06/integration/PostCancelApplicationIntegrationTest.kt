@@ -23,6 +23,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.util.ReflectionTestUtils
@@ -115,7 +116,7 @@ class PostCancelApplicationIntegrationTest {
         applicationService.apply(post.requiredId, escort.id).id
 
     private fun statusOf(applicationId: Long): ApplicationStatus =
-        applicationRepository.findById(applicationId).orElseThrow().status
+        applicationRepository.findByIdOrNull(applicationId)!!.status
 
     @Test
     @DisplayName("[통합] 모집 중인 공고를 취소하면 그 공고의 대기 지원은 모두 취소되고, 다른 공고의 지원은 그대로다")
@@ -145,7 +146,7 @@ class PostCancelApplicationIntegrationTest {
 
         assertThat(statusOf(application)).isEqualTo(ApplicationStatus.CANCELED)
         // 패널티 없음: 노쇼 횟수가 늘지 않는다
-        assertThat(escortProfileRepository.findById(escortA.id).orElseThrow().noShowCount).isZero()
+        assertThat(escortProfileRepository.findByIdOrNull(escortA.id)!!.noShowCount).isZero()
 
         // newPost()의 testStatusDone()은 clearAutomatically=true로 영속성 컨텍스트를 비운다.
         // 먼저 매칭 취소 상태를 DB에 반영해 테스트 도중 변경 사항이 사라지지 않게 한다.

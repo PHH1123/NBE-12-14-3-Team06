@@ -32,6 +32,7 @@ import org.mockito.Mockito.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.test.context.ActiveProfiles
@@ -115,7 +116,7 @@ class EscortFlowIntegrationTest {
     // 공고 등록 후 지원 시점까지 시간이 흐른 상황을 재현한다.
     private fun beginRecruitmentForTest(postId: Long) {
         transactionTemplate.executeWithoutResult {
-            val savedPost = postRepository.findById(postId).orElseThrow()
+            val savedPost = postRepository.findByIdOrNull(postId)!!
             ReflectionTestUtils.setField(savedPost, "recruitStartAt", LocalDateTime.now().minusMinutes(1))
         }
     }
@@ -306,7 +307,7 @@ class EscortFlowIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.statusCode").value("200-101"))
 
-        assertThat(escortProfileRepository.findById(escortUserId).orElseThrow().verified).isTrue()
+        assertThat(escortProfileRepository.findByIdOrNull(escortUserId)!!.verified).isTrue()
 
         // 6. 의뢰인이 공고 등록 (동행 예정 2시간)
         val now = LocalDateTime.now()
@@ -356,7 +357,7 @@ class EscortFlowIntegrationTest {
         mvc.perform(patch("/api/v1/applications/{applicationId}/accept", applicationId).cookie(clientCookie))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.status").value("ACCEPTED"))
-        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.MATCHED)
+        assertThat(postRepository.findByIdOrNull(postId)!!.postStatus).isEqualTo(PostStatus.MATCHED)
 
         // 10. 동행 단계 순차 변경
         // 출발 버튼은 두 사람이 가까울 때만 가능하다: 먼저 같은 자리에서 위치를 보낸다 (실제 API)
@@ -376,7 +377,7 @@ class EscortFlowIntegrationTest {
                 .content("""{"progress": "DEPARTED"}""")
         ).andExpect(status().isOk())
 
-        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.IN_PROGRESS)
+        assertThat(postRepository.findByIdOrNull(postId)!!.postStatus).isEqualTo(PostStatus.IN_PROGRESS)
 
         // 순서를 어기면 400
         mvc.perform(
@@ -402,7 +403,7 @@ class EscortFlowIntegrationTest {
 
         // 실제 시각 간격이 수 밀리초이므로 DEPARTED 로그만 2시간 전으로 옮긴다.
         // 계획/실제 동행 시간이 같은 경로에서 정산 금액을 검증하기 위한 테스트 데이터 조정이다.
-        val application = applicationRepository.findById(applicationId).orElseThrow()
+        val application = applicationRepository.findByIdOrNull(applicationId)!!
         val arrivedAt = escortProgressLogRepository
             .findByApplicationAndProgress(application, EscortProgress.ARRIVED_HOME)!!
             .occurredAt
@@ -422,8 +423,8 @@ class EscortFlowIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.statusCode").value("200-18"))
 
-        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.COMPLETED)
-        assertThat(escortProfileRepository.findById(escortUserId).orElseThrow().completedCount).isEqualTo(1)
+        assertThat(postRepository.findByIdOrNull(postId)!!.postStatus).isEqualTo(PostStatus.COMPLETED)
+        assertThat(escortProfileRepository.findByIdOrNull(escortUserId)!!.completedCount).isEqualTo(1)
 
         val payments = paymentRepository.findSuccessPayByPostId(postId)
         assertThat(payments).hasSize(1)
@@ -432,10 +433,8 @@ class EscortFlowIntegrationTest {
         val totalPay = BigDecimal.TWO.multiply(BigDecimal.valueOf(hourlyPay.toLong()))
         val expectedPayout = totalPay.multiply(BigDecimal.valueOf(0.9))
         val expectedPlatformFee = totalPay.subtract(expectedPayout)
-        val settlement = settlementRepository.findAll().stream()
-            .filter { it.escort.id == escortUserId }
-            .findFirst()
-            .orElseThrow()
+        val settlement = settlementRepository.findAll()
+            .first { it.escort.id == escortUserId }
         assertThat(settlement.settlementStatus).isEqualTo(SettlementStatus.PENDING)
         assertThat(settlement.payoutAmount).isEqualByComparingTo(expectedPayout)
         assertThat(settlement.platformFee).isEqualByComparingTo(expectedPlatformFee)
@@ -468,7 +467,7 @@ class EscortFlowIntegrationTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.statusCode").value("201-61"))
 
-        val escortProfile = escortProfileRepository.findById(escortUserId).orElseThrow()
+        val escortProfile = escortProfileRepository.findByIdOrNull(escortUserId)!!
         assertThat(escortProfile.ratingCount).isEqualTo(1)
         assertThat(escortProfile.ratingSum).isEqualTo(5)
 
@@ -547,11 +546,11 @@ class EscortFlowIntegrationTest {
         mvc.perform(patch("/api/v1/applications/{applicationId}/accept", application1Id).cookie(clientCookie))
             .andExpect(status().isOk())
 
-        val accepted = applicationRepository.findById(application1Id).orElseThrow()
-        val rejected = applicationRepository.findById(application2Id).orElseThrow()
+        val accepted = applicationRepository.findByIdOrNull(application1Id)!!
+        val rejected = applicationRepository.findByIdOrNull(application2Id)!!
         assertThat(accepted.status).isEqualTo(ApplicationStatus.ACCEPTED)
         assertThat(rejected.status).isEqualTo(ApplicationStatus.REJECTED)
-        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.MATCHED)
+        assertThat(postRepository.findByIdOrNull(postId)!!.postStatus).isEqualTo(PostStatus.MATCHED)
 
         // 3번째 동행인은 모집 중이지 않은 공고에 지원할 수 없다
         val escort3Username = "flow2-escort3-$tag"
@@ -688,7 +687,7 @@ class EscortFlowIntegrationTest {
             .andExpect(jsonPath("$.statusCode").value("400-33"))
             .andExpect(jsonPath("$.msg").value("결제 완료 공고만 승인할 수 있습니다."))
 
-        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.OPEN)
+        assertThat(postRepository.findByIdOrNull(postId)!!.postStatus).isEqualTo(PostStatus.OPEN)
 
         // 6. 매칭되지 않았으므로 동행 완료 처리도 차단
         mvc.perform(patch("/api/v1/posts/{postId}/escortComplete", postId).cookie(clientCookie))

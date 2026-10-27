@@ -33,6 +33,7 @@ import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
@@ -140,7 +141,7 @@ class SettlementNotTransactionServiceTest {
         val row = settlementPersistenceService.processingSettlement(settlement.requiredId)
 
         // 테스트에 트랜잭션이 없으므로 아래 조회는 새 트랜잭션에서 커밋된 상태를 읽는다
-        val reloaded = settlementRepository.findById(settlement.requiredId).get()
+        val reloaded = settlementRepository.findByIdOrNull(settlement.requiredId)!!
 
         assertThat(row).isEqualTo(1)
         assertThat(reloaded.settlementStatus).isEqualTo(SettlementStatus.PROCESSING)
@@ -178,7 +179,7 @@ class SettlementNotTransactionServiceTest {
             .hasMessage("정산 데이터 저장 중 DB 에러가 발생했습니다.")
 
         // 송금은 성공했으므로 PROCESSING 이 커밋되어 남아야 한다 (중복 송금 방지)
-        assertThat(settlementRepository.findById(settlementId).get().settlementStatus)
+        assertThat(settlementRepository.findByIdOrNull(settlementId)!!.settlementStatus)
             .isEqualTo(SettlementStatus.PROCESSING)
     }
 
@@ -206,9 +207,9 @@ class SettlementNotTransactionServiceTest {
         assertThat(counts[2]).isEqualTo(1)
 
         // 성공 건은 COMPLETED 로 커밋되고, 실패 건은 다음 스케줄링에서 재시도되도록 FAILED 로 남는다
-        assertThat(settlementRepository.findById(succeedSettlement.requiredId).get().settlementStatus)
+        assertThat(settlementRepository.findByIdOrNull(succeedSettlement.requiredId)!!.settlementStatus)
             .isEqualTo(SettlementStatus.COMPLETED)
-        assertThat(settlementRepository.findById(failedSettlement.requiredId).get().settlementStatus)
+        assertThat(settlementRepository.findByIdOrNull(failedSettlement.requiredId)!!.settlementStatus)
             .isEqualTo(SettlementStatus.FAILED)
     }
 }

@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -149,7 +150,7 @@ class NoShowPenaltyServiceTest {
         em.clear()
 
         // 적용 결과가 패널티에 남는다
-        val appliedPenalty = noShowPenaltyRepository.findById(pendingPenalty.requiredId).orElseThrow()
+        val appliedPenalty = noShowPenaltyRepository.findByIdOrNull(pendingPenalty.requiredId)!!
         assertThat(appliedPenalty.status).isEqualTo(NoShowPenaltyStatus.APPLIED)
         assertThat(appliedPenalty.amount).isEqualByComparingTo(penaltyAmount)
         assertThat(appliedPenalty.baseAmount).isEqualByComparingTo(baseAmount)

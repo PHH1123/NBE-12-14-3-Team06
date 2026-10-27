@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
@@ -1297,7 +1298,7 @@ class UserControllerTest {
         em.flush()
         em.clear()
 
-        val updated = escortProfileRepository.findById(escortId).orElseThrow()
+        val updated = escortProfileRepository.findByIdOrNull(escortId)!!
         assertThat(updated.intro).isEqualTo("수정한 자기소개입니다.")
         assertThat(updated.accountNumber).isEqualTo("123-0012300-123")
     }

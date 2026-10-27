@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
@@ -214,7 +215,7 @@ class EducationControllerTest {
         em.flush()
         em.clear()
 
-        val updated = escortProfileRepository.findById(escortId).orElseThrow()
+        val updated = escortProfileRepository.findByIdOrNull(escortId)!!
         assertThat(updated.verified).isTrue()
         assertThat(updated.verifiedAt).isNotNull()
     }

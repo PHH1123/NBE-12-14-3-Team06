@@ -19,6 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
@@ -114,7 +115,7 @@ class PostCancelServiceTest {
     }
 
     private fun statusOf(post: Post): PostStatus {
-        return postRepository.findById(post.requiredId).orElseThrow().postStatus
+        return postRepository.findByIdOrNull(post.requiredId)!!.postStatus
     }
 
     /* ── 취소할 수 있는 상태 ──────────────────────────────── */

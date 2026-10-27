@@ -26,6 +26,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.util.ReflectionTestUtils
@@ -132,7 +133,7 @@ class EscortGradeIntegrationTest {
     }
 
     private fun profileOfEscort(): EscortProfile =
-        escortProfileRepository.findById(escort.id).orElseThrow()
+        escortProfileRepository.findByIdOrNull(escort.id)!!
 
     private fun historiesOfEscort(): List<EscortGradeHistory> =
         escortGradeHistoryRepository.findAllByEscortProfileUserId(escort.id)

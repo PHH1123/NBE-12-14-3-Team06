@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -213,7 +214,7 @@ class SettlementControllerTest {
             .andExpect(jsonPath("$.statusCode").value("200-71"))
             .andExpect(jsonPath("$.msg").value("정산에 성공했습니다."))
 
-        val settlement: Settlement = settlementRepository.findById(savedSettlement1Id).get()
+        val settlement: Settlement = settlementRepository.findByIdOrNull(savedSettlement1Id)!!
         assertThat(settlement.settlementStatus).isEqualTo(SettlementStatus.COMPLETED)
     }
 
@@ -322,7 +323,7 @@ class SettlementControllerTest {
 
         val counts = settlementService.settlementProcess()
 
-        val savedSettlement = settlementRepository.findById(settlement.requiredId).get()
+        val savedSettlement = settlementRepository.findByIdOrNull(settlement.requiredId)!!
 
         assertThat(savedSettlement.settlementStatus).isEqualTo(SettlementStatus.COMPLETED)
         assertThat(counts[0]).isEqualTo(1)

@@ -277,7 +277,7 @@ class PaymentNotTransactionServiceTest {
             .isInstanceOf(InvalidException::class.java)
             .hasMessage("이미 취소된 결제입니다.")
 
-        assertThat(paymentRepository.findById(paymentId).get().paymentStatus).isEqualTo(PaymentStatus.CANCELED)
+        assertThat(paymentRepository.findByIdOrNull(paymentId)!!.paymentStatus).isEqualTo(PaymentStatus.CANCELED)
         // 재결제용 READY 결제는 한 건만 생긴다
         assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.requiredId, PaymentStatus.READY)).hasSize(1)
     }
@@ -315,7 +315,7 @@ class PaymentNotTransactionServiceTest {
         // 환불 요청도 한 번만 나가야 한다
         verify(tossPaymentClient, times(1)).callApiCancel(any(), any(), any())
         assertThat(failedCount.get()).isEqualTo(1)
-        assertThat(paymentRepository.findById(paymentId).get().paymentStatus).isEqualTo(PaymentStatus.CANCELED)
+        assertThat(paymentRepository.findByIdOrNull(paymentId)!!.paymentStatus).isEqualTo(PaymentStatus.CANCELED)
         // 재결제용 READY 결제도 한 건만 생긴다
         assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.requiredId, PaymentStatus.READY)).hasSize(1)
     }

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
@@ -102,7 +103,7 @@ class RideControllerTest {
         val post1 = postService.write(user1.id, postWriteRequest())
         paymentRepository.testStatusDoneAndPutPaymentKey(post1.id, UUID.randomUUID().toString())
 
-        val application = Application(postRepository.findById(post1.id).get(), user2)
+        val application = Application(postRepository.findByIdOrNull(post1.id)!!, user2)
         application.accept()
         applicationRepository.save(application)
 

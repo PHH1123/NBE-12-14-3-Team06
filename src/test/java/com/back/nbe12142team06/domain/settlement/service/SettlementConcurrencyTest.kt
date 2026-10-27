@@ -31,6 +31,7 @@ import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.transaction.support.TransactionTemplate
@@ -125,7 +126,7 @@ class SettlementConcurrencyTest {
 
         // 정산 중 선점(update ... where status in (PENDING, FAILED))에서 한쪽만 통과한다
         verify(settlementClient, times(1)).settlementRequest(any())
-        assertThat(settlementRepository.findById(settlement.requiredId).get().settlementStatus)
+        assertThat(settlementRepository.findByIdOrNull(settlement.requiredId)!!.settlementStatus)
             .isEqualTo(SettlementStatus.COMPLETED)
     }
 

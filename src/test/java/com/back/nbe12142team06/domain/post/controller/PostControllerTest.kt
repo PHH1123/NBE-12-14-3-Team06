@@ -39,6 +39,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.cache.CacheManager
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -181,7 +182,7 @@ class PostControllerTest {
     // IN_PROGRESS 상태의 공고 만들기 (escortComplete 테스트용 사전 준비)
     private fun setUpInProgressPost(): Long {
         val postId = registerPost()
-        val post = postRepository.findById(postId).orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
         post.match()
         post.startProgress(LocalDateTime.now().minusHours(1)) // 임시값, escortComplete가 실제값으로 덮어씀
         postRepository.saveAndFlush(post)
@@ -208,7 +209,7 @@ class PostControllerTest {
             ),
         )
 
-        val application = Application(postRepository.findById(postId).orElseThrow(), escort)
+        val application = Application(postRepository.findByIdOrNull(postId)!!, escort)
         application.accept()
         return applicationRepository.save(application).requiredId
     }
@@ -570,7 +571,7 @@ class PostControllerTest {
         // testUser로 공고 등록
         val postId = registerPost()
 
-        val post = postRepository.findById(postId).orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
         post.match()
         postRepository.saveAndFlush(post)
 
@@ -610,7 +611,7 @@ class PostControllerTest {
     @DisplayName("[PostController] 공고 취소 - 의뢰인 본인이 매칭된 공고 취소 성공")
     fun t12() {
         val postId = registerPost()
-        val post = postRepository.findById(postId).orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
         post.match()
         postRepository.saveAndFlush(post)
 
@@ -651,7 +652,7 @@ class PostControllerTest {
     @DisplayName("[PostController] 공고 취소 - 본인이 작성한 공고가 아닌 경우 403 반환")
     fun t14() {
         val postId = registerPost()
-        val post = postRepository.findById(postId).orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
         post.match()
         postRepository.saveAndFlush(post)
 
@@ -681,7 +682,7 @@ class PostControllerTest {
     @DisplayName("[PostController] 공고 취소 - 동행인(ESCORT) 역할은 취소 권한 없음 403 반환")
     fun t15() {
         val postId = registerPost()
-        val post = postRepository.findById(postId).orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
         post.match()
         postRepository.saveAndFlush(post)
 
@@ -761,7 +762,7 @@ class PostControllerTest {
     @Test
     @DisplayName("[PostService] 만료 배치 - 모집마감 지난 OPEN 공고는 EXPIRED로 전환된다")
     fun t18() {
-        val client = userRepository.findById(testUserId).orElseThrow()
+        val client = userRepository.findByIdOrNull(testUserId)!!
         val now = LocalDateTime.now()
 
         // API로는 과거 날짜 공고를 못 만드니 리포지토리로 직접 생성
@@ -789,14 +790,14 @@ class PostControllerTest {
         postService.expireOverduePosts()
 
         // then
-        val result = postRepository.findById(targetPostId).orElseThrow()
+        val result = postRepository.findByIdOrNull(targetPostId)!!
         assertThat(result.postStatus).isEqualTo(PostStatus.EXPIRED)
     }
 
     @Test
     @DisplayName("[PostService] 만료 배치 - 매칭된 공고는 마감시간 지나도 대상에서 제외된다")
     fun t19() {
-        val client = userRepository.findById(testUserId).orElseThrow()
+        val client = userRepository.findByIdOrNull(testUserId)!!
         val now = LocalDateTime.now()
         //registerPost() 대신 직접 만들어야 시간 체크 피해감
         val matchedPost = Post(
@@ -824,7 +825,7 @@ class PostControllerTest {
         postService.expireOverduePosts()
 
         // then
-        val result = postRepository.findById(matchedPostId).orElseThrow()
+        val result = postRepository.findByIdOrNull(matchedPostId)!!
         assertThat(result.postStatus).isEqualTo(PostStatus.MATCHED) // 그대로 유지돼야 함
     }
 
@@ -880,14 +881,14 @@ class PostControllerTest {
 
         escortProgressLogRepository.save(
             EscortProgressLog(
-                application = applicationRepository.findById(applicationId).orElseThrow(),
+                application = applicationRepository.findByIdOrNull(applicationId)!!,
                 progress = EscortProgress.DEPARTED,
                 occurredAt = departedAt,
             ),
         )
         escortProgressLogRepository.save(
             EscortProgressLog(
-                application = applicationRepository.findById(applicationId).orElseThrow(),
+                application = applicationRepository.findByIdOrNull(applicationId)!!,
                 progress = EscortProgress.ARRIVED_HOME,
                 occurredAt = arrivedAt,
             ),
@@ -910,15 +911,15 @@ class PostControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.statusCode").value("200-18"))
 
-        val result = postRepository.findById(postId).orElseThrow()
+        val result = postRepository.findByIdOrNull(postId)!!
         assertThat(result.postStatus).isEqualTo(PostStatus.COMPLETED)
         assertThat(result.escortStartAt.hour).isEqualTo(departedAt.hour)
         assertThat(result.escortStartAt.minute).isEqualTo(departedAt.minute)
         assertThat(result.escortEndAt.hour).isEqualTo(arrivedAt.hour)
         assertThat(result.escortEndAt.minute).isEqualTo(arrivedAt.minute)
 
-        val escortId = applicationRepository.findById(applicationId).orElseThrow().escort.id
-        val escortProfile = escortProfileRepository.findById(escortId).orElseThrow()
+        val escortId = applicationRepository.findByIdOrNull(applicationId)!!.escort.id
+        val escortProfile = escortProfileRepository.findByIdOrNull(escortId)!!
         assertThat(escortProfile.completedCount).isEqualTo(1)
     }
 
@@ -950,7 +951,7 @@ class PostControllerTest {
 
         escortProgressLogRepository.save(
             EscortProgressLog(
-                application = applicationRepository.findById(applicationId).orElseThrow(),
+                application = applicationRepository.findByIdOrNull(applicationId)!!,
                 progress = EscortProgress.DEPARTED,
                 occurredAt = LocalDateTime.now().minusHours(1),
             ),
@@ -1154,7 +1155,7 @@ class PostControllerTest {
     @DisplayName("[PostController] 공고 상세 - 대기 중인 지원자는 가려지고, 승인된 동행인은 본다")
     fun sensitive4() {
         val postId = registerPost()
-        val post = postRepository.findById(postId).orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
         val escort = saveUser("escortA", "escortA@test.com", Role.ESCORT)
         val application = applicationRepository.saveAndFlush(
             Application(post, escort),

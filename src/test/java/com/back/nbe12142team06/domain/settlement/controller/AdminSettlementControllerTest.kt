@@ -30,6 +30,7 @@ import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
@@ -302,7 +303,7 @@ class AdminSettlementControllerTest {
         em.flush()
         em.clear()
 
-        assertThat(settlementRepository.findById(pendingSettlementId).get().settlementStatus)
+        assertThat(settlementRepository.findByIdOrNull(pendingSettlementId)!!.settlementStatus)
             .isEqualTo(SettlementStatus.COMPLETED)
     }
 

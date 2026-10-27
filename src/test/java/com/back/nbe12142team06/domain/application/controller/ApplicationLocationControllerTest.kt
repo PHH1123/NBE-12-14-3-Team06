@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
@@ -162,10 +163,10 @@ class ApplicationLocationControllerTest {
 
     // 동행 출발: 공고가 진행 중(IN_PROGRESS)이 되고 첫 진행 기록(DEPARTED)이 남는다
     private fun startTrip() {
-        val post = postRepository.findById(postId).orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
         post.startProgress(LocalDateTime.now())
         postRepository.save(post)
-        val application = applicationRepository.findById(applicationId).orElseThrow()
+        val application = applicationRepository.findByIdOrNull(applicationId)!!
         escortProgressLogRepository.save(EscortProgressLog(application, EscortProgress.DEPARTED, LocalDateTime.now()))
     }
 
@@ -192,14 +193,14 @@ class ApplicationLocationControllerTest {
     }
 
     private fun latestProgress(): EscortProgress {
-        val application = applicationRepository.findById(applicationId).orElseThrow()
-        return escortProgressLogRepository.findTopByApplicationOrderByOccurredAtDescIdDesc(application).get().progress
+        val application = applicationRepository.findByIdOrNull(applicationId)!!
+        return escortProgressLogRepository.findTopByApplicationOrderByOccurredAtDescIdDesc(application)!!.progress
     }
 
     private fun latestProgressOrNull(): EscortProgress? {
-        val application = applicationRepository.findById(applicationId).orElseThrow()
+        val application = applicationRepository.findByIdOrNull(applicationId)!!
         return escortProgressLogRepository.findTopByApplicationOrderByOccurredAtDescIdDesc(application)
-            .map { it.progress }.orElse(null)
+            ?.progress
     }
 
     private fun dataOf(result: ResultActions): Map<*, *> {
@@ -306,7 +307,7 @@ class ApplicationLocationControllerTest {
         readLocation(escortCookie)
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.nearby").value(true))
-        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.MATCHED)
+        assertThat(postRepository.findByIdOrNull(postId)!!.postStatus).isEqualTo(PostStatus.MATCHED)
     }
 
     @Test
@@ -318,12 +319,12 @@ class ApplicationLocationControllerTest {
 
         // 자동 전이 없음: 진행 기록도 없고 공고도 그대로 MATCHED
         assertThat(latestProgressOrNull()).isNull()
-        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.MATCHED)
+        assertThat(postRepository.findByIdOrNull(postId)!!.postStatus).isEqualTo(PostStatus.MATCHED)
 
         // 버튼을 누르면 출발, 이후에도 위치 공유는 계속된다
         pressProgress(EscortProgress.DEPARTED).andExpect(status().isOk())
         assertThat(latestProgressOrNull()).isEqualTo(EscortProgress.DEPARTED)
-        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.IN_PROGRESS)
+        assertThat(postRepository.findByIdOrNull(postId)!!.postStatus).isEqualTo(PostStatus.IN_PROGRESS)
         sendLocation(clientCookie, baseLat, baseLng).andExpect(status().isOk())
         readLocation(escortCookie).andExpect(status().isOk())
     }
@@ -345,7 +346,7 @@ class ApplicationLocationControllerTest {
         pressProgress(EscortProgress.DEPARTED).andExpect(status().isBadRequest()).andExpect(jsonPath("$.statusCode").value("400-37"))
 
         assertThat(latestProgressOrNull()).isNull()
-        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.MATCHED)
+        assertThat(postRepository.findByIdOrNull(postId)!!.postStatus).isEqualTo(PostStatus.MATCHED)
     }
 
     @Test
@@ -386,7 +387,7 @@ class ApplicationLocationControllerTest {
 
         // 공고가 완료되면 보내기·조회 모두 막힌다
         transactionTemplate.executeWithoutResult {
-            val post = postRepository.findById(postId).orElseThrow()
+            val post = postRepository.findByIdOrNull(postId)!!
             post.complete(LocalDateTime.now())
             postRepository.save(post)
         }
@@ -414,7 +415,7 @@ class ApplicationLocationControllerTest {
         startTrip()
         sendLocation(escortCookie, baseLat, baseLng).andExpect(status().isOk())
         sendLocation(clientCookie, baseLat.add(BigDecimal("0.0005")), baseLng).andExpect(status().isOk())
-        assertThat(applicationRepository.findById(applicationId).orElseThrow().clientLat).isNotNull()
+        assertThat(applicationRepository.findByIdOrNull(applicationId)!!.clientLat).isNotNull()
 
         // 동행 매니저가 버튼으로 귀가 완료까지 진행한다
         pressProgress(EscortProgress.TO_HOSPITAL).andExpect(status().isOk())
@@ -423,7 +424,7 @@ class ApplicationLocationControllerTest {
         pressProgress(EscortProgress.ARRIVED_HOME).andExpect(status().isOk())
 
         // 두 사람의 위치가 모두 지워졌다
-        val application = applicationRepository.findById(applicationId).orElseThrow()
+        val application = applicationRepository.findByIdOrNull(applicationId)!!
         assertThat(application.lat).isNull()
         assertThat(application.lng).isNull()
         assertThat(application.locationUpdatedAt).isNull()
@@ -442,7 +443,7 @@ class ApplicationLocationControllerTest {
     @DisplayName("[위치] 위치가 병원·집 근처여도 진행 단계는 자동으로 바뀌지 않는다 (버튼으로만 변경)")
     fun 위치로는_진행_단계가_바뀌지_않는다() {
         startTrip()
-        val post = postRepository.findById(postId).orElseThrow()
+        val post = postRepository.findByIdOrNull(postId)!!
 
         // 출발(DEPARTED) 상태: 집 근처 → 집에서 멀어짐
         sendLocation(escortCookie, post.pickupLat, post.pickupLng).andExpect(status().isOk())

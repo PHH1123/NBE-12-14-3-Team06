@@ -823,8 +823,8 @@ class ApplicationConcurrencyTest {
     @DisplayName("지원 승인과 동행매니저 탈퇴가 동시에 발생해도 상태가 일치한다")
     fun concurrentAcceptAndWithdraw() {
 
-        val escort = userRepository.findById(escortId).orElseThrow()
-        val post = postRepository.findById(postId).orElseThrow()
+        val escort = userRepository.findByIdOrNull(escortId)!!
+        val post = postRepository.findByIdOrNull(postId)!!
 
         val application = Application(post, escort)
 
@@ -877,12 +877,10 @@ class ApplicationConcurrencyTest {
                     .findByIdIncludingDeleted(escortId)!!
 
             val resultApplication = applicationRepository
-                    .findById(applicationId)
-                    .orElseThrow()
+                    .findByIdOrNull(applicationId)!!
 
             val resultPost = postRepository
-                    .findById(postId)
-                    .orElseThrow()
+                    .findByIdOrNull(postId)!!
 
             System.out.println("승인 예외 = " + acceptError.get())
             System.out.println("탈퇴 예외 = " + withdrawError.get())
@@ -922,8 +920,8 @@ class ApplicationConcurrencyTest {
     @DisplayName("지원 승인과 공고 취소가 동시에 발생해도 상태가 일치한다")
     fun concurrentAcceptAndPostCancel() {
 
-        val escort = userRepository.findById(escortId).orElseThrow()
-        val post = postRepository.findById(postId).orElseThrow()
+        val escort = userRepository.findByIdOrNull(escortId)!!
+        val post = postRepository.findByIdOrNull(postId)!!
 
         val application = Application(post, escort)
 
@@ -975,12 +973,10 @@ class ApplicationConcurrencyTest {
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
             val resultApplication = applicationRepository
-                    .findById(applicationId)
-                    .orElseThrow()
+                    .findByIdOrNull(applicationId)!!
 
             val resultPost = postRepository
-                    .findById(postId)
-                    .orElseThrow()
+                    .findByIdOrNull(postId)!!
 
             System.out.println("승인 예외 = " + acceptError.get())
             System.out.println("취소 예외 = " + cancelError.get())
@@ -1015,9 +1011,9 @@ class ApplicationConcurrencyTest {
     @DisplayName("매칭 취소와 다른 지원자 승인 시도가 동시에 발생해도 상태가 일치한다")
     fun concurrentMatchedCancelAndAccept() {
 
-        val client = userRepository.findById(clientId).orElseThrow()
-        val escortA = userRepository.findById(escortId).orElseThrow()
-        val post = postRepository.findById(postId).orElseThrow()
+        val client = userRepository.findByIdOrNull(clientId)!!
+        val escortA = userRepository.findByIdOrNull(escortId)!!
+        val post = postRepository.findByIdOrNull(postId)!!
 
         val seq = TEST_SEQUENCE.incrementAndGet()
 
@@ -1092,13 +1088,13 @@ class ApplicationConcurrencyTest {
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
             val resultA = applicationRepository
-                    .findById(appAId).orElseThrow()
+                    .findByIdOrNull(appAId)!!
 
             val resultB = applicationRepository
-                    .findById(appBId).orElseThrow()
+                    .findByIdOrNull(appBId)!!
 
             val resultPost = postRepository
-                    .findById(postId).orElseThrow()
+                    .findByIdOrNull(postId)!!
 
             System.out.println("승인 예외 = " + acceptError.get())
             System.out.println("매칭 취소 예외 = " + cancelError.get())
@@ -1131,9 +1127,9 @@ class ApplicationConcurrencyTest {
     @DisplayName("서로 다른 공고에서 지원 승인과 지원 취소가 동시에 발생해도 상태가 일치한다")
     fun concurrentAcceptAndCancelDifferentPosts() {
 
-        val client = userRepository.findById(clientId).orElseThrow()
-        val escort = userRepository.findById(escortId).orElseThrow()
-        val postA = postRepository.findById(postId).orElseThrow()
+        val client = userRepository.findByIdOrNull(clientId)!!
+        val escort = userRepository.findByIdOrNull(escortId)!!
+        val postA = postRepository.findByIdOrNull(postId)!!
 
         // 공고 A와 동행 시간이 겹치는 공고 B 생성
         var postB = Post(
@@ -1216,16 +1212,16 @@ class ApplicationConcurrencyTest {
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
             val resultA = applicationRepository
-                    .findById(appAId).orElseThrow()
+                    .findByIdOrNull(appAId)!!
 
             val resultB = applicationRepository
-                    .findById(appBId).orElseThrow()
+                    .findByIdOrNull(appBId)!!
 
             val resultPostA = postRepository
-                    .findById(postId).orElseThrow()
+                    .findByIdOrNull(postId)!!
 
             val resultPostB = postRepository
-                    .findById(postBId).orElseThrow()
+                    .findByIdOrNull(postBId)!!
 
             System.out.println("승인 예외 = " + acceptError.get())
             System.out.println("취소 예외 = " + cancelError.get())
