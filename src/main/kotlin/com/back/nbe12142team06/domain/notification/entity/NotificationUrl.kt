@@ -17,7 +17,8 @@ enum class NotificationUrl(
     U_PAYMENT_CANCELED("/client/posts/%d"),
     U_PAYMENT_PARTIAL_CANCELED("/client/posts/%d"),
     U_PAYMENT_EXTRA_PAY("/client/posts/%d"),
-    U_SETTLEMENT_DONE("/escort/%d");
+    U_SETTLEMENT_DONE("/escort/%d"),
+    U_ESCORT_DELETE_APPLICATION_CANCEL("/client/posts/%d");
 
     fun of(vararg args: Any): String {
         return format.format(*args)

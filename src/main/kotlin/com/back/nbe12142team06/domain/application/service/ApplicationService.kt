@@ -1,36 +1,14 @@
 package com.back.nbe12142team06.domain.application.service
 
-import com.back.nbe12142team06.domain.application.dto.ApplicationAcceptResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationApplyResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationClientProfileResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationEscortProfileResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationListResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationLocationRequest
-import com.back.nbe12142team06.domain.application.dto.ApplicationLocationResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationProgressResponse
-import com.back.nbe12142team06.domain.application.dto.LocationPoint
-import com.back.nbe12142team06.domain.application.dto.MyApplicationResponse
+import com.back.nbe12142team06.domain.application.dto.*
 import com.back.nbe12142team06.domain.application.entity.Application
 import com.back.nbe12142team06.domain.application.entity.EscortProgressLog
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus
 import com.back.nbe12142team06.domain.application.enums.EscortProgress
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_ACCEPT
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_APPLY
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_CANCELED
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_PROGRESS_ARRIVED_HOME
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_PROGRESS_AT_HOSPITAL
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_REJECT
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_UPDATED_PROGRESS
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_ACCEPT
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_APPLY
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_CANCELED
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_PROGRESS_ARRIVED_HOME
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_PROGRESS_AT_HOSPITAL
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_REJECT
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_UPDATED_PROGRESS_CLIENT
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_UPDATED_PROGRESS_ESCORT
+import com.back.nbe12142team06.domain.notification.entity.NotificationContent.*
+import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.*
 import com.back.nbe12142team06.domain.notification.service.NoticeService
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository
 import com.back.nbe12142team06.domain.payment.service.PaymentService
@@ -287,22 +265,33 @@ open class ApplicationService(
         )
         for (candidate in applications) {
             // 조회 후 상태가 바뀔 수 있으므로 잠금을 잡은 다음 재검증한다.
-            val post = postRepository.findByIdWithLock(requireNotNull(candidate.post.id) { "Post ID must not be null" })
+            val post = postRepository.findByIdWithLock(candidate.post.requiredId)
                 ?: throw NotFoundException(11, "공고가 없습니다.")
             val application = applicationRepository.findByIdWithLock(candidate.id)
                 ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
             if (application.status == ApplicationStatus.PENDING && post.postStatus == PostStatus.OPEN) {
                 application.cancelWithoutPenalty()
+                noticeService.send(
+                    receiverId = post.client.id,
+                    content = C_APPLICATION_CANCELED.of(application.escort.name, post.title),
+                    url = U_APPLICATION_CANCELED.of(post.requiredId),
+                )
                 continue
             }
             if (application.status == ApplicationStatus.ACCEPTED && post.postStatus == PostStatus.MATCHED) {
                 application.cancelWithoutPenalty()
+
                 // 모집 마감 전이면 다시 동행인을 모집하고, 마감 후라면 공고를 취소해 환불한다.
                 if (LocalDateTime.now().isBefore(post.recruitEndAt)) {
                     post.reopen()
                 } else {
                     post.matchedCancel()
                     paymentService.cancel(post)
+                    noticeService.send(
+                        receiverId = post.client.id,
+                        content = C_ESCORT_DELETE_APPLICATION_CANCEL.of(),
+                        url = U_ESCORT_DELETE_APPLICATION_CANCEL.of(post.requiredId),
+                    )
                 }
                 continue
             }
