@@ -4,7 +4,7 @@ import com.back.nbe12142team06.domain.user.entity.EscortProfile
 import com.back.nbe12142team06.domain.user.enums.EscortGrade
 
 data class EscortProfileResponse(
-    val userId: Long?,
+    val userId: Long,
     val name: String,
     val region: String,
     val intro: String,
@@ -17,7 +17,7 @@ data class EscortProfileResponse(
     val accountNumber: String,
 ) {
     constructor(escortProfile: EscortProfile) : this(
-        escortProfile.userId,
+        escortProfile.requiredId,
         escortProfile.user.name,
         escortProfile.user.region,
         escortProfile.intro,

@@ -49,6 +49,9 @@ class ClientProfile internal constructor() : BaseTimeEntity() {  // JPA용 기�
         this.careNote = careNote
     }
 
+    val requiredId : Long
+        get() = userId ?: error("ID가 NULL입니다.")
+
     fun updateProfile(emergencyContactName: String, emergencyContactPhone: String, careNote: String?) {
         this.emergencyContactName = emergencyContactName
         this.emergencyContactPhone = emergencyContactPhone

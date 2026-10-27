@@ -196,6 +196,9 @@ class Post internal constructor() : BaseSoftDeleteTimeEntity() {  // createdAt, 
         this.reportRequired = reportRequired
     }
 
+    val requiredId : Long
+        get() = id ?: error("ID가 NULL입니다.")
+
     // 모집 시작,마감 시간 포함하여 모집 기간인지 확인
     fun isWithinPeriod(now: LocalDateTime): Boolean =
         !now.isBefore(recruitStartAt) && !now.isAfter(recruitEndAt)

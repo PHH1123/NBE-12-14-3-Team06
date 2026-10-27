@@ -9,7 +9,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 data class AdminUserResponse(
-    val id: Long?,
+    val id: Long,
     val username: String,
     val email: String,
     val name: String,

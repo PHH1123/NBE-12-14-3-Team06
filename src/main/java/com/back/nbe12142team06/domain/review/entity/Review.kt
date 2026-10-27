@@ -2,19 +2,7 @@ package com.back.nbe12142team06.domain.review.entity
 
 import com.back.nbe12142team06.domain.application.entity.Application
 import com.back.nbe12142team06.global.entity.BaseTimeEntity
-import jakarta.persistence.CollectionTable
-import jakarta.persistence.Column
-import jakarta.persistence.ElementCollection
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.FetchType
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.OneToOne
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotNull
@@ -66,4 +54,7 @@ class Review protected constructor() : BaseTimeEntity() {
         this.tags = tags
         this.content = content
     }
+
+    val requiredId : Long
+        get() = id ?: error("ID가 NULL입니다.")
 }

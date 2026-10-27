@@ -4,8 +4,8 @@ import com.back.nbe12142team06.domain.report.entity.Report
 import java.time.LocalDateTime
 
 data class ReportWriteResponse(
-    val id: Long?,
-    val applicationId: Long?,
+    val id: Long,
+    val applicationId: Long,
     val title: String,
     val department: String,
     val purpose: String,
@@ -16,8 +16,8 @@ data class ReportWriteResponse(
     val createdAt: LocalDateTime?,
 ) {
     constructor(report: Report) : this(
-        report.id,
-        report.application.id,
+        report.requiredId,
+        report.application.requiredId,
         report.title,
         report.department.description,
         report.purpose,

@@ -5,8 +5,8 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 
 data class PostDto(
-    val id: Long?,
-    val clientUserId: Long?,
+    val id: Long,
+    val clientUserId: Long,
     val client_id: String,
     val isOwner: Boolean,
     val title: String,
@@ -35,7 +35,7 @@ data class PostDto(
 ) {
     // Java 호출부(new PostDto(post), (post, canViewSensitive))도 그대로 쓸 수 있게 오버로드를 만든다
     constructor(post: Post, canViewSensitive: Boolean = true, isOwner: Boolean = false) : this(
-        post.id,
+        post.requiredId,
         post.client.id,
         maskName(post.client.name),
         isOwner,

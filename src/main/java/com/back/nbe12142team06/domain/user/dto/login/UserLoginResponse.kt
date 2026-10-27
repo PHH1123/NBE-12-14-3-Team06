@@ -3,7 +3,7 @@ package com.back.nbe12142team06.domain.user.dto.login
 import com.back.nbe12142team06.domain.user.entity.User
 
 data class UserLoginResponse(
-    val id: Long?,
+    val id: Long,
     val name: String,
 ) {
     constructor(user: User) : this(

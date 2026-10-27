@@ -3,7 +3,7 @@ package com.back.nbe12142team06.domain.education.dto
 import com.back.nbe12142team06.domain.education.entity.EducationProgress
 
 data class EducationVideoResponse(
-    val videoId: Long?,
+    val videoId: Long,
     val title: String,
     val url: String,
     val durationSec: Int,
@@ -12,7 +12,7 @@ data class EducationVideoResponse(
     val completed: Boolean,     // 해당 영상 시청 완료 여부
 ) {
     constructor(progress: EducationProgress) : this(
-        progress.educationVideo.id,
+        progress.educationVideo.requiredId,
         progress.educationVideo.title,
         progress.educationVideo.url,
         progress.educationVideo.durationSec,

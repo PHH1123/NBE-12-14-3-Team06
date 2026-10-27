@@ -5,9 +5,9 @@ import java.time.LocalDateTime
 
 // 진료 보고서 조회용
 data class ReportDto(
-    val id: Long?,
-    val applicationId: Long?,
-    val clientName: String?,
+    val id: Long,
+    val applicationId: Long,
+    val clientName: String,
     val title: String,
     val department: String,  // 화면에 그대로 쓸 수 있도록 한글 과목명으로 내려준다
     val purpose: String,
@@ -19,8 +19,8 @@ data class ReportDto(
     val updatedAt: LocalDateTime?,
 ) {
     constructor(report: Report) : this(
-        report.id,
-        report.application.id,
+        report.requiredId,
+        report.application.requiredId,
         report.application.post.client.name,
         report.title,
         report.department.description,

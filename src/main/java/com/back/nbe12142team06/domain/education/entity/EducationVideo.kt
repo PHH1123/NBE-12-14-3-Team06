@@ -34,6 +34,9 @@ class EducationVideo internal constructor() {  // JPA용 기본 생성자
     var required: Boolean = false
         protected set
 
+    val requiredId : Long
+        get() = id ?: error("ID가 NULL입니다.")
+
     constructor(title: String, url: String, durationSec: Int, required: Boolean) : this() {
         this.title = title
         this.url = url

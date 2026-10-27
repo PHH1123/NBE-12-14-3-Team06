@@ -68,6 +68,9 @@ class Report(
     var summarizedAt: LocalDateTime? = null  // AI 요약 완료 시각 (nullable)
         protected set
 
+    val requiredId : Long
+        get() = id ?: error("ID가 NULL입니다.")
+
     /** AI 요약 완료 시 호출 (JSON 문자열 저장) */
     fun applySummary(aiSummary: String) {
         this.aiSummary = aiSummary

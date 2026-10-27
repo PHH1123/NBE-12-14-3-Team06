@@ -7,9 +7,9 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 
 data class MyApplicationResponse(
-    val applicationId: Long?,
-    val postId: Long?,
-    val applicationStatus: ApplicationStatus?,
+    val applicationId: Long,
+    val postId: Long,
+    val applicationStatus: ApplicationStatus,
     val postStatus: PostStatus,
     val title: String,
     val hospitalName: String,
@@ -22,8 +22,8 @@ data class MyApplicationResponse(
     val content: String,
 ) {
     constructor(application: Application) : this(
-        application.id,
-        application.post.id,
+        application.requiredId,
+        application.post.requiredId,
         application.status,
         application.post.postStatus,
         application.post.title,

@@ -139,7 +139,7 @@ class PostService(
         rideService.createRide(savedPost, request.rideSelectToHospital!!, request.rideSelectToHome!!)
 
         log.info("[공고 등록] postId={}, clientId={}", savedPost.id, userId)
-        return PostWriteResponse(savedPost, payment.id)
+        return PostWriteResponse(savedPost, payment.requiredId)
     }
 
     @Transactional

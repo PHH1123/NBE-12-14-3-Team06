@@ -4,13 +4,13 @@ import com.back.nbe12142team06.domain.application.entity.Application
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus
 
 data class ApplicationApplyResponse(
-    val id: Long?,
-    val postId: Long?,
-    val status: ApplicationStatus?,
+    val id: Long,
+    val postId: Long,
+    val status: ApplicationStatus,
 ) {
     constructor(application: Application) : this(
-        application.id,
-        application.post.id,
+        application.requiredId,
+        application.post.requiredId,
         application.status,
     )
 }

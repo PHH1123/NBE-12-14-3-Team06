@@ -31,6 +31,7 @@ class PostDtoJsonTest {
         )
         val now = LocalDateTime.of(2026, 10, 23, 9, 0)
         val post = Post(
+            id = Math.random().toLong(),
             client = client,
             title = "제목", content = "내용", region = "서울",
             hospitalName = "병원", hospitalAddress = "서울시",
@@ -69,6 +70,7 @@ class PostDtoJsonTest {
         val full = newDto()
         val hidden = PostDto(
             Post(
+                id = full.id,
                 client = User(
                     "u", "pw", "u@test.com", "홍길동", Role.CLIENT, Gender.MALE,
                     LocalDate.of(1990, 1, 1), "010-0000-0001", "서울",

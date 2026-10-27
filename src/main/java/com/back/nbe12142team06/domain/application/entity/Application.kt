@@ -93,6 +93,9 @@ class Application protected constructor() : BaseTimeEntity() {
         this.activePostId = activePostId
     }
 
+    val requiredId : Long
+        get() = id ?: error("ID가 NULL입니다.")
+
     private fun syncActivePostId() {
         activePostId = if (status == ApplicationStatus.PENDING || status == ApplicationStatus.ACCEPTED) {
             post.id

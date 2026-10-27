@@ -3,7 +3,7 @@ package com.back.nbe12142team06.domain.user.dto.profile
 import com.back.nbe12142team06.domain.user.entity.EscortProfile
 
 data class EscortProfileModifyResponse(
-    val userId: Long?,
+    val userId: Long,
     val name: String,
     val region: String,
     val intro: String,
@@ -15,7 +15,7 @@ data class EscortProfileModifyResponse(
     val accountNumber: String,
 ) {
     constructor(escortProfile: EscortProfile) : this(
-        escortProfile.userId,
+        escortProfile.requiredId,
         escortProfile.user.name,
         escortProfile.user.region,
         escortProfile.intro,

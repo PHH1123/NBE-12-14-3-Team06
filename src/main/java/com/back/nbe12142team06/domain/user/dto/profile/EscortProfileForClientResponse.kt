@@ -4,7 +4,7 @@ import com.back.nbe12142team06.domain.user.entity.EscortProfile
 
 // 의뢰인이 보는 동행 매니저 프로필 (계좌 정보 등 민감 정보 제외)
 data class EscortProfileForClientResponse(
-    val userId: Long?,
+    val userId: Long,
     val name: String,
     val region: String,
     val intro: String,
@@ -13,7 +13,7 @@ data class EscortProfileForClientResponse(
     val verified: Boolean,
 ) {
     constructor(escortProfile: EscortProfile) : this(
-        escortProfile.userId,
+        escortProfile.requiredId,
         escortProfile.user.name,
         escortProfile.user.region,
         escortProfile.intro,

@@ -102,6 +102,9 @@ class EscortProfile internal constructor() : BaseTimeEntity() {  // JPA용 기�
         this.accountNumber = accountNumber
     }
 
+    val requiredId : Long
+        get() = userId ?: error("ID가 NULL입니다.")
+
     // 평균 평점 (소수점 첫째 자리 반올림, 평가 없으면 null)
     val averageRating: Double?
         get() = if (ratingCount == 0) null else (ratingSum * 10.0 / ratingCount).roundToLong() / 10.0
