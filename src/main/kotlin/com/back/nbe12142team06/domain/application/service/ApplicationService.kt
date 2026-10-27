@@ -280,8 +280,6 @@ open class ApplicationService(
             }
             if (application.status == ApplicationStatus.ACCEPTED && post.postStatus == PostStatus.MATCHED) {
                 application.cancelWithoutPenalty()
-                post.matchedCancel()
-                paymentService.cancel(post)
 
                 // 모집 마감 전이면 다시 동행인을 모집하고, 마감 후라면 공고를 취소해 환불한다.
                 if (LocalDateTime.now().isBefore(post.recruitEndAt)) {

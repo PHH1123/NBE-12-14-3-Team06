@@ -3,6 +3,7 @@ package com.back.nbe12142team06.domain.post.service
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository
+import com.back.nbe12142team06.domain.notification.service.NoticeService
 import com.back.nbe12142team06.domain.payment.service.PaymentService
 import com.back.nbe12142team06.domain.post.entity.Post
 import com.back.nbe12142team06.domain.post.entity.PostStatus
@@ -21,7 +22,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
-import java.util.Optional
+import java.util.*
 
 @ExtendWith(MockitoExtension::class)
 class PostLocationCleanupServiceTest {
@@ -50,6 +51,9 @@ class PostLocationCleanupServiceTest {
 
     @Mock
     private lateinit var escortService: EscortService
+
+    @Mock
+    private lateinit var noticeService: NoticeService
 
     @InjectMocks
     private lateinit var postService: PostService
