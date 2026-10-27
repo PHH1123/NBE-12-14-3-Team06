@@ -119,13 +119,13 @@ class EscortGradeIntegrationTest {
             RideSelect.TAXI, RideSelect.TAXI, "", true
         )
 
-        var post = postService.findById(postService.write(client.id, request).id!!)
-        paymentRepository.testStatusDoneAndPutPaymentKey(post.id!!, UUID.randomUUID().toString()) // 결제 완료 상태로 만든다
+        var post = postService.findById(postService.write(client.id, request).id)
+        paymentRepository.testStatusDoneAndPutPaymentKey(post.requiredId, UUID.randomUUID().toString()) // 결제 완료 상태로 만든다
         // 공고 다시 조회
-        post = postService.findById(post.id!!)
+        post = postService.findById(post.requiredId)
 
         ReflectionTestUtils.setField(post, "recruitStartAt", LocalDateTime.now().minusMinutes(1))
-        val applicationId = applicationService.apply(post.id, escort.id).id!!
+        val applicationId = applicationService.apply(post.requiredId, escort.id).id
         applicationService.accept(applicationId, client.id)
 
         return applicationRepository.findAllByPostIdWithEscort(post.id).first()
@@ -153,7 +153,7 @@ class EscortGradeIntegrationTest {
         )
 
         // 동행 완료 처리 (완료 횟수 4 → 5)
-        postService.escortComplete(application.post.id!!, client.id)
+        postService.escortComplete(application.post.requiredId, client.id)
 
         val after = profileOfEscort()
         assertThat(after.completedCount).isEqualTo(5)
@@ -173,7 +173,7 @@ class EscortGradeIntegrationTest {
         val application = matchedApplication()
 
         // 승인된 지원을 동행인이 취소 → 노쇼 처리 (노쇼 1 → 2)
-        applicationService.cancel(application.id, escort.id)
+        applicationService.cancel(application.requiredId, escort.id)
 
         val after = profileOfEscort()
         assertThat(after.noShowCount).isEqualTo(2)

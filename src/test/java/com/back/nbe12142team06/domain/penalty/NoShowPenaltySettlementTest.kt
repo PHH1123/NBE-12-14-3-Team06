@@ -83,7 +83,7 @@ class NoShowPenaltySettlementTest {
 
         // 지원 승인 후 취소 -> 노쇼 패널티 한 건이 쌓인다
         val canceled = matchedApplication(newPost())
-        applicationService.cancel(canceled.id, escort.id)
+        applicationService.cancel(canceled.requiredId, escort.id)
 
         // 패널티가 적용될 공고, 지원 후 승인까지
         post = newPost()
@@ -119,17 +119,17 @@ class NoShowPenaltySettlementTest {
             RideSelect.TAXI, RideSelect.TAXI, "", true
         )
 
-        var post = postService.findById(postService.write(client.id, request).id!!)
-        paymentRepository.testStatusDoneAndPutPaymentKey(post.id!!, UUID.randomUUID().toString())
+        var post = postService.findById(postService.write(client.id, request).id)
+        paymentRepository.testStatusDoneAndPutPaymentKey(post.requiredId, UUID.randomUUID().toString())
         // 영속성 컨텍스트 초기화 후 공고 다시 조회
-        post = postService.findById(post.id!!)
+        post = postService.findById(post.requiredId)
         ReflectionTestUtils.setField(post, "recruitStartAt", LocalDateTime.now().minusMinutes(1))
         return post
     }
 
     // 지원 후 승인까지 진행한 지원을 돌려준다.
     private fun matchedApplication(post: Post): Application {
-        val applyResponse = applicationService.apply(post.id, escort.id)
+        val applyResponse = applicationService.apply(post.requiredId, escort.id)
         applicationService.accept(applyResponse.id, client.id)
         return applicationRepository.findAllByPostIdWithEscort(post.id).first()
     }
@@ -160,7 +160,7 @@ class NoShowPenaltySettlementTest {
         }
 
         // 동행 완료 처리
-        postService.escortComplete(post.id!!, client.id)
+        postService.escortComplete(post.requiredId, client.id)
 
         val settlement = settlementRepository.findAll().first()
         val noShowPenalty = noShowPenaltyRepository.findAll().first()

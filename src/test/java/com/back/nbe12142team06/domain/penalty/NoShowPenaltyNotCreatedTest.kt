@@ -102,9 +102,9 @@ class NoShowPenaltyNotCreatedTest {
     fun pendingCancelCreatesNoPenalty() {
         val application = saveApplication(savePost(PostStatus.OPEN), ApplicationStatus.PENDING)
 
-        applicationService.cancel(application.id, escort.id)
+        applicationService.cancel(application.requiredId, escort.id)
 
-        assertThat(applicationRepository.findById(application.id!!).orElseThrow().status)
+        assertThat(applicationRepository.findById(application.requiredId).orElseThrow().status)
             .isEqualTo(ApplicationStatus.CANCELED)
         assertThat(noShowPenaltyRepository.findByEscortIdAndStatus(escort.id)).isEmpty()
         assertThat(escortProfileRepository.findById(escort.id).orElseThrow().noShowCount).isEqualTo(0)
@@ -119,9 +119,9 @@ class NoShowPenaltyNotCreatedTest {
 
         applicationService.cancelAllByEscort(escort.id)
 
-        assertThat(applicationRepository.findById(accepted.id!!).orElseThrow().status)
+        assertThat(applicationRepository.findById(accepted.requiredId).orElseThrow().status)
             .isEqualTo(ApplicationStatus.CANCELED)
-        assertThat(applicationRepository.findById(pending.id!!).orElseThrow().status)
+        assertThat(applicationRepository.findById(pending.requiredId).orElseThrow().status)
             .isEqualTo(ApplicationStatus.CANCELED)
 
         // 승인된 지원을 취소했어도 탈퇴·정지 경로에는 패널티가 없다
@@ -135,11 +135,11 @@ class NoShowPenaltyNotCreatedTest {
         val post = savePost(PostStatus.MATCHED)
         val accepted = saveApplication(post, ApplicationStatus.ACCEPTED)
 
-        postService.cancel(post.id!!, client.id)
+        postService.cancel(post.requiredId, client.id)
 
-        assertThat(applicationRepository.findById(accepted.id!!).orElseThrow().status)
+        assertThat(applicationRepository.findById(accepted.requiredId).orElseThrow().status)
             .isEqualTo(ApplicationStatus.CANCELED)
-        assertThat(postRepository.findById(post.id!!).orElseThrow().postStatus)
+        assertThat(postRepository.findById(post.requiredId).orElseThrow().postStatus)
             .isEqualTo(PostStatus.CANCELED)
         assertThat(noShowPenaltyRepository.findByEscortIdAndStatus(escort.id)).isEmpty()
         assertThat(escortProfileRepository.findById(escort.id).orElseThrow().noShowCount).isEqualTo(0)
@@ -151,9 +151,9 @@ class NoShowPenaltyNotCreatedTest {
         val post = savePost(PostStatus.MATCHED)
         val accepted = saveApplication(post, ApplicationStatus.ACCEPTED)
 
-        postService.matchedCancel(post.id!!, client.id)
+        postService.matchedCancel(post.requiredId, client.id)
 
-        assertThat(applicationRepository.findById(accepted.id!!).orElseThrow().status)
+        assertThat(applicationRepository.findById(accepted.requiredId).orElseThrow().status)
             .isEqualTo(ApplicationStatus.CANCELED)
         assertThat(noShowPenaltyRepository.findByEscortIdAndStatus(escort.id)).isEmpty()
         assertThat(escortProfileRepository.findById(escort.id).orElseThrow().noShowCount).isEqualTo(0)

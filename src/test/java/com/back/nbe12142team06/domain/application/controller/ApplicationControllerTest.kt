@@ -130,7 +130,7 @@ class ApplicationControllerTest {
         // 테스트용 동행인 프로필 생성 (교육 이수 완료 상태)
         val escortProfile = EscortProfile(escort, "ㅎㅎ", "은행은행", escort.name, "1234")
         escortProfileRepository.save(escortProfile)
-        this.escortProfileRepository.verify(escortProfile.userId!!, LocalDateTime.now())
+        this.escortProfileRepository.verify(escortProfile.requiredId, LocalDateTime.now())
 
         // 테스트용 공고
         var post = Post(
@@ -154,7 +154,7 @@ class ApplicationControllerTest {
                 reportRequired = false,
                 )
 
-        testPostId = postRepository.save(post).id!!
+        testPostId = postRepository.save(post).requiredId
 
         // 테스트 과정에 결제 데이터가 필요해서 추가
         val payment = Payment(
@@ -481,7 +481,7 @@ class ApplicationControllerTest {
 
         // then: 지원과 공고 상태는 변경되지 않아야 함
         assertEquals(ApplicationStatus.PENDING,
-                applicationRepository.findByIdOrNull(application.id!!)!!
+                applicationRepository.findByIdOrNull(application.requiredId)!!
                     .status)
 
         assertEquals(PostStatus.OPEN,
@@ -521,7 +521,7 @@ class ApplicationControllerTest {
 
         // then: 지원은 PENDING, 공고는 OPEN 유지
         assertEquals(ApplicationStatus.PENDING,
-                applicationRepository.findByIdOrNull(application.id!!)!!
+                applicationRepository.findByIdOrNull(application.requiredId)!!
                         .status)
 
         assertEquals(PostStatus.OPEN,
@@ -851,7 +851,7 @@ class ApplicationControllerTest {
 
         // 승인 후 실제 DB 상태 확인
         val acceptedApplication = applicationRepository
-                .findByIdOrNull(application.id!!)!!
+                .findByIdOrNull(application.requiredId)!!
 
         val matchedPost = postRepository
                 .findByIdOrNull(testPostId)!!
@@ -989,7 +989,7 @@ class ApplicationControllerTest {
                 "동행인2",
                 "123-0000000-222"
         ))
-        this.escortProfileRepository.verify(escort2Profile.userId!!, LocalDateTime.now())
+        this.escortProfileRepository.verify(escort2Profile.requiredId, LocalDateTime.now())
 
         val escort2AccessTokenCookie = mvc.perform(
                         mvcPost("/api/v1/auth/login")
@@ -1039,7 +1039,7 @@ class ApplicationControllerTest {
 
         // 승인된 지원 상태 확인
         val acceptedApplication = applicationRepository
-                .findByIdOrNull(firstApplication.id!!)!!
+                .findByIdOrNull(firstApplication.requiredId)!!
 
         assertEquals(
                 ApplicationStatus.ACCEPTED,
@@ -1048,7 +1048,7 @@ class ApplicationControllerTest {
 
         // 나머지 지원자는 자동 거절됐는지 확인
         val rejectedApplication = applicationRepository
-                .findByIdOrNull(secondApplication.id!!)!!
+                .findByIdOrNull(secondApplication.requiredId)!!
 
         assertEquals(
                 ApplicationStatus.REJECTED,
@@ -1132,7 +1132,7 @@ class ApplicationControllerTest {
                 reportRequired = false,
                 )
 
-        val overlappingPostId = postRepository.save(overlappingPost).id
+        val overlappingPostId = postRepository.save(overlappingPost).requiredId
 
         // 같은 동행인이 첫 번째 공고에 지원
         mvc.perform(
@@ -1167,10 +1167,10 @@ class ApplicationControllerTest {
 
         // DB 상태 다시 조회
         val acceptedApplication = applicationRepository
-                .findByIdOrNull(firstApplication.id!!)!!
+                .findByIdOrNull(firstApplication.requiredId)!!
 
         val rejectedApplication = applicationRepository
-                .findByIdOrNull(overlappingApplication.id!!)!!
+                .findByIdOrNull(overlappingApplication.requiredId)!!
 
         // 선택된 지원은 ACCEPTED
         assertEquals(
@@ -1195,7 +1195,7 @@ class ApplicationControllerTest {
 
         // 다른 공고 자체는 계속 모집 가능
         val otherPost = postRepository
-                .findByIdOrNull(overlappingPostId!!)!!
+                .findByIdOrNull(overlappingPostId)!!
 
         assertEquals(
                 PostStatus.OPEN,
@@ -1236,7 +1236,7 @@ class ApplicationControllerTest {
                 reportRequired = false,
                 )
 
-        val nonOverlappingPostId = postRepository.save(nonOverlappingPost).id
+        val nonOverlappingPostId = postRepository.save(nonOverlappingPost).requiredId
 
         // 같은 동행인이 첫 번째 공고에 지원
         mvc.perform(
@@ -1273,10 +1273,10 @@ class ApplicationControllerTest {
 
         // DB 상태 다시 조회
         val acceptedApplication = applicationRepository
-                .findByIdOrNull(firstApplication.id!!)!!
+                .findByIdOrNull(firstApplication.requiredId)!!
 
         val pendingApplication = applicationRepository
-                .findByIdOrNull(secondApplication.id!!)!!
+                .findByIdOrNull(secondApplication.requiredId)!!
 
         // 첫 번째 지원은 ACCEPTED
         assertEquals(
@@ -1301,7 +1301,7 @@ class ApplicationControllerTest {
 
         // 두 번째 공고는 계속 OPEN
         val otherPost = postRepository
-                .findByIdOrNull(nonOverlappingPostId!!)!!
+                .findByIdOrNull(nonOverlappingPostId)!!
 
         assertEquals(
                 PostStatus.OPEN,
@@ -1334,7 +1334,7 @@ class ApplicationControllerTest {
 
         // 첫 번째 지원이 실제 ACCEPTED인지 확인
         val acceptedApplication = applicationRepository
-                .findByIdOrNull(firstApplication.id!!)!!
+                .findByIdOrNull(firstApplication.requiredId)!!
 
         assertEquals(
                 ApplicationStatus.ACCEPTED,
@@ -1398,7 +1398,7 @@ class ApplicationControllerTest {
                 reportRequired = false,
                 )
 
-        val overlappingPostId = postRepository.save(overlappingPost).id
+        val overlappingPostId = postRepository.save(overlappingPost).requiredId
 
         val payment = Payment(
             amount = overlappingPost.totalPay,
@@ -1440,7 +1440,7 @@ class ApplicationControllerTest {
 
         // 승인 실패했으므로 두 번째 지원은 PENDING 유지
         val pendingApplication = applicationRepository
-                .findByIdOrNull(overlappingApplication.id!!)!!
+                .findByIdOrNull(overlappingApplication.requiredId)!!
 
         assertEquals(
                 ApplicationStatus.PENDING,
@@ -1449,7 +1449,7 @@ class ApplicationControllerTest {
 
         // 두 번째 공고 역시 OPEN 유지
         val stillOpenPost = postRepository
-                .findByIdOrNull(overlappingPostId!!)!!
+                .findByIdOrNull(overlappingPostId)!!
 
         assertEquals(
                 PostStatus.OPEN,
@@ -1484,7 +1484,7 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.msg").value("지원 거절이 완료되었습니다."))
 
         val rejectedApplication = applicationRepository
-                .findByIdOrNull(application.id!!)!!
+                .findByIdOrNull(application.requiredId)!!
 
         assertEquals(
                 ApplicationStatus.REJECTED,
@@ -1554,7 +1554,7 @@ class ApplicationControllerTest {
 
         // 실패했으므로 상태는 여전히 PENDING
         val pendingApplication = applicationRepository
-                .findByIdOrNull(application.id!!)!!
+                .findByIdOrNull(application.requiredId)!!
 
         assertEquals(
                 ApplicationStatus.PENDING,
@@ -1602,7 +1602,7 @@ class ApplicationControllerTest {
 
         // 상태는 그대로 REJECTED
         val rejectedApplication = applicationRepository
-                .findByIdOrNull(application.id!!)!!
+                .findByIdOrNull(application.requiredId)!!
 
         assertEquals(
                 ApplicationStatus.REJECTED,
@@ -1663,7 +1663,7 @@ class ApplicationControllerTest {
 
         // 실제 DB 상태 확인
         val canceledApplication = applicationRepository
-                .findByIdOrNull(application.id!!)!!
+                .findByIdOrNull(application.requiredId)!!
 
         assertEquals(
                 ApplicationStatus.CANCELED,
@@ -1717,7 +1717,7 @@ class ApplicationControllerTest {
 
         // 취소 후 지원 상태 확인
         val canceledApplication = applicationRepository
-                .findByIdOrNull(application.id!!)!!
+                .findByIdOrNull(application.requiredId)!!
 
         // 취소 후 공고 상태 확인
         val reopenedPost = postRepository
@@ -1816,11 +1816,11 @@ class ApplicationControllerTest {
 
         // 취소 후 지원 확인
         val canceledApplication = applicationRepository
-                .findByIdOrNull(application.id!!)!!
+                .findByIdOrNull(application.requiredId)!!
 
         // 취소 후 공고 확인
         val canceledPost = postRepository
-                .findByIdOrNull(expiredMatchedPost.id!!)!!
+                .findByIdOrNull(expiredMatchedPost.requiredId)!!
 
         // 취소 후 동행인 프로필 확인
         val updatedEscortProfile = escortProfileRepository
@@ -1910,7 +1910,7 @@ class ApplicationControllerTest {
 
         // 취소되지 않고 기존 PENDING 상태 유지
         val unchangedApplication = applicationRepository
-                .findByIdOrNull(application.id!!)!!
+                .findByIdOrNull(application.requiredId)!!
 
         assertEquals(
                 ApplicationStatus.PENDING,
@@ -1958,7 +1958,7 @@ class ApplicationControllerTest {
 
         // 상태는 그대로 CANCELED
         val canceledApplication = applicationRepository
-                .findByIdOrNull(application.id!!)!!
+                .findByIdOrNull(application.requiredId)!!
 
         assertEquals(
                 ApplicationStatus.CANCELED,
@@ -2496,7 +2496,7 @@ class ApplicationControllerTest {
                 "123-0000000-333"
         ))
 
-        this.escortProfileRepository.verify(escortProfile.userId!!, LocalDateTime.now())
+        this.escortProfileRepository.verify(escortProfile.requiredId, LocalDateTime.now())
 
         return mvc.perform(
                         mvcPost("/api/v1/auth/login")
@@ -2548,12 +2548,12 @@ class ApplicationControllerTest {
         // 승인 직전 상태가 그대로 남아 있어야 한다 (지원은 대기, 공고는 모집 중)
         assertEquals(
                 ApplicationStatus.PENDING,
-                applicationRepository.findByIdOrNull(application.id!!)!!.status
+                applicationRepository.findByIdOrNull(application.requiredId)!!.status
         )
 
         assertEquals(
                 PostStatus.OPEN,
-                postRepository.findByIdOrNull(unpaidPost.id!!)!!.postStatus
+                postRepository.findByIdOrNull(unpaidPost.requiredId)!!.postStatus
         )
     }
 
@@ -2570,7 +2570,7 @@ class ApplicationControllerTest {
         // 승인 가드가 보는 "성공한 결제"가 없는 상태
         assertEquals(
                 0,
-                paymentRepository.findSuccessPayByPostId(canceledPaymentPost.id!!).size
+                paymentRepository.findSuccessPayByPostId(canceledPaymentPost.requiredId).size
         )
 
         mvc.perform(mvcPost("/api/v1/applications/{postId}", canceledPaymentPost.id)
@@ -2596,7 +2596,7 @@ class ApplicationControllerTest {
         // 매칭이 되지 않으므로 동행 진행 → 동행 완료 → 정산까지 이어질 수 없다
         assertEquals(
                 PostStatus.OPEN,
-                postRepository.findByIdOrNull(canceledPaymentPost.id!!)!!.postStatus
+                postRepository.findByIdOrNull(canceledPaymentPost.requiredId)!!.postStatus
         )
     }
 
@@ -2654,8 +2654,7 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.msg").value("지원 승인이 완료되었습니다."))
 
         val rematched = applicationRepository
-                .findByIdOrNull(secondApplication.id!!)!!
-
+                .findByIdOrNull(secondApplication.requiredId)!!
 
         assertEquals(ApplicationStatus.ACCEPTED, rematched.status)
         assertEquals(testPostId, rematched.acceptedPostId)
@@ -2668,7 +2667,7 @@ class ApplicationControllerTest {
 
         // 노쇼 처리된 첫 번째 지원은 그대로 남는다
         val noShowApplication = applicationRepository
-                .findByIdOrNull(firstApplication.id!!)!!
+                .findByIdOrNull(firstApplication.requiredId)!!
 
 
         assertEquals(ApplicationStatus.NO_SHOW, noShowApplication.status)
@@ -2723,7 +2722,7 @@ class ApplicationControllerTest {
 
         assertEquals(
                 PostStatus.CANCELED,
-                postRepository.findByIdOrNull(expiredMatchedPost.id!!)!!.postStatus
+                postRepository.findByIdOrNull(expiredMatchedPost.requiredId)!!.postStatus
         )
 
         // 다른 동행인은 지원부터 막힌다 — 재매칭되지 않는다

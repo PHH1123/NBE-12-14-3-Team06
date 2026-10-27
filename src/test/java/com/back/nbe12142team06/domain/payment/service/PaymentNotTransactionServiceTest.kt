@@ -30,6 +30,7 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.ResponseEntity
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
@@ -177,7 +178,7 @@ class PaymentNotTransactionServiceTest {
     fun updateDeleteStatusCommitsInNewTransaction() {
         val payment = saveReadyPayment()
         val paymentId = payment.requiredId
-        val postId = payment.post.id!!
+        val postId = payment.post.requiredId
         var extraPaymentId: Long? = null
 
         val transactionTemplate = TransactionTemplate(transactionManager)
@@ -193,8 +194,8 @@ class PaymentNotTransactionServiceTest {
         }
 
         // REQUIRES_NEW 라서 결제 상태 변경만 살아남고, 바깥 트랜잭션에서 저장한 건은 사라진다
-        assertThat(paymentRepository.findById(paymentId).get().paymentStatus).isEqualTo(PaymentStatus.DELETED)
-        assertThat(paymentRepository.findById(extraPaymentId!!)).isEmpty()
+        assertThat(paymentRepository.findByIdOrNull(paymentId)!!.paymentStatus).isEqualTo(PaymentStatus.DELETED)
+        assertThat(paymentRepository.findByIdOrNull(extraPaymentId!!)).isNull()
     }
 
     @Test
@@ -278,7 +279,7 @@ class PaymentNotTransactionServiceTest {
 
         assertThat(paymentRepository.findById(paymentId).get().paymentStatus).isEqualTo(PaymentStatus.CANCELED)
         // 재결제용 READY 결제는 한 건만 생긴다
-        assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.id!!, PaymentStatus.READY)).hasSize(1)
+        assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.requiredId, PaymentStatus.READY)).hasSize(1)
     }
 
     @Test
@@ -316,6 +317,6 @@ class PaymentNotTransactionServiceTest {
         assertThat(failedCount.get()).isEqualTo(1)
         assertThat(paymentRepository.findById(paymentId).get().paymentStatus).isEqualTo(PaymentStatus.CANCELED)
         // 재결제용 READY 결제도 한 건만 생긴다
-        assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.id!!, PaymentStatus.READY)).hasSize(1)
+        assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.requiredId, PaymentStatus.READY)).hasSize(1)
     }
 }

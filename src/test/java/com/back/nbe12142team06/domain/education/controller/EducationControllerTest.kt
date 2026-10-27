@@ -58,7 +58,7 @@ class EducationControllerTest {
     private fun createVideoId(): Long =
         educationVideoRepository.save(
             EducationVideo("동행 서비스 기본 교육", "/videos/sample_video.mp4", 60, true)
-        ).id!!
+        ).requiredId
 
     // 역할 지정 회원가입 후 accessToken 쿠키 반환
     private fun signUp(username: String, role: String): Cookie {

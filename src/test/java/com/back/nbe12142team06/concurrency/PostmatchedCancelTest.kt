@@ -140,10 +140,10 @@ class PostmatchedCancelTest {
         application.accept()
         application = applicationRepository.save(application)
 
-        postId = post.id!!
+        postId = post.requiredId
         escortId = escort.id
         clientId = client.id
-        applicationId = application.id!!
+        applicationId = application.requiredId
     }
 
     // 이 테스트는 노쇼취소 경로를 타면서 NoShowPenalty 행을 만든다. 이 클래스는

@@ -101,7 +101,7 @@ class PostCancelServiceTest {
     }
 
     private fun statusOf(post: Post): PostStatus {
-        return postRepository.findById(post.id!!).orElseThrow().postStatus
+        return postRepository.findById(post.requiredId).orElseThrow().postStatus
     }
 
     /* ── 취소할 수 있는 상태 ──────────────────────────────── */
@@ -112,7 +112,7 @@ class PostCancelServiceTest {
     fun 모집중_매칭된_공고는_취소된다(status: PostStatus) {
         val post = postWithStatus(client, status)
 
-        postService.cancel(post.id!!, client.id)
+        postService.cancel(post.requiredId, client.id)
 
         assertThat(statusOf(post)).isEqualTo(PostStatus.CANCELED)
     }
@@ -125,7 +125,7 @@ class PostCancelServiceTest {
     fun 그_외_상태는_취소할_수_없다(status: PostStatus) {
         val post = postWithStatus(client, status)
 
-        assertThatThrownBy { postService.cancel(post.id!!, client.id) }
+        assertThatThrownBy { postService.cancel(post.requiredId, client.id) }
             .isInstanceOf(InvalidException::class.java)
 
         assertThat(statusOf(post)).isEqualTo(status)

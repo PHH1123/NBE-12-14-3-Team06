@@ -100,7 +100,7 @@ class RideControllerTest {
 
         // 공고를 쓰면 이동 정보(병원 이동·귀가 이동)가 함께 만들어진다
         val post1 = postService.write(user1.id, postWriteRequest())
-        paymentRepository.testStatusDoneAndPutPaymentKey(post1.id!!, UUID.randomUUID().toString())
+        paymentRepository.testStatusDoneAndPutPaymentKey(post1.id, UUID.randomUUID().toString())
 
         val application = Application(postRepository.findById(post1.id).get(), user2)
         application.accept()

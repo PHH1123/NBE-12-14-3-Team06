@@ -105,8 +105,8 @@ class ApplicationCancelAllServiceTest {
         applicationService.cancelAllByEscort(escort.id)
 
         // then: 지원은 취소되고 공고는 그대로 모집 중
-        val result = applicationRepository.findById(application.id!!).orElseThrow()
-        val resultPost = postRepository.findById(post.id!!).orElseThrow()
+        val result = applicationRepository.findById(application.requiredId).orElseThrow()
+        val resultPost = postRepository.findById(post.requiredId).orElseThrow()
         assertThat(result.status).isEqualTo(ApplicationStatus.CANCELED)
         assertThat(result.activePostId).isNull()
         assertThat(resultPost.postStatus).isEqualTo(PostStatus.OPEN)
@@ -131,8 +131,8 @@ class ApplicationCancelAllServiceTest {
         applicationService.cancelAllByEscort(escort.id)
 
         // then: 지원 상태 검증
-        val result = applicationRepository.findById(application.id!!).orElseThrow()
-        val resultPost = postRepository.findById(post.id!!).orElseThrow()
+        val result = applicationRepository.findById(application.requiredId).orElseThrow()
+        val resultPost = postRepository.findById(post.requiredId).orElseThrow()
         assertThat(result.status).isEqualTo(ApplicationStatus.CANCELED)
         assertThat(result.acceptedPostId).isNull()
         assertThat(result.activePostId).isNull()
@@ -159,8 +159,8 @@ class ApplicationCancelAllServiceTest {
         applicationService.cancelAllByEscort(escort.id)
 
         // then: 기존 상태가 그대로 유지되는지 확인
-        val result = applicationRepository.findById(application.id!!).orElseThrow()
-        val resultPost = postRepository.findById(post.id!!).orElseThrow()
+        val result = applicationRepository.findById(application.requiredId).orElseThrow()
+        val resultPost = postRepository.findById(post.requiredId).orElseThrow()
         assertThat(result.status).isEqualTo(ApplicationStatus.ACCEPTED)
         assertThat(resultPost.postStatus).isEqualTo(PostStatus.IN_PROGRESS)
         assertThat(result.acceptedPostId).isEqualTo(post.id)
@@ -194,7 +194,7 @@ class ApplicationCancelAllServiceTest {
         assertThat(result.noShowCount).isEqualTo(2)
 
         // 지원은 정상 취소되어야 함
-        val canceledApplication = applicationRepository.findById(application.id!!).orElseThrow()
+        val canceledApplication = applicationRepository.findById(application.requiredId).orElseThrow()
         assertThat(canceledApplication.status).isEqualTo(ApplicationStatus.CANCELED)
     }
 
@@ -213,9 +213,9 @@ class ApplicationCancelAllServiceTest {
         applicationService.cancelAllByEscort(escort.id)
 
         // then
-        assertThat(applicationRepository.findById(myApplication.id!!).orElseThrow().status)
+        assertThat(applicationRepository.findById(myApplication.requiredId).orElseThrow().status)
             .isEqualTo(ApplicationStatus.CANCELED)
-        assertThat(applicationRepository.findById(otherApplication.id!!).orElseThrow().status)
+        assertThat(applicationRepository.findById(otherApplication.requiredId).orElseThrow().status)
             .isEqualTo(ApplicationStatus.PENDING)
         verifyNoInteractions(paymentService)
     }

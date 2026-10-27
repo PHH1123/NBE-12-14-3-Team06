@@ -37,7 +37,7 @@ open class ApplicationController(
     @Operation(summary = "동행 지원", description = "특정 공고에 동행 지원을 신청합니다.")
     @PostMapping("/{postId}")
     open fun apply(
-        @PathVariable("postId") postId: Long?,
+        @PathVariable("postId") postId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
     ): RsData<ApplicationApplyResponse> {
         val response = applicationService.apply(postId, actor.id)
@@ -47,7 +47,7 @@ open class ApplicationController(
     @Operation(summary = "지원 목록 조회", description = "특정 공고에 지원한 동행자 목록을 조회합니다.")
     @GetMapping("/posts/{postId}")
     open fun list(
-        @PathVariable("postId") postId: Long?,
+        @PathVariable("postId") postId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
         @RequestParam(name = "page", defaultValue = "0") page: Int,
         @RequestParam(name = "size", defaultValue = "10") size: Int,
@@ -59,7 +59,7 @@ open class ApplicationController(
     @Operation(summary = "지원 승인", description = "특정 동행자의 지원을 승인합니다.")
     @PatchMapping("/{applicationId}/accept")
     open fun accept(
-        @PathVariable("applicationId") applicationId: Long?,
+        @PathVariable("applicationId") applicationId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
     ): RsData<ApplicationAcceptResponse> {
         val response = applicationService.accept(applicationId, actor.id)
@@ -69,7 +69,7 @@ open class ApplicationController(
     @Operation(summary = "지원 거절", description = "특정 동행자의 지원을 거절합니다.")
     @PatchMapping("/{applicationId}/reject")
     open fun reject(
-        @PathVariable("applicationId") applicationId: Long?,
+        @PathVariable("applicationId") applicationId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
     ): RsData<Void> {
         applicationService.reject(applicationId, actor.id)
@@ -79,7 +79,7 @@ open class ApplicationController(
     @Operation(summary = "지원 취소", description = "동행자 본인이 지원을 취소합니다.")
     @PatchMapping("/{applicationId}/cancel")
     open fun cancel(
-        @PathVariable("applicationId") applicationId: Long?,
+        @PathVariable("applicationId") applicationId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
     ): RsData<Void> {
         applicationService.cancel(applicationId, actor.id)
@@ -89,7 +89,7 @@ open class ApplicationController(
     @Operation(summary = "동행 진행 상태 변경", description = "승인된 동행의 진행 상태를 변경합니다.")
     @PatchMapping("/{applicationId}/progress")
     open fun updateProgress(
-        @PathVariable("applicationId") applicationId: Long?,
+        @PathVariable("applicationId") applicationId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
         @Valid @RequestBody request: EscortProgressRequest,
     ): RsData<Void> {
@@ -100,7 +100,7 @@ open class ApplicationController(
     @Operation(summary = "동행 진행 상태 조회", description = "승인된 동행의 현재 진행 단계를 조회합니다. 동행 매니저 본인 또는 그 공고를 작성한 의뢰인만 볼 수 있습니다.")
     @GetMapping("/{applicationId}/progress")
     open fun getProgress(
-        @PathVariable("applicationId") applicationId: Long?,
+        @PathVariable("applicationId") applicationId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
     ): RsData<ApplicationProgressResponse> {
         val response = applicationService.getProgress(applicationId, actor.id)
@@ -110,7 +110,7 @@ open class ApplicationController(
     @Operation(summary = "동행자 프로필 조회", description = "특정 지원의 동행자 프로필 정보를 조회합니다.")
     @GetMapping("/{applicationId}/escort-profile")
     open fun escortProfile(
-        @PathVariable("applicationId") applicationId: Long?,
+        @PathVariable("applicationId") applicationId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
     ): RsData<ApplicationEscortProfileResponse> {
         val response = applicationService.getEscortProfile(applicationId, actor.id)
@@ -120,7 +120,7 @@ open class ApplicationController(
     @Operation(summary = "의뢰인 프로필 조회", description = "매칭된 의뢰인 프로필 정보를 조회합니다.")
     @GetMapping("/{applicationId}/client-profile")
     open fun clientProfile(
-        @PathVariable("applicationId") applicationId: Long?,
+        @PathVariable("applicationId") applicationId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
     ): RsData<ApplicationClientProfileResponse> {
         val response = applicationService.getClientProfile(applicationId, actor.id)
@@ -139,7 +139,7 @@ open class ApplicationController(
     @Operation(summary = "동행 실시간 위치 전송", description = "동행 중인 동행 매니저가 현재 위치를 보냅니다. 가장 최근 위치 1건만 저장됩니다.")
     @PostMapping("/{applicationId}/location")
     open fun saveLocation(
-        @PathVariable("applicationId") applicationId: Long?,
+        @PathVariable("applicationId") applicationId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
         @Valid @RequestBody request: ApplicationLocationRequest,
     ): RsData<Void> {
@@ -150,7 +150,7 @@ open class ApplicationController(
     @Operation(summary = "동행 실시간 위치 조회", description = "동행 진행 중에만 최근 위치를 조회합니다. 해당 동행 매니저 본인과 공고 작성 의뢰인만 볼 수 있으며, 귀가 완료 시 위치정보가 삭제됩니다.")
     @GetMapping("/{applicationId}/location")
     open fun getLocation(
-        @PathVariable("applicationId") applicationId: Long?,
+        @PathVariable("applicationId") applicationId: Long,
         @AuthenticationPrincipal actor: SecurityUser,
     ): RsData<ApplicationLocationResponse> {
         val response = applicationService.getLocation(applicationId, actor.id)

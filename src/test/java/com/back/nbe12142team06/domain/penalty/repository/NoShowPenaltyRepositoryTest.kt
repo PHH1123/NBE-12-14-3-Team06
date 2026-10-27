@@ -18,6 +18,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -192,7 +193,7 @@ class NoShowPenaltyRepositoryTest {
         em.flush()
         em.clear()
 
-        val stored = noShowPenaltyRepository.findById(penalty.id!!).orElseThrow()
+        val stored = noShowPenaltyRepository.findByIdOrNull(penalty.id!!)!!
 
         assertThat(stored.amount!!.scale()).isEqualTo(0)
         assertThat(stored.baseAmount!!.scale()).isEqualTo(0)

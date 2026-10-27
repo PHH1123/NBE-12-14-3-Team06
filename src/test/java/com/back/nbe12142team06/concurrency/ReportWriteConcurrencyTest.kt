@@ -122,7 +122,7 @@ class ReportWriteConcurrencyTest {
         )
 
         escortId = escort.id
-        applicationId = application.id!!
+        applicationId = application.requiredId
     }
 
     @AfterEach

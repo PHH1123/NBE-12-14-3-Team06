@@ -106,14 +106,14 @@ class EscortGradeServiceTest {
     // 저장이 끝난 뒤의 객체를 그대로 넘기면 영속성 컨텍스트 밖의 객체라 변경 감지가 되지 않는다.
     private fun refresh(escort: EscortProfile): Boolean =
         transactionTemplate.execute {
-            escortService.refreshGrade(escortProfileRepository.findById(escort.userId!!).orElseThrow())
+            escortService.refreshGrade(escortProfileRepository.findById(escort.requiredId).orElseThrow())
         } == true
 
     private fun storedGradeOf(escort: EscortProfile): EscortGrade =
-        escortProfileRepository.findById(escort.userId!!).orElseThrow().grade
+        escortProfileRepository.findById(escort.requiredId).orElseThrow().grade
 
     private fun historiesOf(escort: EscortProfile): List<EscortGradeHistory> =
-        escortGradeHistoryRepository.findAllByEscortProfileUserId(escort.userId!!)
+        escortGradeHistoryRepository.findAllByEscortProfileUserId(escort.requiredId)
 
     /* ── 등급 계산 (DB 없이 엔티티만) ──────────────────────── */
     @Test

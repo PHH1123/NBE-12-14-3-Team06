@@ -149,7 +149,7 @@ class NoShowPenaltyServiceTest {
         em.clear()
 
         // 적용 결과가 패널티에 남는다
-        val appliedPenalty = noShowPenaltyRepository.findById(pendingPenalty.id!!).orElseThrow()
+        val appliedPenalty = noShowPenaltyRepository.findById(pendingPenalty.requiredId).orElseThrow()
         assertThat(appliedPenalty.status).isEqualTo(NoShowPenaltyStatus.APPLIED)
         assertThat(appliedPenalty.amount).isEqualByComparingTo(penaltyAmount)
         assertThat(appliedPenalty.baseAmount).isEqualByComparingTo(baseAmount)

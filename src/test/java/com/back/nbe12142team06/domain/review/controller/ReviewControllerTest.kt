@@ -197,7 +197,7 @@ class ReviewControllerTest {
             .andExpect(jsonPath("$.statusCode").value("201-61"))
             .andExpect(jsonPath("$.data.rating").value(5))
             .andExpect(jsonPath("$.data.tags", hasSize<Any>(2)))
-            .andExpect(jsonPath("$.data.applicationId").value(acceptedApplicationId!!))
+            .andExpect(jsonPath("$.data.applicationId").value(acceptedApplicationId))
 
         em.flush()
         em.clear()
@@ -214,7 +214,7 @@ class ReviewControllerTest {
     @DisplayName("[ReviewController] 리뷰 작성 - 태그와 내용 없이 별점만으로 등록")
     fun 리뷰_작성_별점만() {
         val resultActions = mvc.perform(
-            post("/api/v1/applications/$acceptedApplicationId/reviews")
+            post("/api/v1/applications/${acceptedApplicationId!!}/reviews")
                 .cookie(clientCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
@@ -308,7 +308,7 @@ class ReviewControllerTest {
         )
 
         val resultActions = mvc.perform(
-            post("/api/v1/applications/$acceptedApplicationId/reviews")
+            post("/api/v1/applications/${acceptedApplicationId!!}/reviews")
                 .cookie(clientCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(

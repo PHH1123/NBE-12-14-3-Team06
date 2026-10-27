@@ -218,7 +218,7 @@ class ApplicationConcurrencyTest {
                 reportRequired = false,
                 )
 
-        postId = postRepository.save(post).id!!
+        postId = postRepository.save(post).requiredId
 
         saveDonePayment(post)
     }
@@ -347,8 +347,8 @@ class ApplicationConcurrencyTest {
         application1 = applicationRepository.save(application1)
         application2 = applicationRepository.save(application2)
 
-        val applicationId1 = application1.id
-        val applicationId2 = application2.id
+        val applicationId1 = application1.requiredId
+        val applicationId2 = application2.requiredId
 
         val executorService = Executors.newFixedThreadPool(2)
 
@@ -454,7 +454,7 @@ class ApplicationConcurrencyTest {
 
         application = applicationRepository.save(application)
 
-        val applicationId = application.id
+        val applicationId = application.requiredId
 
         val executorService = Executors.newFixedThreadPool(2)
 
@@ -522,7 +522,7 @@ class ApplicationConcurrencyTest {
 
         doneLatch.await()
 
-        val resultApplication = applicationRepository.findById(applicationId!!)
+        val resultApplication = applicationRepository.findById(applicationId)
                         .orElseThrow()
 
         val resultPost = postRepository.findById(postId)
@@ -685,8 +685,8 @@ class ApplicationConcurrencyTest {
         val application2 = applicationRepository.save(
                 Application(post2, escort))
 
-        val applicationId1 = application1.id
-        val applicationId2 = application2.id
+        val applicationId1 = application1.requiredId
+        val applicationId2 = application2.requiredId
 
         val executor = Executors.newFixedThreadPool(2)
         val readyLatch = CountDownLatch(2)
@@ -772,7 +772,7 @@ class ApplicationConcurrencyTest {
 
         val application = Application(post, escort)
 
-        val applicationId = applicationRepository.saveAndFlush(application).id
+        val applicationId = applicationRepository.saveAndFlush(application).requiredId
 
         val executor = Executors.newFixedThreadPool(2)
 
@@ -831,7 +831,7 @@ class ApplicationConcurrencyTest {
                     .orElseThrow()
 
             val resultApplication = applicationRepository
-                    .findById(applicationId!!)
+                    .findById(applicationId)
                     .orElseThrow()
 
             val resultPost = postRepository.findById(postId)
@@ -882,7 +882,7 @@ class ApplicationConcurrencyTest {
 
         val application = Application(post, escort)
 
-        val applicationId = applicationRepository.saveAndFlush(application).id
+        val applicationId = applicationRepository.saveAndFlush(application).requiredId
 
         val executor = Executors.newFixedThreadPool(2)
 
@@ -931,7 +931,7 @@ class ApplicationConcurrencyTest {
                     .findByIdIncludingDeleted(escortId)!!
 
             val resultApplication = applicationRepository
-                    .findById(applicationId!!)
+                    .findById(applicationId)
                     .orElseThrow()
 
             val resultPost = postRepository
@@ -981,7 +981,7 @@ class ApplicationConcurrencyTest {
 
         val application = Application(post, escort)
 
-        val applicationId = applicationRepository.saveAndFlush(application).id
+        val applicationId = applicationRepository.saveAndFlush(application).requiredId
 
         val executor = Executors.newFixedThreadPool(2)
 
@@ -1029,7 +1029,7 @@ class ApplicationConcurrencyTest {
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
             val resultApplication = applicationRepository
-                    .findById(applicationId!!)
+                    .findById(applicationId)
                     .orElseThrow()
 
             val resultPost = postRepository
@@ -1097,8 +1097,8 @@ class ApplicationConcurrencyTest {
         appB.reject()
         post.match()
 
-        val appAId = applicationRepository.saveAndFlush(appA).id
-        val appBId = applicationRepository.saveAndFlush(appB).id
+        val appAId = applicationRepository.saveAndFlush(appA).requiredId
+        val appBId = applicationRepository.saveAndFlush(appB).requiredId
 
         postRepository.saveAndFlush(post)
 
@@ -1146,10 +1146,10 @@ class ApplicationConcurrencyTest {
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
             val resultA = applicationRepository
-                    .findById(appAId!!).orElseThrow()
+                    .findById(appAId).orElseThrow()
 
             val resultB = applicationRepository
-                    .findById(appBId!!).orElseThrow()
+                    .findById(appBId).orElseThrow()
 
             val resultPost = postRepository
                     .findById(postId).orElseThrow()
@@ -1212,7 +1212,7 @@ class ApplicationConcurrencyTest {
                 )
 
         postB = postRepository.saveAndFlush(postB)
-        val postBId = postB.id
+        val postBId = postB.requiredId
 
         // 공고 B 결제 완료
         saveDonePayment(postB)
@@ -1221,8 +1221,8 @@ class ApplicationConcurrencyTest {
 
         val appB = Application(postB, escort)
 
-        val appAId = applicationRepository.saveAndFlush(appA).id
-        val appBId = applicationRepository.saveAndFlush(appB).id
+        val appAId = applicationRepository.saveAndFlush(appA).requiredId
+        val appBId = applicationRepository.saveAndFlush(appB).requiredId
 
         val executor = Executors.newFixedThreadPool(2)
 
@@ -1270,16 +1270,16 @@ class ApplicationConcurrencyTest {
                     "동시 요청이 제한 시간 안에 종료되지 않았습니다.")
 
             val resultA = applicationRepository
-                    .findById(appAId!!).orElseThrow()
+                    .findById(appAId).orElseThrow()
 
             val resultB = applicationRepository
-                    .findById(appBId!!).orElseThrow()
+                    .findById(appBId).orElseThrow()
 
             val resultPostA = postRepository
                     .findById(postId).orElseThrow()
 
             val resultPostB = postRepository
-                    .findById(postBId!!).orElseThrow()
+                    .findById(postBId).orElseThrow()
 
             System.out.println("승인 예외 = " + acceptError.get())
             System.out.println("취소 예외 = " + cancelError.get())

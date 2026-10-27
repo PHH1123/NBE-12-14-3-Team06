@@ -133,7 +133,7 @@ class ApplyConcurrencyTest {
             ),
         )
 
-        postId = post.id!!
+        postId = post.requiredId
         escortId = escort.id
     }
 

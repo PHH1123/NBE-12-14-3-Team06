@@ -146,8 +146,8 @@ class SettlementControllerTest {
             RideSelect.TAXI, RideSelect.TAXI, "", true
         )
 
-        savedPost1 = postService.findById(postService.write(savedUser1.id, postWriteRequest1).id!!)
-        paymentRepository.testStatusDoneAndPutPaymentKey(savedPost1.id!!, UUID.randomUUID().toString())
+        savedPost1 = postService.findById(postService.write(savedUser1.id, postWriteRequest1).id)
+        paymentRepository.testStatusDoneAndPutPaymentKey(savedPost1.requiredId, UUID.randomUUID().toString())
 
         val postWriteRequest2 = PostWriteRequest(
             title + "2", content + "2", postRegion + "2", hospitalName + "2", hospitalAddress + "2",
@@ -157,16 +157,16 @@ class SettlementControllerTest {
         )
 
         val post2 = postService.write(savedUser1.id, postWriteRequest2)
-        paymentRepository.testStatusDoneAndPutPaymentKey(post2.id!!, UUID.randomUUID().toString())
+        paymentRepository.testStatusDoneAndPutPaymentKey(post2.id, UUID.randomUUID().toString())
 
         // 영속성 컨텍스트 초기화 후 공고 다시 조회
-        savedPost1 = postService.findById(savedPost1.id!!)
+        savedPost1 = postService.findById(savedPost1.requiredId)
 
         ReflectionTestUtils.setField(savedPost1, "recruitStartAt", LocalDateTime.now().minusMinutes(1))
-        val applyResponse1 = applicationService.apply(savedPost1.id!!, savedUser2.id)
+        val applyResponse1 = applicationService.apply(savedPost1.requiredId, savedUser2.id)
         applicationService.accept(applyResponse1.id, savedUser1.id)
 
-        val application1 = applicationRepository.findAllByPostIdWithEscort(savedPost1.id!!).first()
+        val application1 = applicationRepository.findAllByPostIdWithEscort(savedPost1.requiredId).first()
 
         savedSettlement1Id = settlementService.createSettlement(
             savedPost1.totalPay, application1, savedUser2, LocalDate.now().plusDays(1)

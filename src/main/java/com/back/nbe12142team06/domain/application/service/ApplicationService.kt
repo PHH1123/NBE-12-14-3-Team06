@@ -94,8 +94,8 @@ open class ApplicationService(
     private var maxAccuracyMeters: Double = 0.0
 
     @Transactional
-    open fun apply(postId: Long?, userId: Long?): ApplicationApplyResponse {
-        val post = postRepository.findByIdWithLock(requireNotNull(postId) { "The given id must not be null" })
+    open fun apply(postId: Long, userId: Long): ApplicationApplyResponse {
+        val post = postRepository.findByIdWithLock(postId)
             ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
 
         if (post.postStatus != PostStatus.OPEN) {
@@ -105,7 +105,7 @@ open class ApplicationService(
             throw InvalidException(26, "모집 기간 내에만 지원할 수 있습니다.")
         }
 
-        val escort = userRepository.findByIdOrNull(requireNotNull(userId) { "The given id must not be null" })
+        val escort = userRepository.findByIdOrNull(userId)
             ?:throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
         if (escort.userStatus != UserStatus.ACTIVE) {
             throw ForbiddenException(31, "활성 상태의 회원만 지원할 수 있습니다.")
@@ -129,14 +129,14 @@ open class ApplicationService(
         noticeService.send(
             post.client.id,
             C_APPLICATION_APPLY.of(escort.name, post.title),
-            U_APPLICATION_APPLY.of(requireNotNull(post.id) { "Post ID must not be null" }),
+            U_APPLICATION_APPLY.of(post.requiredId),
         )
         return ApplicationApplyResponse(savedApplication)
     }
 
     @Transactional(readOnly = true)
-    open fun list(postId: Long?, userId: Long?, pageable: Pageable): Page<ApplicationListResponse> {
-        val post = postRepository.findByIdOrNull(requireNotNull(postId) { "The given id must not be null" })
+    open fun list(postId: Long, userId: Long, pageable: Pageable): Page<ApplicationListResponse> {
+        val post = postRepository.findByIdOrNull(postId)
             ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
         if (post.client.id != userId) {
             throw ForbiddenException(22, "본인 공고의 지원 목록만 조회할 수 있습니다.")
@@ -147,7 +147,7 @@ open class ApplicationService(
 
     @Transactional
     @CacheEvict(cacheNames = ["postList"], allEntries = true)
-    open fun accept(applicationId: Long?, userId: Long?): ApplicationAcceptResponse {
+    open fun accept(applicationId: Long, userId: Long): ApplicationAcceptResponse {
         // User → Post → Application 순서로 잠금 획득: Java 구현의 동시성 제어 순서를 유지한다.
         val escortId = applicationRepository.findEscortIdById(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
@@ -202,7 +202,7 @@ open class ApplicationService(
     }
 
     @Transactional
-    open fun reject(applicationId: Long?, userId: Long?) {
+    open fun reject(applicationId: Long, userId: Long) {
         val postId = applicationRepository.findPostIdById(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = postRepository.findByIdWithLock(postId)
@@ -227,7 +227,7 @@ open class ApplicationService(
 
     @Transactional
     @CacheEvict(cacheNames = ["postList"], allEntries = true)
-    open fun cancel(applicationId: Long?, userId: Long?) {
+    open fun cancel(applicationId: Long, userId: Long) {
         // 승인과 동일한 User → Post → Application 잠금 순서.
         val escortId = applicationRepository.findEscortIdById(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")

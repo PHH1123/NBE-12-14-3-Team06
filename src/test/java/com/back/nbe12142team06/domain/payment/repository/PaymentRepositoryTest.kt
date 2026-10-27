@@ -112,7 +112,7 @@ class PaymentRepositoryTest {
         em.flush()
         em.clear()
 
-        val result = paymentRepository.findSuccessPayByPostId(post.id!!)
+        val result = paymentRepository.findSuccessPayByPostId(post.requiredId)
 
         assertThat(result.map { it.requiredId })
             .containsExactly(donePayment.requiredId, partialPayment.requiredId)
@@ -140,10 +140,10 @@ class PaymentRepositoryTest {
         em.flush()
         em.clear()
 
-        assertThat(paymentRepository.findByPostIdAndUserIdAndReady(post.id!!, client.id)?.requiredId)
+        assertThat(paymentRepository.findByPostIdAndUserIdAndReady(post.requiredId, client.id)?.requiredId)
             .isEqualTo(readyPayment.requiredId)
         // 다른 사용자가 같은 공고로 조회하면 없다
-        assertThat(paymentRepository.findByPostIdAndUserIdAndReady(post.id!!, otherClient.id)).isNull()
+        assertThat(paymentRepository.findByPostIdAndUserIdAndReady(post.requiredId, otherClient.id)).isNull()
     }
 
     @Test
@@ -187,9 +187,9 @@ class PaymentRepositoryTest {
 
         assertThat(paymentRepository.findDeletedAll().map { it.requiredId })
             .contains(deletedPayment.requiredId)
-        assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.id!!, PaymentStatus.DELETED))
+        assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.requiredId, PaymentStatus.DELETED))
             .hasSize(1)
-        assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.id!!, PaymentStatus.READY))
+        assertThat(paymentRepository.findByPostIdAndPaymentStatus(post.requiredId, PaymentStatus.READY))
             .isEmpty()
     }
 

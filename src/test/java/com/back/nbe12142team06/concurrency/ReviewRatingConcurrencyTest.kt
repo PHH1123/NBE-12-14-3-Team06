@@ -129,8 +129,8 @@ class ReviewRatingConcurrencyTest {
         escortId = escort.id
         clientId1 = client1.id
         clientId2 = client2.id
-        applicationId1 = application1.id!!
-        applicationId2 = application2.id!!
+        applicationId1 = application1.requiredId
+        applicationId2 = application2.requiredId
     }
 
     @AfterEach

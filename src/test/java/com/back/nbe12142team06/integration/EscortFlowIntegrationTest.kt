@@ -285,7 +285,7 @@ class EscortFlowIntegrationTest {
 
         // 5. 동행인 교육 이수 (실제 시청 기록 API 사용)
         mvc.perform(
-            post("/api/v1/education-videos/{videoId}/watchlogs", video.id!!)
+            post("/api/v1/education-videos/{videoId}/watchlogs", video.requiredId)
                 .cookie(escortCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"positionSec": 1.0}""")

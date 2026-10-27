@@ -114,7 +114,7 @@ class ReportControllerTest {
         val application = Application(post, escort)
         applicationRepository.save(application)
 
-        testApplicationId = application.id!!
+        testApplicationId = application.requiredId
 
         clientCookie = login("client1")
         escortCookie = login("escort1")

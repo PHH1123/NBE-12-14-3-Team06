@@ -139,7 +139,7 @@ class PaymentControllerTest {
         )
 
         val post1 = postService.write(user1.id, postWriteRequest1)
-        paymentRepository.testStatusDoneAndPutPaymentKey(post1.id!!, UUID.randomUUID().toString())
+        paymentRepository.testStatusDoneAndPutPaymentKey(post1.id, UUID.randomUUID().toString())
 
         val postWriteRequest2 = PostWriteRequest(
             title + "2", content + "2", postRegion + "2", hospitalName + "2", hospitalAddress + "2",
@@ -150,10 +150,10 @@ class PaymentControllerTest {
 
         val post2 = postService.write(user1.id, postWriteRequest2)
 
-        savedPayment1Id = post1.paymentId!!
-        savedPayment2Id = post2.paymentId!!
+        savedPayment1Id = post1.paymentId
+        savedPayment2Id = post2.paymentId
         savedPost1Id = post1.id
-        savedPost2Id = post2.id!!
+        savedPost2Id = post2.id
 
         // user1로 로그인해 인증 쿠키 확보
         accessTokenCookie1 = login(username, password)

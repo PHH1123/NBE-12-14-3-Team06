@@ -117,7 +117,7 @@ class ApplicationEscortAutoProgressServiceTest {
         return postRepository.save(post)
     }
 
-    private fun statusOf(post: Post): PostStatus = postRepository.findById(post.id!!).orElseThrow().postStatus
+    private fun statusOf(post: Post): PostStatus = postRepository.findById(post.requiredId).orElseThrow().postStatus
 
     // ===== 준비·확인 도우미 =====
 
@@ -153,7 +153,7 @@ class ApplicationEscortAutoProgressServiceTest {
         rideRepository.save(ride)
     }
 
-    private fun rideOf(direction: RideDirection): Ride = rideRepository.findAllByPostId(post.id!!).stream()
+    private fun rideOf(direction: RideDirection): Ride = rideRepository.findAllByPostId(post.requiredId).stream()
         .filter { ride -> ride.direction == direction }
         .findFirst().orElseThrow()
 

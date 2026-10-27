@@ -114,7 +114,7 @@ class EscortProfileConcurrencyTest {
             race(verifySucceeded) {
                 transactionTemplate.executeWithoutResult {
                     val profile = escortProfileRepository.findById(userId).orElseThrow()
-                    escortProfileRepository.verify(profile.userId!!, LocalDateTime.now())
+                    escortProfileRepository.verify(profile.requiredId, LocalDateTime.now())
                 } // 여기서 커밋 → @Version 비교
             }
 

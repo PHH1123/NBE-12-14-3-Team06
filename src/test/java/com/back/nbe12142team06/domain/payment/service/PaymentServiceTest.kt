@@ -141,7 +141,7 @@ class PaymentServiceTest {
 
         doReturn(payment).whenever(paymentRepository).findByPostId(any())
 
-        val deletedPayment = paymentService.cancelPostAndPayment(post.id!!)
+        val deletedPayment = paymentService.cancelPostAndPayment(post.requiredId)
 
         assertThat(deletedPayment.paymentStatus).isEqualTo(PaymentStatus.DELETED)
     }
@@ -560,7 +560,7 @@ class PaymentServiceTest {
         val payoutAmount = paymentService.validPayment(post)
 
         assertThat(payoutAmount).isEqualByComparingTo(post.totalPay)
-        verify(paymentPersistenceService, times(1)).updateAmountForModifyPost(eq(post.id!!), eq(post))
+        verify(paymentPersistenceService, times(1)).updateAmountForModifyPost(eq(post.requiredId), eq(post))
         verify(paymentPersistenceService, never()).createPayment(any())
         verify(paymentPersistenceService, never()).paymentPartialCancelDb(any(), any(), any())
     }

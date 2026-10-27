@@ -49,6 +49,9 @@ class NoShowPenalty(
     var settlement: Settlement? = settlement
         protected set
 
+    val requiredId : Long
+        get() = id ?: error("ID가 NULL입니다.")
+
     // 노쇼 정보 수정
     fun updateNoShow(amount: BigDecimal, baseAmount: BigDecimal, settlement: Settlement) {
         if (!this.status.canNoShowPenalty(NoShowPenaltyStatus.APPLIED)) {

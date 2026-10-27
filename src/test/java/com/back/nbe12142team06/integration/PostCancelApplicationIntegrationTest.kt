@@ -103,18 +103,18 @@ class PostCancelApplicationIntegrationTest {
             RideSelect.TAXI, RideSelect.TAXI, "", true
         )
 
-        var post = postService.findById(postService.write(client.id, request).id!!)
-        paymentRepository.testStatusDoneAndPutPaymentKey(post.id!!, UUID.randomUUID().toString())
+        var post = postService.findById(postService.write(client.id, request).id)
+        paymentRepository.testStatusDoneAndPutPaymentKey(post.requiredId, UUID.randomUUID().toString())
         // 공고 다시 조회
-        post = postService.findById(post.id!!)
+        post = postService.findById(post.requiredId)
         ReflectionTestUtils.setField(post, "recruitStartAt", LocalDateTime.now().minusMinutes(1))
         return post
     }
 
     private fun apply(post: Post, escort: User): Long =
-        applicationService.apply(post.id, escort.id).id!!
+        applicationService.apply(post.requiredId, escort.id).id
 
-    private fun statusOf(applicationId: Long): ApplicationStatus? =
+    private fun statusOf(applicationId: Long): ApplicationStatus =
         applicationRepository.findById(applicationId).orElseThrow().status
 
     @Test
@@ -126,9 +126,9 @@ class PostCancelApplicationIntegrationTest {
         val applicationB = apply(post, escortB)
         val otherApplication = apply(otherPost, escortA) // 다른 공고에 한 지원
 
-        postService.cancel(post.id!!, client.id)
+        postService.cancel(post.requiredId, client.id)
 
-        assertThat(postService.findById(post.id!!).postStatus).isEqualTo(PostStatus.CANCELED)
+        assertThat(postService.findById(post.requiredId).postStatus).isEqualTo(PostStatus.CANCELED)
         assertThat(statusOf(applicationA)).isEqualTo(ApplicationStatus.CANCELED)
         assertThat(statusOf(applicationB)).isEqualTo(ApplicationStatus.CANCELED)
         assertThat(statusOf(otherApplication)).isEqualTo(ApplicationStatus.PENDING) // 다른 공고는 영향 없음
@@ -141,7 +141,7 @@ class PostCancelApplicationIntegrationTest {
         val application = apply(post, escortA)
         applicationService.accept(application, client.id) // 공고가 MATCHED, 지원은 ACCEPTED
 
-        postService.matchedCancel(post.id!!, client.id)
+        postService.matchedCancel(post.requiredId, client.id)
 
         assertThat(statusOf(application)).isEqualTo(ApplicationStatus.CANCELED)
         // 패널티 없음: 노쇼 횟수가 늘지 않는다

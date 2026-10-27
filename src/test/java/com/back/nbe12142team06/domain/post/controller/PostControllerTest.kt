@@ -210,7 +210,7 @@ class PostControllerTest {
 
         val application = Application(postRepository.findById(postId).orElseThrow(), escort)
         application.accept()
-        return applicationRepository.save(application).id!!
+        return applicationRepository.save(application).requiredId
     }
 
     @Test
@@ -783,7 +783,7 @@ class PostControllerTest {
             escortStartAt = now.plusDays(1),
             escortEndAt = now.plusDays(1).plusHours(3),
         )
-        val targetPostId = postRepository.save(expiredTargetPost).id!!
+        val targetPostId = postRepository.save(expiredTargetPost).requiredId
 
         // when
         postService.expireOverduePosts()
@@ -818,7 +818,7 @@ class PostControllerTest {
             escortEndAt = now.plusDays(1).plusHours(3),
         )
         matchedPost.match()     // 이미 매칭된 상태로 직접 세팅
-        val matchedPostId = postRepository.save(matchedPost).id!!
+        val matchedPostId = postRepository.save(matchedPost).requiredId
 
         // when
         postService.expireOverduePosts()
