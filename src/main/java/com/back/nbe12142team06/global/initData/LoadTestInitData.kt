@@ -45,7 +45,7 @@ class LoadTestInitData(
     private val educationService: EducationService,
     private val passwordEncoder: PasswordEncoder,
     private val transactionManager: PlatformTransactionManager,
-    @field:Value("\${loadtest.user-count:100}") private val userCount: Int,
+    @Value("\${loadtest.user-count:100}") private val userCount: Int,
 ) {
 
     @Bean
