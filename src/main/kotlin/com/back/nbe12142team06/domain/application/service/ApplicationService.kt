@@ -1,38 +1,14 @@
 package com.back.nbe12142team06.domain.application.service
 
-import com.back.nbe12142team06.domain.application.dto.ApplicationAcceptResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationApplyResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationClientProfileResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationEscortProfileResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationListResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationLocationRequest
-import com.back.nbe12142team06.domain.application.dto.ApplicationLocationResponse
-import com.back.nbe12142team06.domain.application.dto.ApplicationProgressResponse
-import com.back.nbe12142team06.domain.application.dto.LocationPoint
-import com.back.nbe12142team06.domain.application.dto.MyApplicationResponse
+import com.back.nbe12142team06.domain.application.dto.*
 import com.back.nbe12142team06.domain.application.entity.Application
 import com.back.nbe12142team06.domain.application.entity.EscortProgressLog
 import com.back.nbe12142team06.domain.application.enums.ApplicationStatus
 import com.back.nbe12142team06.domain.application.enums.EscortProgress
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_ACCEPT
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_APPLY
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_CANCELED
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_PROGRESS_ARRIVED_HOME
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_PROGRESS_AT_HOSPITAL
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_REJECT
-import com.back.nbe12142team06.domain.notification.entity.NotificationContent.C_APPLICATION_UPDATED_PROGRESS
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_ACCEPT
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_APPLY
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_CANCELED
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_PROGRESS_ARRIVED_HOME
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_PROGRESS_AT_HOSPITAL
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_REJECT
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_UPDATED_PROGRESS_CLIENT
-import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.U_APPLICATION_UPDATED_PROGRESS_ESCORT
+import com.back.nbe12142team06.domain.notification.entity.NotificationContent.*
+import com.back.nbe12142team06.domain.notification.entity.NotificationUrl.*
 import com.back.nbe12142team06.domain.notification.service.NoticeService
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository
 import com.back.nbe12142team06.domain.payment.service.PaymentService
@@ -308,7 +284,8 @@ open class ApplicationService(
                 paymentService.cancel(post)
                 noticeService.send(
                     receiverId = post.client.id,
-                    content = NotificationContent.C_ESCORT_DELETE_APPLICATION_CANCEL.of(),
+                    content = C_ESCORT_DELETE_APPLICATION_CANCEL.of(),
+                    url = U_ESCORT_DELETE_APPLICATION_CANCEL.of(post.requiredId),
                 )
                 continue
             }

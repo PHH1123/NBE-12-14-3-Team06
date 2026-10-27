@@ -19,7 +19,7 @@ enum class NotificationContent(
     C_SETTLEMENT_DONE("정산이 완료되었습니다. 정산 금액: %s"),
     C_POST_DELETE_AND_APPLICATION_CANCEL("의뢰인이 공고를 삭제하여 지원이 취소되었습니다."),
     C_POST_DELETE("공고가 정상적으로 삭제되었습니다. 결제하셨을 경우 2~3일 이내에 환불 처리됩니다."),
-    C_ESCORT_DELETE_APPLICATION_CANCEL("동행 매니저의 회원 탈퇴로 공고 매칭이 취소되었습니다.");
+    C_ESCORT_DELETE_APPLICATION_CANCEL("동행 매니저의 회원 탈퇴(또는 정지)로 공고 매칭이 취소되었습니다.");
 
     fun of(vararg args: Any?): String {
         return format.format(*args)
