@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.PlatformTransactionManager
@@ -53,13 +54,13 @@ class LoadTestInitDataTest {
         initData(3).createUsers()
 
         assertThat(userRepository.count()).isEqualTo(before + 6)
-        val client = userRepository.findByUsername("ltclient002").orElseThrow()
-        val escort = userRepository.findByUsername("ltescort003").orElseThrow()
+        val client = userRepository.findByUsername("ltclient002")!!
+        val escort = userRepository.findByUsername("ltescort003")!!
         assertThat(client.role).isEqualTo(Role.CLIENT)
         assertThat(escort.role).isEqualTo(Role.ESCORT)
         assertThat(passwordEncoder.matches("password1!", escort.password)).isTrue()
         // 동행 매니저는 인증까지 끝난 상태로 만들어져 바로 지원할 수 있다
-        assertThat(escortProfileRepository.findById(escort.id!!).orElseThrow().verified).isTrue()
+        assertThat(escortProfileRepository.findByIdOrNull(escort.id!!)!!.verified).isTrue()
 
         // 두 번째 실행(서버 재시작 등): 같은 아이디는 건너뛰고 모자란 만큼만 만든다
         initData(5).createUsers()
@@ -80,7 +81,7 @@ class LoadTestInitDataTest {
         assertThat(applicationRepository.count()).isEqualTo(applicationsBefore + 3)
         assertThat(postRepository.count()).isEqualTo(postsBefore + 3 + 4)
 
-        val escort = userRepository.findByUsername("ltescort002").orElseThrow()
+        val escort = userRepository.findByUsername("ltescort002")!!
         val application = applicationRepository.findAllByEscortAndStatus(escort, ApplicationStatus.ACCEPTED).single()
         assertThat(application.post.postStatus).isEqualTo(PostStatus.MATCHED)
         assertThat(application.post.client.username).isEqualTo("ltclient002")

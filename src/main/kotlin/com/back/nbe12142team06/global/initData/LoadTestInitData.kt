@@ -89,14 +89,14 @@ class LoadTestInitData(
 
         for (i in 1..userCount) {
             val clientName = "ltclient%03d".format(i)
-            if (!userRepository.findByUsername(clientName).isPresent) {
+            if (userRepository.findByUsername(clientName) == null) {
                 val client = save(newUser(clientName, "부하의뢰$i", Role.CLIENT, Gender.FEMALE, 1955, "010-5%03d-0001".format(i), encodedPassword))
                 clientProfileRepository.save(ClientProfile(client, "부하보호$i", "010-9%03d-0001".format(i), null))
                 createdClients++
             }
 
             val escortName = "ltescort%03d".format(i)
-            if (!userRepository.findByUsername(escortName).isPresent) {
+            if (userRepository.findByUsername(escortName) == null) {
                 val escort = save(newUser(escortName, "부하동행$i", Role.ESCORT, Gender.MALE, 1990, "010-6%03d-0001".format(i), encodedPassword))
                 val profile = escortProfileRepository.save(
                     EscortProfile(escort, "부하 테스트용 동행 매니저 ${i}입니다.", "국민은행", "부하동행$i", "123-456-789012")
@@ -113,8 +113,8 @@ class LoadTestInitData(
     internal fun createMatchedPairs() {
         var created = 0
         for (i in 1..userCount) {
-            val client = userRepository.findByUsername("ltclient%03d".format(i)).orElse(null) ?: continue
-            val escort = userRepository.findByUsername("ltescort%03d".format(i)).orElse(null) ?: continue
+            val client = userRepository.findByUsername("ltclient%03d".format(i)) ?: continue
+            val escort = userRepository.findByUsername("ltescort%03d".format(i)) ?: continue
             if (postRepository.existsByClientIdAndTitle(client.id!!, pairTitle(i))) continue
 
             val post = savePost(client, pairTitle(i), "서울", HOSPITALS[i % HOSPITALS.size], i)
@@ -128,7 +128,7 @@ class LoadTestInitData(
 
     // 목록·검색 부하 테스트용 모집 중 공고. 이미 충분히 있으면 만들지 않는다.
     internal fun createOpenPosts() {
-        val clients = (1..userCount).mapNotNull { userRepository.findByUsername("ltclient%03d".format(it)).orElse(null) }
+        val clients = (1..userCount).mapNotNull { userRepository.findByUsername("ltclient%03d".format(it)) }
         if (clients.isEmpty()) return
         val existing = postRepository.countByTitleStartingWith(OPEN_TITLE_PREFIX).toInt()
         for (n in existing + 1..openPostCount) {
