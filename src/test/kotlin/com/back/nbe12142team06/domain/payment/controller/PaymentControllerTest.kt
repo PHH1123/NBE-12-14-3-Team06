@@ -4,6 +4,7 @@ import com.back.nbe12142team06.domain.notification.service.NoticeService
 import com.back.nbe12142team06.domain.payment.client.TossPaymentClient
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest
 import com.back.nbe12142team06.domain.payment.dto.PaymentConfirmRequest
+import com.back.nbe12142team06.domain.payment.dto.TossCancelResponse
 import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository
@@ -20,15 +21,11 @@ import com.back.nbe12142team06.global.exception.ForbiddenException
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.exception.NotFoundException
 import jakarta.servlet.http.Cookie
-import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.assertThatThrownBy
-import org.assertj.core.api.Assertions.within
+import org.assertj.core.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.never
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
+import org.mockito.Mockito.*
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
@@ -42,20 +39,16 @@ import org.springframework.http.ResponseEntity
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.handler
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -63,18 +56,26 @@ import java.util.UUID
 @Transactional
 class PaymentControllerTest {
 
-    @field:Autowired private lateinit var mvc: MockMvc
+    @field:Autowired
+    private lateinit var mvc: MockMvc
 
-    @field:Autowired private lateinit var paymentRepository: PaymentRepository
-    @field:Autowired private lateinit var paymentService: PaymentService
-    @field:Autowired private lateinit var userService: UserService
-    @field:Autowired private lateinit var postService: PostService
+    @field:Autowired
+    private lateinit var paymentRepository: PaymentRepository
+    @field:Autowired
+    private lateinit var paymentService: PaymentService
+    @field:Autowired
+    private lateinit var userService: UserService
+    @field:Autowired
+    private lateinit var postService: PostService
 
     // 외부 결제 API 와 알림·정산은 실제로 호출하지 않는다.
     // (원래는 테스트마다 PaymentService 를 직접 new 했는데, 그러면 트랜잭션·캐시 프록시가 빠진 객체를 검증하게 된다)
-    @field:MockitoBean private lateinit var tossPaymentClient: TossPaymentClient
-    @field:MockitoBean private lateinit var settlementService: SettlementService
-    @field:MockitoBean private lateinit var noticeService: NoticeService
+    @field:MockitoBean
+    private lateinit var tossPaymentClient: TossPaymentClient
+    @field:MockitoBean
+    private lateinit var settlementService: SettlementService
+    @field:MockitoBean
+    private lateinit var noticeService: NoticeService
 
     private var savedUser1Id: Long = 0
     private var savedUser2Id: Long = 0
@@ -331,7 +332,7 @@ class PaymentControllerTest {
     fun requestCancel() {
         val cancelReason = "결제 취소 사유"
 
-        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000", "paymentKey", "orderId")))
+        doReturn(ResponseEntity.ok(TossCancelResponse("계좌이체", "60000", "0", "paymentKey", "orderId")))
             .whenever(tossPaymentClient).callApiCancel(any(), any(), any())
 
         paymentService.cancel(savedUser1Id, savedPayment1Id, PaymentCancelRequest(cancelReason))
@@ -454,7 +455,7 @@ class PaymentControllerTest {
     @Test
     @DisplayName("[PaymentController] DELETE 결제 취소 - 성공 응답 규약")
     fun requestCancelApi() {
-        doReturn(ResponseEntity.ok(TossConfirmResponse("계좌이체", "60000", "paymentKey", "orderId")))
+        doReturn(ResponseEntity.ok(TossCancelResponse("계좌이체", "60000", "0", "paymentKey", "orderId")))
             .whenever(tossPaymentClient).callApiCancel(any(), any(), any())
 
         val resultActions = mvc.perform(

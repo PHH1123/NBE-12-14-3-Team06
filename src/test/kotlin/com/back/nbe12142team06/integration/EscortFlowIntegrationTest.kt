@@ -107,7 +107,7 @@ class EscortFlowIntegrationTest {
             .willAnswer{ invocation ->
                 ResponseEntity.ok(TossConfirmResponse("카드", invocation.getArgument(2), invocation.getArgument(0), invocation.getArgument(1)))}
         given(tossPaymentClient.callApiCancel(anyString(), anyString(), anyString()))
-            .willReturn(ResponseEntity.ok(TossCancelResponse("카드", "30000", "tempPaymentKey", "tempOrderId")))
+            .willReturn(ResponseEntity.ok(TossCancelResponse("카드", "30000", "0", "tempPaymentKey", "tempOrderId")))
     }
 
     @AfterEach

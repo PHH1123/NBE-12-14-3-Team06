@@ -897,7 +897,7 @@ class PostControllerTest {
 
         // 실제 토스 API 이용하지 않도록 아래를 추가했습니다.
         given(tossPaymentClient.callApiCancel(any(), any(), any()))
-            .willReturn(ResponseEntity.ok(TossCancelResponse("계좌이체", "30000", "tempPaymentKey", "tempOrderId")))
+            .willReturn(ResponseEntity.ok(TossCancelResponse("계좌이체", "30000", "0", "tempPaymentKey", "tempOrderId")))
 
         val resultActions = mvc
             .perform(

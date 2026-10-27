@@ -77,7 +77,7 @@ class TossPaymentClientDev(
                 cancelReason,
                 amount
             )
-            return ResponseEntity.ok(TossCancelResponse("카드", amount, tossPaymentKey, "test-order-id"))
+            return ResponseEntity.ok(TossCancelResponse("카드", amount, "0", tossPaymentKey, "test-order-id"))
         }
 
         val requestBody = objectMapper.createObjectNode()
