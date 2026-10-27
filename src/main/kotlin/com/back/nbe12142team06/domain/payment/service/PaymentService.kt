@@ -123,13 +123,13 @@ class PaymentService(
         isPartialCancel: Boolean,
         createNewPayment: Boolean
     ): Payment {
-        if (payment.paymentStatus == PaymentStatus.CANCELED) {
+        if (payment.paymentStatus == PaymentStatus.CANCELED ||
+            payment.paymentStatus == PaymentStatus.PARTIAL_CANCELED
+        ) {
             throw InvalidException(44, "이미 취소된 결제입니다.")
         }
 
-        if (!(payment.paymentStatus == PaymentStatus.DONE ||
-                    payment.paymentStatus == PaymentStatus.PARTIAL_CANCELED)
-        ) {
+        if (payment.paymentStatus != PaymentStatus.DONE) {
             throw InvalidException(45, "결제 완료 상태가 아닙니다.")
         }
 
