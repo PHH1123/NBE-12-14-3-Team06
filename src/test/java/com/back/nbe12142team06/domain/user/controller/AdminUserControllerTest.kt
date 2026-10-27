@@ -723,7 +723,7 @@ class AdminUserControllerTest {
         val user = userRepository.findById(user1Id).orElseThrow()
         assertThat(user.userStatus).isEqualTo(UserStatus.SUSPENDED)
 
-        val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElseThrow()
+        val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)!!
         assertThat(history.status).isEqualTo(UserStatus.SUSPENDED)
         assertThat(history.adminId).isEqualTo(adminId)
         assertThat(history.reason).isEqualTo("노쇼 3회 누적")
@@ -853,7 +853,7 @@ class AdminUserControllerTest {
         val user = userRepository.findById(user1Id).orElseThrow()
         assertThat(user.userStatus).isEqualTo(UserStatus.BANNED)
 
-        val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElseThrow()
+        val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)!!
         assertThat(history.status).isEqualTo(UserStatus.BANNED)
         assertThat(history.adminId).isEqualTo(adminId)
         assertThat(history.reason).isEqualTo("욕설")
@@ -965,7 +965,7 @@ class AdminUserControllerTest {
         val user = userRepository.findById(user1Id).orElseThrow()
         assertThat(user.userStatus).isEqualTo(UserStatus.ACTIVE)
 
-        val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElseThrow()
+        val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)!!
         assertThat(history.status).isEqualTo(UserStatus.ACTIVE)
         assertThat(history.adminId).isEqualTo(adminId)
         assertThat(history.reason).isEqualTo("그냥 그냥 그냥 그냥")
@@ -1000,7 +1000,7 @@ class AdminUserControllerTest {
         val user = userRepository.findById(user1Id).orElseThrow()
         assertThat(user.userStatus).isEqualTo(UserStatus.ACTIVE)
 
-        val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElseThrow()
+        val history = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)!!
         assertThat(history.status).isEqualTo(UserStatus.ACTIVE)
         assertThat(history.adminId).isEqualTo(adminId)
         assertThat(history.reason).isEqualTo("진짜 그냥 그냥 그냥 그냥")

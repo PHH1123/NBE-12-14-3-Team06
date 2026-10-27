@@ -148,8 +148,7 @@ class UserService(
     fun findCurrentSanction(user: User): UserStatusHistory? {
         if (user.isActive) return null
         return userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)
-            .filter { it.status == user.userStatus }
-            .orElse(null)
+            ?.takeIf { it.status == user.userStatus }
     }
 
     // username 중복 검사
@@ -407,7 +406,7 @@ class UserService(
     @Transactional
     fun releaseExpiredSuspensions(now: LocalDateTime): Int {
         val released = userRepository.findAllByUserStatus(UserStatus.SUSPENDED).count { user ->
-            val endAt = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user).orElse(null)?.endAt
+            val endAt = userStatusHistoryRepository.findTopByUserOrderByIdDesc(user)?.endAt
 
             when {
                 // 기록이 없는 유저, 기간 정지인데 만료기간이 없는 기록 체크
