@@ -1,0 +1,33 @@
+{
+  "label": "hold_before_3",
+  "at": "2026-10-27T06:45:55.598Z",
+  "config": {
+    "vus": 50,
+    "duration": "30s",
+    "locSleep": 1
+  },
+  "apis": {
+    "posts_list": {
+      "avg": 30.414964793500317,
+      "p95": 126.11379999999993,
+      "p99": 820.6938799999999,
+      "max": 1057.538,
+      "count": 1477,
+      "rps": 49.233333333333334,
+      "errorRate": 0,
+      "hikariActiveMax": 10,
+      "hikariPendingMax": 34,
+      "holdAvgMs": 176.03703703703684,
+      "holdMaxMs": 433
+    }
+  },
+  "hikari": {
+    "activeMax": 10,
+    "activeAvg": 0.375,
+    "pendingMax": 34
+  },
+  "cpu": {
+    "avg": 0.012243462506563519,
+    "max": 0.0822180345995654
+  }
+}
