@@ -86,7 +86,7 @@ export default function TrackingPage() {
   const state = result.key === applicationId ? result.data : undefined;
   const sharingLocation =
     state?.status === 'ready' &&
-    doneCount !== undefined && doneCount >= 2 && doneCount < PROGRESS_ORDER.length && isLocationSharing;
+    doneCount !== undefined && doneCount >= 1 && doneCount < PROGRESS_ORDER.length && isLocationSharing;
   // 내 위치는 서버로 보내고(share), 의뢰인의 위치와 두 사람이 가까운지는 서버에서 받아 옵니다(live).
   const share = useShareLocation(applicationId, sharingLocation);
   const live = useLiveLocations(applicationId, sharingLocation);
@@ -121,13 +121,13 @@ export default function TrackingPage() {
   const nextStageInfo = nextStageIndex !== null ? STAGES[nextStageIndex] : null;
   const finished = doneCount >= PROGRESS_ORDER.length;
   const arrivedAtHospital = doneCount > PROGRESS_ORDER.indexOf('AT_HOSPITAL');
-  const sharingAvailable = doneCount >= 2 && !finished;
+  const sharingAvailable = !finished;
   const contactPhone = escort.emergencyContactPhone.trim();
   const canCall = /^[+\d\-()\s]+$/.test(contactPhone) && /\d/.test(contactPhone);
 
-  // 의뢰인을 만나 함께 병원으로 "출발"하는 단계('병원 이동 중')의 버튼은, 의뢰인과 100m 이내로 가까워져야 활성화됩니다.
-  // 가까운지는 서버가 두 사람의 최근 위치로 계산합니다. 다른 단계는 항상 동행 매니저가 직접 누릅니다.
-  const needsNearby = nextStageIndex === PROGRESS_ORDER.indexOf('TO_HOSPITAL');
+  // "출발" 버튼(DEPARTED)은, 의뢰인과 100m 이내로 가까워져야 활성화됩니다.
+  // 가까운지는 서버가 두 사람의 최근 위치로 계산합니다. 병원 이동 중·병원 도착 이후 단계는 거리와 상관없이 항상 동행 매니저가 직접 누릅니다.
+  const needsNearby = nextStageIndex === PROGRESS_ORDER.indexOf('DEPARTED');
   const canAdvance = !needsNearby || live.nearby;
   const distanceLabel = live.distanceMeters !== undefined ? ` (현재 약 ${live.distanceMeters}m)` : '';
   const nearbyHint = live.nearby

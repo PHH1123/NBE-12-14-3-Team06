@@ -97,9 +97,9 @@ function ProgressTimeline({ escort }: { escort: ClientEscortCase }) {
 }
 
 function LiveLocationCard({ escort, applicationId }: { escort: ClientEscortCase; applicationId: number }) {
-  const ongoing = !escort.postCompleted && (escort.stage === 'ongoing' || escort.stage === 'arrived' || escort.stage === 'finishing');
+  const ongoing = !escort.postCompleted && (escort.stage === 'ready' || escort.stage === 'ongoing' || escort.stage === 'arrived' || escort.stage === 'finishing');
   // 내 위치(의뢰인)는 서버로 보내고(share), 동행 매니저의 위치와 두 사람이 가까운지는 서버에서 받아 옵니다(live).
-  // 동행이 진행 중일 때(출발 후 ~ 귀가 완료 전)에만 서로 위치를 보내고 봅니다.
+  // 출발 전부터 귀가 완료 전까지 서로 위치를 보내고 봅니다.
   const share = useShareLocation(applicationId, ongoing);
   const live = useLiveLocations(applicationId, ongoing);
   const { error } = live;

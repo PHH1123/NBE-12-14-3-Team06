@@ -492,8 +492,8 @@ open class ApplicationService(
         if (application.status != ApplicationStatus.ACCEPTED) {
             throw InvalidException(33, "승인된 동행에서만 실시간 위치를 보낼 수 있습니다.")
         }
-        if (post.postStatus != PostStatus.IN_PROGRESS) {
-            throw InvalidException(34, "동행이 진행 중일 때만 실시간 위치를 보낼 수 있습니다.")
+        if (post.postStatus !in LOCATION_SHARING_STATUSES) {
+            throw InvalidException(34, "출발 전부터 귀가 완료 전까지만 실시간 위치를 보낼 수 있습니다.")
         }
 
         val now = Instant.now()
@@ -504,7 +504,7 @@ open class ApplicationService(
         }
         // 위 확인 이후 저장하기 전에 귀가 완료·취소 등으로 동행이 끝난 경우 (조건부 UPDATE 가 0건)
         if (updated == 0) {
-            throw InvalidException(34, "동행이 진행 중일 때만 실시간 위치를 보낼 수 있습니다.")
+            throw InvalidException(34, "출발 전부터 귀가 완료 전까지만 실시간 위치를 보낼 수 있습니다.")
         }
 
         logLocationHeartbeat(application, isEscort, request, now)
@@ -584,7 +584,7 @@ open class ApplicationService(
             throw ForbiddenException(30, "본인의 동행 건만 실시간 위치를 조회할 수 있습니다.")
         }
         if (application.status != ApplicationStatus.ACCEPTED ||
-            application.post.postStatus != PostStatus.IN_PROGRESS ||
+            application.post.postStatus !in LOCATION_SHARING_STATUSES ||
             escortProgressLogRepository.existsByApplicationAndProgress(application, EscortProgress.ARRIVED_HOME)
         ) {
             throw NotFoundException(31, "실시간 위치를 공유 중인 동행이 아닙니다.")
@@ -613,5 +613,8 @@ open class ApplicationService(
 
     companion object {
         private val log = LoggerFactory.getLogger(ApplicationService::class.java)
+
+        // 출발 버튼을 누르려면 둘의 거리를 알아야 하므로, 출발 전(MATCHED)부터 귀가 완료 전까지 위치를 공유한다.
+        private val LOCATION_SHARING_STATUSES = setOf(PostStatus.MATCHED, PostStatus.IN_PROGRESS)
     }
 }

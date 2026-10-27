@@ -116,7 +116,8 @@ interface ApplicationRepository : JpaRepository<Application, Long> {
                and exists (
                     select 1 from Post p
                      where p = a.post
-                       and p.postStatus = com.back.nbe12142team06.domain.post.entity.PostStatus.IN_PROGRESS
+                       and p.postStatus in (com.back.nbe12142team06.domain.post.entity.PostStatus.MATCHED,
+                                           com.back.nbe12142team06.domain.post.entity.PostStatus.IN_PROGRESS)
                )
                and not exists (
                     select 1 from EscortProgressLog progressEntry
@@ -147,7 +148,8 @@ interface ApplicationRepository : JpaRepository<Application, Long> {
                and exists (
                     select 1 from Post p
                      where p = a.post
-                       and p.postStatus = com.back.nbe12142team06.domain.post.entity.PostStatus.IN_PROGRESS
+                       and p.postStatus in (com.back.nbe12142team06.domain.post.entity.PostStatus.MATCHED,
+                                           com.back.nbe12142team06.domain.post.entity.PostStatus.IN_PROGRESS)
                )
                and not exists (
                     select 1 from EscortProgressLog progressEntry

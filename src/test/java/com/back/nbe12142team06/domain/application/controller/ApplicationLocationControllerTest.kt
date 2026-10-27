@@ -8,6 +8,7 @@ import com.back.nbe12142team06.domain.application.repository.ApplicationReposito
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository
 import com.back.nbe12142team06.domain.application.service.ApplicationService
 import com.back.nbe12142team06.domain.post.entity.Post
+import com.back.nbe12142team06.domain.post.entity.PostStatus
 import com.back.nbe12142team06.domain.post.repository.PostRepository
 import com.back.nbe12142team06.domain.user.entity.User
 import com.back.nbe12142team06.domain.user.enums.Gender
@@ -195,6 +196,12 @@ class ApplicationLocationControllerTest {
         return escortProgressLogRepository.findTopByApplicationOrderByOccurredAtDescIdDesc(application).get().progress
     }
 
+    private fun latestProgressOrNull(): EscortProgress? {
+        val application = applicationRepository.findById(applicationId).orElseThrow()
+        return escortProgressLogRepository.findTopByApplicationOrderByOccurredAtDescIdDesc(application)
+            .map { it.progress }.orElse(null)
+    }
+
     private fun dataOf(result: ResultActions): Map<*, *> {
         val body = result.andReturn().response.contentAsString
         return JsonPath.parse(body).read<Map<*, *>>("$.data")
@@ -285,16 +292,58 @@ class ApplicationLocationControllerTest {
     }
 
     @Test
-    @DisplayName("[위치] 출발 전에는 위치를 보내거나 조회할 수 없다")
-    fun 출발_전에는_공유되지_않는다() {
-        // startTrip() 을 하지 않음: 공고는 MATCHED 상태
+    @DisplayName("[위치] 출발 전(MATCHED)에도 서로 위치를 보내고 가까움 여부를 조회할 수 있다")
+    fun 출발_전에도_공유되고_가까움을_알_수_있다() {
+        // startTrip() 을 하지 않음: 공고는 MATCHED, 진행 기록 없음 (출발 버튼 활성화 판단을 위해 필요)
+        sendLocation(escortCookie, baseLat, baseLng).andExpect(status().isOk())
+        sendLocation(clientCookie, baseLat.add(BigDecimal("0.002")), baseLng).andExpect(status().isOk())
+        readLocation(escortCookie)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.nearby").value(false))
+
+        // 의뢰인이 가까이 오면 가깝다고 나온다
+        sendLocation(clientCookie, baseLat.add(BigDecimal("0.0005")), baseLng).andExpect(status().isOk())
+        readLocation(escortCookie)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.nearby").value(true))
+        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.MATCHED)
+    }
+
+    @Test
+    @DisplayName("[위치] 가까워져도 출발은 자동으로 되지 않고, 동행 매니저가 출발 버튼을 눌러야 DEPARTED 가 된다")
+    fun 가까워져도_출발은_버튼으로만_된다() {
+        sendLocation(escortCookie, baseLat, baseLng).andExpect(status().isOk())
+        sendLocation(clientCookie, baseLat.add(BigDecimal("0.0005")), baseLng).andExpect(status().isOk())
+        readLocation(escortCookie).andExpect(jsonPath("$.data.nearby").value(true))
+
+        // 자동 전이 없음: 진행 기록도 없고 공고도 그대로 MATCHED
+        assertThat(latestProgressOrNull()).isNull()
+        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.MATCHED)
+
+        // 버튼을 누르면 출발, 이후에도 위치 공유는 계속된다
+        pressProgress(EscortProgress.DEPARTED).andExpect(status().isOk())
+        assertThat(latestProgressOrNull()).isEqualTo(EscortProgress.DEPARTED)
+        assertThat(postRepository.findById(postId).orElseThrow().postStatus).isEqualTo(PostStatus.IN_PROGRESS)
+        sendLocation(clientCookie, baseLat, baseLng).andExpect(status().isOk())
+        readLocation(escortCookie).andExpect(status().isOk())
+    }
+
+    @Test
+    @DisplayName("[위치] 공고가 이미 완료된 뒤에는 위치를 보내거나 조회할 수 없다")
+    fun 동행_기간이_아니면_공유되지_않는다() {
+        startTrip()
+        sendLocation(escortCookie, baseLat, baseLng).andExpect(status().isOk())
+
+        // 공고가 완료되면 보내기·조회 모두 막힌다
+        transactionTemplate.executeWithoutResult {
+            val post = postRepository.findById(postId).orElseThrow()
+            post.complete(LocalDateTime.now())
+            postRepository.save(post)
+        }
         sendLocation(escortCookie, baseLat, baseLng)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.statusCode").value("400-34"))
-        sendLocation(clientCookie, baseLat, baseLng)
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.statusCode").value("400-34"))
-        readLocation(escortCookie)
+        readLocation(clientCookie)
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.statusCode").value("404-31"))
     }

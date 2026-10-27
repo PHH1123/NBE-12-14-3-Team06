@@ -120,6 +120,37 @@ class ApplicationLocationServiceTest {
     }
 
     @Test
+    fun locationIsSavedBeforeDeparture() {
+        // 출발 버튼은 둘이 가까워져야 활성화되므로, 출발 전(공고 MATCHED)에도 위치를 보낼 수 있다.
+        prepareLocationWrite()
+        `when`(post.postStatus).thenReturn(PostStatus.MATCHED)
+        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        val request = ApplicationLocationRequest(BigDecimal("37.1234567"), BigDecimal("127.1234567"), BigDecimal.TEN)
+        `when`(applicationRepository.updateLocation(eq(APPLICATION_ID), eq(request.lat), eq(request.lng),
+            eq(request.accuracy), any(Instant::class.java))).thenReturn(1)
+
+        applicationService.saveLocation(APPLICATION_ID, ESCORT_ID, request)
+
+        verify(applicationRepository).updateLocation(eq(APPLICATION_ID), eq(request.lat), eq(request.lng),
+            eq(request.accuracy), any(Instant::class.java))
+    }
+
+    @Test
+    fun locationIsRejectedWhenPostIsAlreadyCompleted() {
+        prepareLocationWrite()
+        `when`(post.postStatus).thenReturn(PostStatus.COMPLETED)
+        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        val request = ApplicationLocationRequest(BigDecimal("37.1234567"), BigDecimal("127.1234567"), BigDecimal.TEN)
+
+        val ex = assertThrows(InvalidException::class.java) {
+            applicationService.saveLocation(APPLICATION_ID, ESCORT_ID, request)
+        }
+
+        assertTrue(ex.message!!.contains("출발 전부터 귀가 완료 전까지"))
+        verify(applicationRepository, never()).updateLocation(any(), any(), any(), any(), any())
+    }
+
+    @Test
     fun clientLocationIsSavedInClientColumnsWhileEscortIsInProgress() {
         prepareLocationWriteByNonEscort()
         `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
