@@ -282,11 +282,19 @@ open class ApplicationService(
                 application.cancelWithoutPenalty()
                 post.matchedCancel()
                 paymentService.cancel(post)
-                noticeService.send(
-                    receiverId = post.client.id,
-                    content = C_ESCORT_DELETE_APPLICATION_CANCEL.of(),
-                    url = U_ESCORT_DELETE_APPLICATION_CANCEL.of(post.requiredId),
-                )
+
+                // 모집 마감 전이면 다시 동행인을 모집하고, 마감 후라면 공고를 취소해 환불한다.
+                if (LocalDateTime.now().isBefore(post.recruitEndAt)) {
+                    post.reopen()
+                } else {
+                    post.matchedCancel()
+                    paymentService.cancel(post)
+                    noticeService.send(
+                        receiverId = post.client.id,
+                        content = C_ESCORT_DELETE_APPLICATION_CANCEL.of(),
+                        url = U_ESCORT_DELETE_APPLICATION_CANCEL.of(post.requiredId),
+                    )
+                }
                 continue
             }
             throw InvalidException(35, "지원 또는 공고 상태가 변경되어 취소할 수 없습니다.")
