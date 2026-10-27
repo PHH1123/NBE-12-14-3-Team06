@@ -66,6 +66,23 @@ class Application protected constructor() : BaseTimeEntity() {
     var locationUpdatedAt: Instant? = null
         protected set
 
+    // 동행 중 의뢰인의 마지막 위치. 매니저 위치와 똑같이 최신 1건만 덮어쓰며, 첫 위치 수신 전에는 null이다.
+    @field:Column(name = "client_lat", precision = 10, scale = 7)
+    var clientLat: BigDecimal? = null
+        protected set
+
+    @field:Column(name = "client_lng", precision = 10, scale = 7)
+    var clientLng: BigDecimal? = null
+        protected set
+
+    @field:Column(name = "client_accuracy")
+    var clientAccuracy: BigDecimal? = null
+        protected set
+
+    @field:Column(name = "client_location_updated_at")
+    var clientLocationUpdatedAt: Instant? = null
+        protected set
+
     // 공고당 승인된 지원은 하나만 유지한다. 승인 취소/노쇼 시 null이 된다.
     @field:Column(name = "accepted_post_id", unique = true)
     var acceptedPostId: Long? = null

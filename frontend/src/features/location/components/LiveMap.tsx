@@ -2,22 +2,29 @@
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { createLiveMap, type LiveMapController } from '@/lib/kakaoMap';
-import type { LatLng } from '../types';
+import type { LatLng, LocationRole } from '../types';
 
 /** 지도를 불러오는 데 이만큼 걸리면 실패로 보고 임시 화면으로 돌아갑니다. */
 const LOAD_TIMEOUT_MS = 10000;
 
 /**
- * 동행 매니저의 현재 위치를 카카오 지도 위에 보여줍니다. 부모 상자(relative)를 가득 채웁니다.
+ * 의뢰인과 동행 매니저의 실시간 위치를 카카오 지도 위에 프로필 핀으로 보여줍니다. 부모 상자(relative)를 가득 채웁니다.
+ * 두 사람의 위치를 모두 알면 둘이 한 화면에 보이게 맞추고, 한 사람만 알면 그 사람을 따라갑니다.
+ * me 는 이 화면을 보는 사람입니다. 그 사람의 핀에는 "(나)" 이름표가 붙습니다.
  * 지도를 불러오지 못하면(키 없음·허용되지 않은 도메인·네트워크 오류) onError 를 한 번 호출합니다.
  */
 export default function LiveMap({
-  position,
+  escort,
+  client,
+  me,
   trail,
   onError,
 }: {
-  position: LatLng;
-  trail: LatLng[];
+  escort?: LatLng;
+  client?: LatLng;
+  me: LocationRole;
+  /** 동행 매니저가 지나온 경로 */
+  trail?: LatLng[];
   onError: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -35,7 +42,7 @@ export default function LiveMap({
       window.setTimeout(() => reject(new Error('지도를 불러오는 시간이 너무 오래 걸립니다.')), LOAD_TIMEOUT_MS);
     });
 
-    Promise.race([createLiveMap(container), timeout])
+    Promise.race([createLiveMap(container, me), timeout])
       .then((created) => {
         if (ignore) return;
         created.relayout();
@@ -49,12 +56,12 @@ export default function LiveMap({
       ignore = true;
       container.replaceChildren();
     };
-  }, []);
+  }, [me]);
 
-  // 2. 위치가 바뀔 때마다 표시와 경로를 갱신합니다.
+  // 2. 위치가 바뀔 때마다 두 사람의 표시와 경로를 갱신합니다.
   useEffect(() => {
-    controller?.update(position, trail);
-  }, [controller, position, trail]);
+    controller?.update({ escort, client }, trail);
+  }, [controller, escort, client, trail]);
 
-  return <div ref={containerRef} role="img" aria-label="동행 매니저의 실시간 위치 지도" className="absolute inset-0" />;
+  return <div ref={containerRef} role="img" aria-label="의뢰인과 동행 매니저의 실시간 위치 지도" className="absolute inset-0" />;
 }

@@ -133,13 +133,46 @@ interface ApplicationRepository : JpaRepository<Application, Long> {
         @Param("updatedAt") updatedAt: Instant?,
     ): Int
 
-    // 귀가 완료 시 최근 위치(위도·경도·정확도·갱신 시각)를 모두 삭제한다.
+    // 의뢰인의 위치를 같은 조건으로 저장한다. (매니저 위치는 updateLocation)
+    @Modifying
+    @Query(
+        """
+            update Application a
+               set a.clientLat = :lat,
+                   a.clientLng = :lng,
+                   a.clientAccuracy = :accuracy,
+                   a.clientLocationUpdatedAt = :updatedAt
+             where a.id = :id
+               and a.status = com.back.nbe12142team06.domain.application.enums.ApplicationStatus.ACCEPTED
+               and exists (
+                    select 1 from Post p
+                     where p = a.post
+                       and p.postStatus = com.back.nbe12142team06.domain.post.entity.PostStatus.IN_PROGRESS
+               )
+               and not exists (
+                    select 1 from EscortProgressLog progressEntry
+                     where progressEntry.application = a
+                       and progressEntry.progress = com.back.nbe12142team06.domain.application.enums.EscortProgress.ARRIVED_HOME
+               )
+            """
+    )
+    fun updateClientLocation(
+        @Param("id") id: Long?,
+        @Param("lat") lat: BigDecimal?,
+        @Param("lng") lng: BigDecimal?,
+        @Param("accuracy") accuracy: BigDecimal?,
+        @Param("updatedAt") updatedAt: Instant?,
+    ): Int
+
+    // 귀가 완료 시 매니저와 의뢰인의 최근 위치(위도·경도·정확도·갱신 시각)를 모두 삭제한다.
     @Modifying(flushAutomatically = true)
     @Query(
         """
             update Application a
                set a.lat = null, a.lng = null,
-                   a.accuracy = null, a.locationUpdatedAt = null
+                   a.accuracy = null, a.locationUpdatedAt = null,
+                   a.clientLat = null, a.clientLng = null,
+                   a.clientAccuracy = null, a.clientLocationUpdatedAt = null
              where a.id = :applicationId
             """
     )
@@ -151,7 +184,9 @@ interface ApplicationRepository : JpaRepository<Application, Long> {
         """
             update Application a
                set a.lat = null, a.lng = null,
-                   a.accuracy = null, a.locationUpdatedAt = null
+                   a.accuracy = null, a.locationUpdatedAt = null,
+                   a.clientLat = null, a.clientLng = null,
+                   a.clientAccuracy = null, a.clientLocationUpdatedAt = null
              where a.post.id = :postId
             """
     )

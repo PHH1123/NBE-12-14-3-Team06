@@ -30,9 +30,8 @@ management:
     health:
       show-details: never    # DB 주소 같은 내부 정보는 숨김
 
-# 동행 위치 기반 자동 상태 전이 기준
+# 동행 중 의뢰인-동행인 근접 판단 기준 (출발 버튼 활성화)
 escort:
-  geofence:
-    hospital-radius-meters: 200
-    home-radius-meters: 100
-    max-accuracy-meters: 50
+  proximity:
+    radius-meters: 100     # 이 거리 안이면 가깝다고 본다
+    stale-seconds: 30      # 이보다 오래된 위치는 믿지 않고 가깝지 않은 것으로 본다

@@ -17,7 +17,7 @@ import PageFeedback from '@/components/ui/PageFeedback';
 import { PROGRESS_ORDER, advanceProgress, fetchProgress } from '@/features/application';
 import { useRequireAuth } from '@/features/auth';
 import { useChatWidget } from '@/features/chat';
-import { LiveMap, useShareLocation } from '@/features/location';
+import { LiveMap, LocationLegend, useLiveLocations, useShareLocation } from '@/features/location';
 import { fetchReport } from '@/features/report';
 import { fetchTrackingCase } from '../api';
 import { TIMELINE_BASE } from '../model/stage';
@@ -83,33 +83,13 @@ export default function TrackingPage() {
     return () => window.clearTimeout(timer);
   }, [toastMsg]);
 
-  // 위치가 병원·집 반경에 들어오면 서버가 진행 단계를 자동으로 바꿉니다. 화면이 알 수 있도록 주기적으로 다시 읽습니다.
-  // 버튼으로 바꾸는 중이거나 새로고침 중일 때, 화면이 가려져 있을 때는 건너뜁니다.
-  useEffect(() => {
-    if (!authorized || doneCount === undefined || doneCount >= PROGRESS_ORDER.length) return;
-    if (advancing || refreshing) return;
-    let cancelled = false;
-    let requesting = false;
-    const poll = async () => {
-      if (cancelled || requesting || document.visibilityState === 'hidden') return;
-      requesting = true;
-      try {
-        const latest = await fetchProgress(applicationId);
-        const index = PROGRESS_ORDER.indexOf(latest.progress);
-        if (!cancelled && index >= 0) setDoneCount((prev) => (prev === index + 1 ? prev : index + 1));
-      } catch {
-        // 일시적인 조회 실패는 현재 화면을 유지합니다. 다음 주기에 다시 시도합니다.
-      } finally { requesting = false; }
-    };
-    const timer = window.setInterval(poll, 10000);
-    return () => { cancelled = true; window.clearInterval(timer); };
-  }, [applicationId, authorized, doneCount, advancing, refreshing]);
-
   const state = result.key === applicationId ? result.data : undefined;
   const sharingLocation =
     state?.status === 'ready' &&
     doneCount !== undefined && doneCount >= 2 && doneCount < PROGRESS_ORDER.length && isLocationSharing;
+  // 내 위치는 서버로 보내고(share), 의뢰인의 위치와 두 사람이 가까운지는 서버에서 받아 옵니다(live).
   const share = useShareLocation(applicationId, sharingLocation);
+  const live = useLiveLocations(applicationId, sharingLocation);
 
   if (authLoading || (!state && user)) {
     return (
@@ -145,6 +125,19 @@ export default function TrackingPage() {
   const contactPhone = escort.emergencyContactPhone.trim();
   const canCall = /^[+\d\-()\s]+$/.test(contactPhone) && /\d/.test(contactPhone);
 
+  // 의뢰인을 만나 함께 병원으로 "출발"하는 단계('병원 이동 중')의 버튼은, 의뢰인과 100m 이내로 가까워져야 활성화됩니다.
+  // 가까운지는 서버가 두 사람의 최근 위치로 계산합니다. 다른 단계는 항상 동행 매니저가 직접 누릅니다.
+  const needsNearby = nextStageIndex === PROGRESS_ORDER.indexOf('TO_HOSPITAL');
+  const canAdvance = !needsNearby || live.nearby;
+  const distanceLabel = live.distanceMeters !== undefined ? ` (현재 약 ${live.distanceMeters}m)` : '';
+  const nearbyHint = live.nearby
+    ? `의뢰인과 가까워졌습니다${distanceLabel}. 출발할 수 있습니다.`
+    : !isLocationSharing
+      ? '위치 공유가 일시정지되어 있습니다. 위치 공유를 켜면 의뢰인과의 거리를 확인할 수 있습니다.'
+      : !live.client
+        ? '의뢰인의 위치를 기다리는 중입니다. 의뢰인과 100m 이내로 가까워지면 출발 버튼이 활성화됩니다.'
+        : `의뢰인과 100m 이내로 가까워지면 출발 버튼이 활성화됩니다.${distanceLabel}`;
+
   const handleRefreshProgress = async () => {
     if (refreshing || advancing) return;
     setRefreshing(true);
@@ -162,7 +155,7 @@ export default function TrackingPage() {
   };
 
   const handleConfirmAdvance = async () => {
-    if (finished || !nextStageInfo || advancing) return;
+    if (finished || !nextStageInfo || advancing || !canAdvance) return;
     setAdvancing(true);
     setProgressError(undefined);
     try {
@@ -280,8 +273,8 @@ export default function TrackingPage() {
                     <button
                       type="button"
                       onClick={() => setShowAdvanceConfirm(true)}
-                      disabled={advancing}
-                      className="group w-full h-[56px] rounded-xl bg-[#14243A] text-white text-base font-semibold hover:bg-[#1f3757] transition-colors sc-focus shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
+                      disabled={advancing || !canAdvance}
+                      className="group w-full h-[56px] rounded-xl bg-[#14243A] text-white text-base font-semibold hover:bg-[#1f3757] transition-colors sc-focus shadow-md flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#14243A]"
                     >
                       <span>다음 단계로 변경: &apos;{nextStageInfo.title}&apos;</span>
                       <ArrowRight className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-1 group-focus-visible:translate-x-1" aria-hidden="true" />
@@ -293,6 +286,11 @@ export default function TrackingPage() {
                         <span>귀가 완료되었습니다. 수고하셨습니다!</span>
                       </div>
                     </div>
+                  )}
+                  {nextStageInfo && needsNearby && (
+                    <p role="status" className={`text-xs ${live.nearby ? 'font-semibold text-[#2F7D5B]' : 'text-[#67717C]'}`}>
+                      {nearbyHint}
+                    </p>
                   )}
                   {arrivedAtHospital && (
                     <Link
@@ -344,9 +342,19 @@ export default function TrackingPage() {
                       : share.status === 'sharing' ? '위치 공유 중' : '위치 확인 중'}
                   </span>
                 </div>
-                {sharingLocation && share.position && !mapFailed ? (
-                  <div className="relative h-[280px] overflow-hidden rounded-xl bg-[#EDF0F2]">
-                    <LiveMap position={share.position} trail={[]} onError={() => setMapFailed(true)} />
+                {sharingLocation && (share.position || live.client) && !mapFailed ? (
+                  <div className="space-y-2">
+                    <div className="relative h-[280px] overflow-hidden rounded-xl bg-[#EDF0F2]">
+                      {/* 내 위치는 이 기기에서 방금 잰 값을, 의뢰인 위치는 서버에서 받은 값을 씁니다. */}
+                      <LiveMap
+                        me="escort"
+                        escort={share.position ?? live.escort?.position}
+                        client={live.client?.position}
+                        trail={live.trail}
+                        onError={() => setMapFailed(true)}
+                      />
+                    </div>
+                    <LocationLegend me="escort" escortKnown={!!(share.position ?? live.escort)} clientKnown={!!live.client} />
                   </div>
                 ) : (
                   <div className="flex min-h-[160px] items-center justify-center rounded-xl bg-[#EDF0F2] px-6 text-center text-xs leading-5 text-[#67717C]">
