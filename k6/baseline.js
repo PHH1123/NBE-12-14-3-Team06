@@ -23,22 +23,35 @@ const LOC_SLEEP = Number(__ENV.LOC_SLEEP || 1); // 실제 화면은 5초. 1초�
 const hikariActive = new Trend('hikari_active');
 const hikariPending = new Trend('hikari_pending');
 const processCpu = new Trend('process_cpu');
+// 커넥션 점유 시간(hikaricp_connections_usage_seconds)은 누적값이라 구간 처음·끝의 차이로 평균을 구한다.
+const usageSum = new Trend('hikari_usage_sum');
+const usageCount = new Trend('hikari_usage_count');
+const usageMax = new Trend('hikari_usage_max');
 
 function stage(name, offsetSeconds, exec, vus = VUS) {
   return { executor: 'constant-vus', vus, duration: DURATION, startTime: `${offsetSeconds}s`, exec, tags: { api: name } };
 }
 const span = Number.parseInt(DURATION, 10) + 10;
-const PHASES = ['posts_list', 'posts_search', 'location', 'progress', 'login'];
+const ALL_PHASES = ['posts_list', 'posts_search', 'location', 'progress', 'login'];
+// ONLY=posts_list,location 처럼 지정하면 그 구간만 순서대로 돌린다. (고친 API 만 빨리 다시 재려고)
+const PHASES = __ENV.ONLY ? ALL_PHASES.filter((p) => __ENV.ONLY.split(',').includes(p)) : ALL_PHASES;
+const SCENARIO_DEFS = {
+  posts_list: ['postsList', VUS],
+  posts_search: ['postsSearch', VUS],
+  location: ['location', Math.min(VUS, PAIRS)],
+  progress: ['progress', Math.min(VUS, PAIRS)],
+  login: ['login', Math.min(VUS, 20)],
+};
+const stages = {};
+PHASES.forEach((name, i) => {
+  stages[name] = stage(name, span * i, SCENARIO_DEFS[name][0], SCENARIO_DEFS[name][1]);
+});
 
 export const options = {
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)'],
   scenarios: {
-    posts_list: stage('posts_list', 0, 'postsList'),
-    posts_search: stage('posts_search', span, 'postsSearch'),
-    location: stage('location', span * 2, 'location', Math.min(VUS, PAIRS)),
-    progress: stage('progress', span * 3, 'progress', Math.min(VUS, PAIRS)),
-    login: stage('login', span * 4, 'login', Math.min(VUS, 20)),
-    sampler: { executor: 'constant-vus', vus: 1, duration: `${span * 5}s`, exec: 'sampler' },
+    ...stages,
+    sampler: { executor: 'constant-vus', vus: 1, duration: `${span * PHASES.length}s`, exec: 'sampler' },
   },
   // 임계값은 실패시키려는 게 아니라 api 별 지표가 요약에 항상 나오게 하는 용도다.
   thresholds: {
@@ -69,6 +82,12 @@ export const options = {
     'hikari_pending{api:login}': ['max>=0'],
   },
 };
+
+for (const api of ALL_PHASES) {
+  for (const name of ['hikari_usage_sum', 'hikari_usage_count', 'hikari_usage_max']) {
+    options.thresholds[`${name}{api:${api}}`] = ['max>=0'];
+  }
+}
 
 export function setup() {
   return loginAll();
@@ -135,11 +154,19 @@ export function sampler() {
   };
   const active = read('hikaricp_connections_active');
   const pending = read('hikaricp_connections_pending');
+  const uSum = read('hikaricp_connections_usage_seconds_sum');
+  const uCount = read('hikaricp_connections_usage_seconds_count');
+  const uMax = read('hikaricp_connections_usage_seconds_max');
   const cpu = res.body.match(/^process_cpu_usage ([0-9.eE+-]+)/m);
   // 지금이 어느 시나리오 구간인지 계산해서 그 구간 이름을 태그로 붙인다.
   const phase = PHASES[Math.min(Math.floor((Date.now() - exec.scenario.startTime) / 1000 / span), PHASES.length - 1)];
   if (active !== null) hikariActive.add(active, { api: phase });
   if (pending !== null) hikariPending.add(pending, { api: phase });
+  if (uSum !== null && uCount !== null) {
+    usageSum.add(uSum, { api: phase });
+    usageCount.add(uCount, { api: phase });
+    if (uMax !== null) usageMax.add(uMax, { api: phase });
+  }
   if (cpu) processCpu.add(Number(cpu[1]));
   sleep(1);
 }
@@ -149,8 +176,13 @@ export function handleSummary(summary) {
   const label = __ENV.LABEL || 'run';
   const m = summary.metrics;
   const pick = (name, key) => (m[name] && m[name].values ? m[name].values[key] : null);
+  const holdAvgMs = (api) => {
+    const dSum = pick(`hikari_usage_sum{api:${api}}`, 'max') - pick(`hikari_usage_sum{api:${api}}`, 'min');
+    const dCount = pick(`hikari_usage_count{api:${api}}`, 'max') - pick(`hikari_usage_count{api:${api}}`, 'min');
+    return dCount > 0 ? (dSum / dCount) * 1000 : null;
+  };
   const apis = {};
-  for (const api of ['posts_list', 'posts_search', 'location', 'progress', 'login']) {
+  for (const api of PHASES) {
     const dur = `http_req_duration{api:${api}}`;
     apis[api] = {
       avg: pick(dur, 'avg'),
@@ -162,6 +194,9 @@ export function handleSummary(summary) {
       errorRate: pick(`http_req_failed{api:${api}}`, 'rate'),
       hikariActiveMax: pick(`hikari_active{api:${api}}`, 'max'),
       hikariPendingMax: pick(`hikari_pending{api:${api}}`, 'max'),
+      // 요청 하나가 커넥션을 잡고 있던 평균·최대 시간(ms). 구간 처음·끝 샘플의 누적값 차이로 계산한다.
+      holdAvgMs: holdAvgMs(api),
+      holdMaxMs: (pick(`hikari_usage_max{api:${api}}`, 'max') ?? 0) * 1000,
     };
   }
   const result = {
@@ -182,9 +217,9 @@ export function handleSummary(summary) {
 function textSummary(r) {
   const f = (v) => (v === null || v === undefined ? '-' : v.toFixed(1));
   let out = `\n=== ${r.label} (vus=${r.config.vus}, ${r.config.duration}) ===\n`;
-  out += 'api            avg(ms)  p95(ms)  p99(ms)   req/s   err%  풀active최대 풀대기최대\n';
+  out += 'api            avg(ms)  p95(ms)  p99(ms)   req/s   err%  풀active최대 풀대기최대 점유평균ms 점유최대ms\n';
   for (const [api, v] of Object.entries(r.apis)) {
-    out += `${api.padEnd(14)} ${f(v.avg).padStart(7)} ${f(v.p95).padStart(8)} ${f(v.p99).padStart(8)} ${f(v.rps).padStart(7)} ${f((v.errorRate ?? 0) * 100).padStart(6)} ${f(v.hikariActiveMax).padStart(10)} ${f(v.hikariPendingMax).padStart(10)}\n`;
+    out += `${api.padEnd(14)} ${f(v.avg).padStart(7)} ${f(v.p95).padStart(8)} ${f(v.p99).padStart(8)} ${f(v.rps).padStart(7)} ${f((v.errorRate ?? 0) * 100).padStart(6)} ${f(v.hikariActiveMax).padStart(10)} ${f(v.hikariPendingMax).padStart(10)} ${f(v.holdAvgMs).padStart(10)} ${f(v.holdMaxMs).padStart(10)}\n`;
   }
   out += `hikari active max=${f(r.hikari.activeMax)} / pending max=${f(r.hikari.pendingMax)} / cpu max=${f((r.cpu.max ?? 0) * 100)}%\n`;
   return out;

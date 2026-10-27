@@ -1,0 +1,75 @@
+{
+  "label": "base2",
+  "at": "2026-10-27T05:19:19.028Z",
+  "config": {
+    "vus": 50,
+    "duration": "30s",
+    "locSleep": 1
+  },
+  "apis": {
+    "posts_list": {
+      "avg": 41.65114295485636,
+      "p95": 23.74949999999999,
+      "p99": 1414.4754899999996,
+      "max": 1815.05,
+      "count": 1462,
+      "rps": 48.733333333333334,
+      "errorRate": 0,
+      "hikariActiveMax": 10,
+      "hikariPendingMax": 17
+    },
+    "posts_search": {
+      "avg": 14.82490600000001,
+      "p95": 24.336199999999998,
+      "p99": 316.38413999999983,
+      "max": 494.472,
+      "count": 1500,
+      "rps": 50,
+      "errorRate": 0,
+      "hikariActiveMax": 0,
+      "hikariPendingMax": 0
+    },
+    "location": {
+      "avg": 11.95402672413791,
+      "p95": 35.421699999999994,
+      "p99": 75.90594999999999,
+      "max": 158.498,
+      "count": 5800,
+      "rps": 193.33333333333334,
+      "errorRate": 0,
+      "hikariActiveMax": 10,
+      "hikariPendingMax": 11
+    },
+    "progress": {
+      "avg": 16.76712866666665,
+      "p95": 25.7336,
+      "p99": 85.23703,
+      "max": 86.547,
+      "count": 1500,
+      "rps": 50,
+      "errorRate": 0,
+      "hikariActiveMax": 0,
+      "hikariPendingMax": 0
+    },
+    "login": {
+      "avg": 138.45784074074072,
+      "p95": 182.44035,
+      "p99": 416.45426,
+      "max": 429.099,
+      "count": 540,
+      "rps": 18,
+      "errorRate": 0,
+      "hikariActiveMax": 10,
+      "hikariPendingMax": 0
+    }
+  },
+  "hikari": {
+    "activeMax": 10,
+    "activeAvg": 0.5555555555555556,
+    "pendingMax": 17
+  },
+  "cpu": {
+    "avg": 0.0395318396158818,
+    "max": 0.21103495862889995
+  }
+}
