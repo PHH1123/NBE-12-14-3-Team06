@@ -6,6 +6,9 @@ import com.back.nbe12142team06.domain.application.enums.ApplicationStatus.PENDIN
 import com.back.nbe12142team06.domain.application.enums.EscortProgress
 import com.back.nbe12142team06.domain.application.repository.ApplicationRepository
 import com.back.nbe12142team06.domain.application.repository.EscortProgressLogRepository
+import com.back.nbe12142team06.domain.notification.entity.NotificationContent
+import com.back.nbe12142team06.domain.notification.entity.NotificationUrl
+import com.back.nbe12142team06.domain.notification.service.NoticeService
 import com.back.nbe12142team06.domain.payment.service.PaymentService
 import com.back.nbe12142team06.domain.post.dto.PostDto
 import com.back.nbe12142team06.domain.post.dto.PostSearchConditionDto
@@ -46,6 +49,7 @@ class PostService(
     private val paymentService: PaymentService,
     private val rideService: RideService,
     private val escortService: EscortService,
+    private val noticeService: NoticeService,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -213,6 +217,10 @@ class PostService(
         postRepository.deleteById(postId)
         // 공고의 지원(대기중, 승인)을 패널티 없이 취소
         cancelApplicationsWithoutPenalty(post)
+        noticeService.send(
+            receiverId = userId,
+            content = NotificationContent.C_POST_DELETE.of()
+        )
         log.info("[공고 삭제] postId={}, userId={}", postId, userId)
     }
 
@@ -402,9 +410,17 @@ class PostService(
 
         for (acceptedApplication in acceptedApplications) {
             acceptedApplication.cancelWithoutPenalty()
+            noticeService.send(
+                receiverId = acceptedApplication.escort.id,
+                content = NotificationContent.C_POST_DELETE_AND_APPLICATION_CANCEL.of()
+                )
         }
         for (pendingApplication in pendingApplications) {
             pendingApplication.cancelWithoutPenalty()
+            noticeService.send(
+                receiverId = pendingApplication.escort.id,
+                content = NotificationContent.C_POST_DELETE_AND_APPLICATION_CANCEL.of()
+            )
         }
     }
 

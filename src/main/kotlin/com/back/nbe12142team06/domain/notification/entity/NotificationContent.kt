@@ -16,7 +16,9 @@ enum class NotificationContent(
     C_PAYMENT_CANCELED("%s 공고의 결제가 취소되었습니다. 결제 금액이 들어오기까지는 1~2일 걸릴 수 있습니다. 취소 금액: %s"),
     C_PAYMENT_PARTIAL_CANCELED("%s 동행의 결제가 부분 환불되었습니다. 환불 금액: %s"),
     C_PAYMENT_EXTRA_PAY("%s 동행의 추가 결제요청드립니다. 추가 결제 금액: %s"),
-    C_SETTLEMENT_DONE("정산이 완료되었습니다. 정산 금액: %s");
+    C_SETTLEMENT_DONE("정산이 완료되었습니다. 정산 금액: %s"),
+    C_POST_DELETE_AND_APPLICATION_CANCEL("의뢰인이 공고를 삭제하여 지원이 취소되었습니다."),
+    C_POST_DELETE("공고가 정상적으로 삭제되었습니다. 결제하셨을 경우 2~3일 이내에 환불 처리됩니다.");
 
     fun of(vararg args: Any?): String {
         return format.format(*args)

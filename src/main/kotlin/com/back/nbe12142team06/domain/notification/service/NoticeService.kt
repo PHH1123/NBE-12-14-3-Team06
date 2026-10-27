@@ -41,7 +41,7 @@ class NoticeService(
     }
 
     @Transactional
-    fun send(receiverId: Long, content: String, url: String?) {
+    fun send(receiverId: Long, content: String, url: String? = null) {
         eventPublisher.publishEvent(
             NoticeRequestedEvent(
                 content, url, receiverId
