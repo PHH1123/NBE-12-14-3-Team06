@@ -6,6 +6,7 @@ import com.back.nbe12142team06.global.response.RsData
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.event.TransactionalEventListener
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.io.IOException
 
@@ -35,7 +36,6 @@ class NotificationEventListener(
                     .reconnectTime(3000L)
             )
         } catch (e: IOException) {
-            sseEmitter.completeWithError(e)
             log.warn("SSE 전송 실패 emitterId: {}, data: {}", emitterId, data)
         }
     }
