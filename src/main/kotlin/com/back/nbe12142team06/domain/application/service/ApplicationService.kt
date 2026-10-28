@@ -170,7 +170,7 @@ open class ApplicationService(
             .forEach { it.reject() }
 
         log.info("[지원 수락] applicationId={}, postId={}, escortId={}, clientId={}", applicationId, post.id, escort.id, userId)
-        noticeService.send(escort.id, C_APPLICATION_ACCEPT.of(post.title), U_APPLICATION_ACCEPT.of(requireNotNull(applicationId) { "Application ID must not be null" }))
+        noticeService.send(escort.id, C_APPLICATION_ACCEPT.of(post.title), U_APPLICATION_ACCEPT.of(applicationId))
         return ApplicationAcceptResponse(application)
     }
 
@@ -245,7 +245,7 @@ open class ApplicationService(
             noticeService.send(
                 post.client.id,
                 C_APPLICATION_CANCELED.of(application.escort.name, post.title),
-                U_APPLICATION_CANCELED.of(requireNotNull(post.id) { "Post ID must not be null" }),
+                U_APPLICATION_CANCELED.of(post.requiredId),
             )
             return
         }
@@ -325,7 +325,7 @@ open class ApplicationService(
     // 동행 매니저가 버튼으로 동행 진행 단계를 변경한다. 위치로 단계가 자동 변경되지는 않는다.
     // 잠금, 단계 검증, 로그 기록, 위치 삭제 순서를 유지한다.
     @Transactional
-    open fun updateProgress(applicationId: Long?, userId: Long?, progress: EscortProgress) {
+    open fun updateProgress(applicationId: Long, userId: Long, progress: EscortProgress) {
         val postId = applicationRepository.findPostIdById(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = postRepository.findByIdWithLock(postId)
@@ -375,31 +375,31 @@ open class ApplicationService(
             EscortProgress.AT_HOSPITAL -> noticeService.send(
                 application.escort.id,
                 C_APPLICATION_PROGRESS_AT_HOSPITAL.of(application.post.hospitalName),
-                U_APPLICATION_PROGRESS_AT_HOSPITAL.of(requireNotNull(applicationId) { "Application ID must not be null" }),
+                U_APPLICATION_PROGRESS_AT_HOSPITAL.of(applicationId),
             )
             EscortProgress.ARRIVED_HOME -> noticeService.send(
                 application.post.client.id,
                 C_APPLICATION_PROGRESS_ARRIVED_HOME.of(application.post.hospitalName),
-                U_APPLICATION_PROGRESS_ARRIVED_HOME.of(requireNotNull(applicationId) { "Application ID must not be null" }, requireNotNull(application.post.id) { "Post ID must not be null" }),
+                U_APPLICATION_PROGRESS_ARRIVED_HOME.of(applicationId, application.post.requiredId),
             )
             else -> {
                 noticeService.send(
                     application.post.client.id,
                     C_APPLICATION_UPDATED_PROGRESS.of(progress.description),
-                    U_APPLICATION_UPDATED_PROGRESS_CLIENT.of(requireNotNull(applicationId) { "Application ID must not be null" }, requireNotNull(application.post.id) { "Post ID must not be null" }),
+                    U_APPLICATION_UPDATED_PROGRESS_CLIENT.of(applicationId, application.post.requiredId),
                 )
                 noticeService.send(
                     application.escort.id,
                     C_APPLICATION_UPDATED_PROGRESS.of(progress.description),
-                    U_APPLICATION_UPDATED_PROGRESS_ESCORT.of(requireNotNull(applicationId) { "Application ID must not be null" }),
+                    U_APPLICATION_UPDATED_PROGRESS_ESCORT.of(applicationId),
                 )
             }
         }
     }
 
     @Transactional(readOnly = true)
-    open fun getProgress(applicationId: Long?, userId: Long?): ApplicationProgressResponse {
-        val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
+    open fun getProgress(applicationId: Long, userId: Long): ApplicationProgressResponse {
+        val application = applicationRepository.findByIdOrNull(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val isEscort = application.escort.id == userId
         val isClient = application.post.client.id == userId
@@ -410,8 +410,8 @@ open class ApplicationService(
     }
 
     @Transactional(readOnly = true)
-    open fun getEscortProfile(applicationId: Long?, userId: Long?): ApplicationEscortProfileResponse {
-        val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
+    open fun getEscortProfile(applicationId: Long, userId: Long): ApplicationEscortProfileResponse {
+        val application = applicationRepository.findByIdOrNull(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = application.post
         if (post.client.id != userId) {
@@ -443,8 +443,8 @@ open class ApplicationService(
     }
 
     @Transactional(readOnly = true)
-    open fun getClientProfile(applicationId: Long?, userId: Long?): ApplicationClientProfileResponse {
-        val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
+    open fun getClientProfile(applicationId: Long, userId: Long): ApplicationClientProfileResponse {
+        val application = applicationRepository.findByIdOrNull(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         if (application.escort.id != userId) {
             throw ForbiddenException(28, "매칭된 의뢰인의 프로필만 조회할 수 있습니다.")
@@ -466,8 +466,8 @@ open class ApplicationService(
     }
 
     @Transactional(readOnly = true)
-    open fun getMyApplications(userId: Long?): List<MyApplicationResponse> {
-        val escort = userRepository.findByIdOrNull(requireNotNull(userId) { "The given id must not be null" })
+    open fun getMyApplications(userId: Long): List<MyApplicationResponse> {
+        val escort = userRepository.findByIdOrNull(userId)
             ?: throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
         if (escort.role != Role.ESCORT) {
             throw InvalidException(32, "동행 매니저만 지원 내역을 조회할 수 있습니다.")
@@ -482,12 +482,12 @@ open class ApplicationService(
      * 위치로 동행 진행 단계가 바뀌지는 않는다. 단계는 동행 매니저가 버튼으로만 바꾼다.
      */
     @Transactional
-    open fun saveLocation(applicationId: Long?, userId: Long?, request: ApplicationLocationRequest) {
+    open fun saveLocation(applicationId: Long, userId: Long, request: ApplicationLocationRequest) {
         val postId = applicationRepository.findPostIdById(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = postRepository.findByIdWithLock(postId)
             ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
-        val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
+        val application = applicationRepository.findByIdOrNull(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
         val isEscort = application.escort.id == userId
@@ -581,8 +581,8 @@ open class ApplicationService(
      * 동행이 끝나면(귀가 완료·완료·취소) 아무도 조회할 수 없다.
      */
     @Transactional(readOnly = true)
-    open fun getLocation(applicationId: Long?, userId: Long?): ApplicationLocationResponse {
-        val application = applicationRepository.findByIdOrNull(requireNotNull(applicationId) { "The given id must not be null" })
+    open fun getLocation(applicationId: Long, userId: Long): ApplicationLocationResponse {
+        val application = applicationRepository.findByIdOrNull(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val isEscort = application.escort.id == userId
         val isClient = !isEscort && application.post.client.id == userId
