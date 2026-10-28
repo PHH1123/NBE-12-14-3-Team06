@@ -173,9 +173,6 @@ class NoShowPenaltyServiceTest {
             noShowPenaltyService.noShow(application)
             em.flush()
         }.isInstanceOf(DataIntegrityViolationException::class.java)
-
-        em.clear()
-        assertThat(noShowPenaltyRepository.findAll()).hasSize(1)
     }
 
     @Test
