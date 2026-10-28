@@ -16,11 +16,7 @@ import com.back.nbe12142team06.domain.user.service.UserService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.doAnswer
-import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
@@ -35,7 +31,6 @@ import org.springframework.test.context.event.RecordApplicationEvents
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.Optional
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -165,7 +160,7 @@ class ChatServiceTest {
             .whenever(chatPartRepository).findByUserIdNotAndChatRoomId(eq(escort.id), any())
         doReturn(listOf(escortChatPart))
             .whenever(chatPartRepository).findByUserIdNotAndChatRoomId(eq(client.id), any())
-        doReturn(Optional.of(chatRoom)).whenever(chatRoomRepository).findById(any())
+        doReturn(chatRoom).whenever(chatRoomRepository).findChatRoomById(any())
         // 저장 시 id 가 붙은 메시지를 돌려준다
         doAnswer {
             val saved = it.arguments[0] as ChatMessage

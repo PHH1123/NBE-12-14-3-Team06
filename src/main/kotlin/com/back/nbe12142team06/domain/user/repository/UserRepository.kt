@@ -55,4 +55,6 @@ interface UserRepository : JpaRepository<User, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.id = :id")
     fun findByIdWithLock(@Param("id") id: Long): User?
+
+    fun findUserById(userId: Long): User?
 }

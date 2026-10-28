@@ -69,7 +69,7 @@ class PostService(
     }
 
     private fun getUser(userId: Long): User {
-        return userRepository.findByIdOrNull(userId)
+        return userRepository.findUserById(userId)
             ?: throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
     }
 

@@ -23,24 +23,18 @@ import com.back.nbe12142team06.domain.user.service.EscortService
 import com.back.nbe12142team06.global.exception.ForbiddenException
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.exception.NotFoundException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.ArgumentMatchers.eq
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
-import org.mockito.ArgumentMatchers.eq
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.test.util.ReflectionTestUtils
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
-import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
 class ApplicationLocationServiceTest {
@@ -107,7 +101,7 @@ class ApplicationLocationServiceTest {
     @Test
     fun locationIsSavedWhileEscortIsInProgress() {
         prepareLocationWrite()
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
         val request = ApplicationLocationRequest(BigDecimal("37.1234567"), BigDecimal("127.1234567"), BigDecimal.TEN)
         `when`(applicationRepository.updateLocation(eq(APPLICATION_ID), eq(request.lat), eq(request.lng),
             eq(request.accuracy), any(Instant::class.java))).thenReturn(1)
@@ -124,7 +118,7 @@ class ApplicationLocationServiceTest {
         // 출발 버튼은 둘이 가까워져야 활성화되므로, 출발 전(공고 MATCHED)에도 위치를 보낼 수 있다.
         prepareLocationWrite()
         `when`(post.postStatus).thenReturn(PostStatus.MATCHED)
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
         val request = ApplicationLocationRequest(BigDecimal("37.1234567"), BigDecimal("127.1234567"), BigDecimal.TEN)
         `when`(applicationRepository.updateLocation(eq(APPLICATION_ID), eq(request.lat), eq(request.lng),
             eq(request.accuracy), any(Instant::class.java))).thenReturn(1)
@@ -139,7 +133,7 @@ class ApplicationLocationServiceTest {
     fun locationIsRejectedWhenPostIsAlreadyCompleted() {
         prepareLocationWrite()
         `when`(post.postStatus).thenReturn(PostStatus.COMPLETED)
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
         val request = ApplicationLocationRequest(BigDecimal("37.1234567"), BigDecimal("127.1234567"), BigDecimal.TEN)
 
         val ex = assertThrows(InvalidException::class.java) {
@@ -153,7 +147,7 @@ class ApplicationLocationServiceTest {
     @Test
     fun clientLocationIsSavedInClientColumnsWhileEscortIsInProgress() {
         prepareLocationWriteByNonEscort()
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
         val request = ApplicationLocationRequest(BigDecimal("37.1234567"), BigDecimal("127.1234567"), BigDecimal.TEN)
         `when`(applicationRepository.updateClientLocation(eq(APPLICATION_ID), eq(request.lat), eq(request.lng),
             eq(request.accuracy), any(Instant::class.java))).thenReturn(1)
@@ -168,7 +162,7 @@ class ApplicationLocationServiceTest {
     @Test
     fun locationCannotBeSentByAnOutsider() {
         prepareLocationWriteByNonEscort()
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
         val request = ApplicationLocationRequest(BigDecimal("37.1234567"), BigDecimal("127.1234567"), null)
 
         assertThrows(ForbiddenException::class.java) {
@@ -181,7 +175,7 @@ class ApplicationLocationServiceTest {
     @Test
     fun locationUpdateIsRejectedWhenConditionalUpdateFails() {
         prepareLocationWrite()
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
         val request = ApplicationLocationRequest(BigDecimal("37.1234567"), BigDecimal("127.1234567"), null)
         // 귀가 완료나 공고 종료 후에는 Repository의 조건부 UPDATE가 0을 반환해야 한다.
         assertThrows(InvalidException::class.java) {
@@ -192,7 +186,7 @@ class ApplicationLocationServiceTest {
     @Test
     fun locationIsNotReturnedAfterArrivedHomeEvenIfPostIsStillInProgress() {
         prepareLocationRead()
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
         `when`(escortProgressLogRepository.existsByApplicationAndProgress(application, EscortProgress.ARRIVED_HOME))
             .thenReturn(true)
 
@@ -204,7 +198,7 @@ class ApplicationLocationServiceTest {
     @Test
     fun locationIsReturnedBeforeArrivedHome() {
         prepareLocationRead()
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
         val lat = BigDecimal("37.1234567")
         val lng = BigDecimal("127.1234567")
         `when`(application.lat).thenReturn(lat)
@@ -222,7 +216,7 @@ class ApplicationLocationServiceTest {
     @Test
     fun clientCanReadBothLocationsAndTheyAreNearbyWhenWithinRadius() {
         prepareLocationReadByClient()
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
         ReflectionTestUtils.setField(applicationService, "proximityRadiusMeters", 100.0)
         ReflectionTestUtils.setField(applicationService, "staleSeconds", 30L)
         val now = Instant.now()
@@ -245,7 +239,7 @@ class ApplicationLocationServiceTest {
     @Test
     fun locationIsNotNearbyWhenOneSideIsStale() {
         prepareLocationRead()
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
         ReflectionTestUtils.setField(applicationService, "proximityRadiusMeters", 100.0)
         ReflectionTestUtils.setField(applicationService, "staleSeconds", 30L)
         `when`(application.lat).thenReturn(BigDecimal("37.5665000"))
@@ -264,7 +258,7 @@ class ApplicationLocationServiceTest {
     @Test
     fun locationCannotBeReadByAnOutsider() {
         prepareLocationReadByClient()
-        `when`(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application))
+        `when`(applicationRepository.findApplicationById(APPLICATION_ID)).thenReturn(application)
 
         assertThrows(ForbiddenException::class.java) {
             applicationService.getLocation(APPLICATION_ID, STRANGER_ID)

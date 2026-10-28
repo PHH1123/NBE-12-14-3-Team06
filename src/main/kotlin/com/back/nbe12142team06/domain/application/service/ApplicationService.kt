@@ -225,7 +225,7 @@ open class ApplicationService(
             if (post.postStatus == PostStatus.IN_PROGRESS || post.postStatus == PostStatus.COMPLETED) {
                 throw InvalidException(36, "동행 진행 중이거나 완료된 공고는 지원을 취소할 수 없습니다.")
             }
-            val escortProfile = escortProfileRepository.findByIdOrNull(userId)
+            val escortProfile = escortProfileRepository.findEscortProfileByUserId(userId)
                 ?: throw NotFoundException(3, "동행 매니저 프로필이 존재하지 않습니다.")
             application.noShow()
             escortProfile.increaseNoShowCount()
@@ -487,7 +487,7 @@ open class ApplicationService(
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val post = postRepository.findByIdWithLock(postId)
             ?: throw NotFoundException(11, "${postId}번 공고가 없습니다.")
-        val application = applicationRepository.findByIdOrNull(applicationId)
+        val application = applicationRepository.findApplicationById(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
         val isEscort = application.escort.id == userId
@@ -582,7 +582,7 @@ open class ApplicationService(
      */
     @Transactional(readOnly = true)
     open fun getLocation(applicationId: Long, userId: Long): ApplicationLocationResponse {
-        val application = applicationRepository.findByIdOrNull(applicationId)
+        val application = applicationRepository.findApplicationById(applicationId)
             ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
         val isEscort = application.escort.id == userId
         val isClient = !isEscort && application.post.client.id == userId

@@ -30,4 +30,6 @@ interface ChatRoomRepository : JpaRepository<ChatRoom, Long> {
                 "where cp2.user.id=:userId and cp2.isActive=true)"
     )
     fun findByUser(@Param("userId") userId: Long): List<ChatRoom>
+
+    fun findChatRoomById(chatRoomId: Long): ChatRoom?
 }
