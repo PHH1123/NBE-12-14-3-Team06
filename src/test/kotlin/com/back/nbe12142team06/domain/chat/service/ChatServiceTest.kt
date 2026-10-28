@@ -43,9 +43,9 @@ class ChatServiceTest {
     private val clientContent = "안녕하세요 저는 의뢰인 입니다."
 
     @field:Autowired private lateinit var chatService: ChatService
-    @field:Autowired private lateinit var userRepository: UserRepository
     @field:Autowired private lateinit var events: ApplicationEvents
 
+    @field:MockitoSpyBean private lateinit var userRepository: UserRepository
     @field:MockitoSpyBean private lateinit var chatRoomRepository: ChatRoomRepository
     @field:MockitoSpyBean private lateinit var chatMessageRepository: ChatMessageRepository
     @field:MockitoSpyBean private lateinit var userService: UserService
@@ -85,7 +85,10 @@ class ChatServiceTest {
 
     // 새 채팅방을 만드는 흐름에서 DB 를 타지 않도록 경계만 대역으로 바꾼다
     private fun stubNewChatRoom(vararg users: User) {
-        users.forEach { doReturn(it).whenever(userService).myProfile(it.id) }
+        users.forEach {
+            doReturn(it).whenever(userService).myProfile(it.id)
+            doReturn(it).whenever(userRepository).findByIdWithLock(it.id)
+        }
         doReturn(null).whenever(chatRoomRepository).findByUser(any(), any())
         doAnswer { it.arguments[0] }.whenever(chatRoomRepository).save(any())
         doAnswer { it.arguments[0] }.whenever(chatMessageRepository).save(any())
