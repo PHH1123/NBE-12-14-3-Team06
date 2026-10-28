@@ -64,7 +64,6 @@ import java.time.LocalDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(properties = ["spring.datasource.url=jdbc:h2:mem:post_controller_test;MODE=MySQL"])
 @AutoConfigureMockMvc
 @Transactional
 class PostControllerTest {

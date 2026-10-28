@@ -1,9 +1,16 @@
 # application-test.yaml
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=MySQL
-    username: sa
-    password:
+    url: jdbc:tc:postgresql:16-alpine:///testdb?TC_DAEMON=true
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 0
+      idle-timeout: 10000
+      connection-timeout: 20000
+  #    url: jdbc:h2:mem:testdb;MODE=PostgreSQL
+#    username: sa
+#    password:
   jpa:
     hibernate:
       ddl-auto: create-drop
