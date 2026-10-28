@@ -38,7 +38,7 @@ class NoticeServiceTest {
     private fun createClient(id: Long? = 1L): User = User(
         "client01", "password1!", "client01@email.com", "의뢰인",
         Role.CLIENT, Gender.MALE, LocalDate.of(1960, 11, 11), "010-1234-1234", "서울"
-    ).also { if (id != null) setId(it, id) }
+    ).also { entity -> id?.let { setId(entity, id) }}
 
     // 저장하지 않은 엔티티에도 id 가 필요해서 리플렉션으로 넣는다
     private fun setId(user: User, id: Long) {

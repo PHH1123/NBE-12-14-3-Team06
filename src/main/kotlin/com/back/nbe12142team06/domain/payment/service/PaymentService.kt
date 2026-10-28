@@ -140,7 +140,7 @@ class PaymentService(
         // 외부 API 요청
         val response = tossPaymentClient.callApiCancel(cancelReason, tossPaymentKey, cancelAmount.toString())
         val body = response.body
-        if (body != null) {
+        body?.let {
             if (payment.paymentKey != body.paymentKey ||
                 payment.orderId != body.orderId ||
                 payment.balanceAmount.subtract(cancelAmount).compareTo(BigDecimal(body.balanceAmount)) != 0
@@ -156,9 +156,8 @@ class PaymentService(
                     body.balanceAmount
                 )
             }
-        } else {
-            log.error("토스 결제 취소 API 실패 - 응답 값이 없습니다. 결제는 취소 처리는 했지만 실제 취소 여부는 토스 측에서 직접 확인해야 합니다.")
         }
+            ?: log.error("토스 결제 취소 API 실패 - 응답 값이 없습니다. 결제는 취소 처리는 했지만 실제 취소 여부는 토스 측에서 직접 확인해야 합니다.")
 
         // DB 반영
         try {

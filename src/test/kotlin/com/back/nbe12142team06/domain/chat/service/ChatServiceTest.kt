@@ -42,27 +42,35 @@ class ChatServiceTest {
     private val escortContent = "안녕하세요 저는 동행매니저 입니다."
     private val clientContent = "안녕하세요 저는 의뢰인 입니다."
 
-    @field:Autowired private lateinit var chatService: ChatService
-    @field:Autowired private lateinit var events: ApplicationEvents
+    @field:Autowired
+    private lateinit var chatService: ChatService
+    @field:Autowired
+    private lateinit var events: ApplicationEvents
 
-    @field:MockitoSpyBean private lateinit var userRepository: UserRepository
-    @field:MockitoSpyBean private lateinit var chatRoomRepository: ChatRoomRepository
-    @field:MockitoSpyBean private lateinit var chatMessageRepository: ChatMessageRepository
-    @field:MockitoSpyBean private lateinit var userService: UserService
-    @field:MockitoSpyBean private lateinit var chatPartRepository: ChatPartRepository
+    @field:MockitoSpyBean
+    private lateinit var userRepository: UserRepository
+    @field:MockitoSpyBean
+    private lateinit var chatRoomRepository: ChatRoomRepository
+    @field:MockitoSpyBean
+    private lateinit var chatMessageRepository: ChatMessageRepository
+    @field:MockitoSpyBean
+    private lateinit var userService: UserService
+    @field:MockitoSpyBean
+    private lateinit var chatPartRepository: ChatPartRepository
 
-    @field:MockitoBean private lateinit var messagingTemplate: SimpMessagingTemplate
+    @field:MockitoBean
+    private lateinit var messagingTemplate: SimpMessagingTemplate
 
     // id 가 null 이면 저장할 때 DB 가 채우고, 값을 주면 저장 없이 리플렉션으로 넣는다
     private fun createClient(id: Long? = 1L, name: String = "의뢰인"): User = User(
         "client01", "password1!", "client01@email.com", name,
         Role.CLIENT, Gender.MALE, LocalDate.of(1960, 11, 11), "010-1234-1234", "서울"
-    ).also { if (id != null) setId(it, id) }
+    ).also { entity -> id?.let { setId(entity, id) } }
 
     private fun createEscort(id: Long? = 2L): User = User(
         "escort01", "password1!", "escort01@email.com", "동행매니저",
         Role.ESCORT, Gender.MALE, LocalDate.of(2000, 1, 1), "010-5678-5678", "서울"
-    ).also { if (id != null) setId(it, id) }
+    ).also { entity -> id?.let { setId(entity, id) } }
 
     // 저장하지 않은 엔티티에도 id 가 필요해서 리플렉션으로 넣는다
     private fun setId(user: User, id: Long) {
