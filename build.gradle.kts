@@ -9,7 +9,6 @@ plugins {
     kotlin("jvm") version "2.3.21"
     kotlin("plugin.spring") version "2.3.21"   // @Service, @Transactional 등이 붙은 클래스를 자동으로 open
     kotlin("plugin.jpa") version "2.3.21"      // @Entity 에 기본 생성자를 자동 생성
-    kotlin("plugin.lombok") version "2.3.21"   // Java 쪽 Lombok 이 만든 getter 등을 Kotlin 이 인식
 }
 
 group = "com.back"
