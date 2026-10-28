@@ -1,5 +1,6 @@
 package com.back.nbe12142team06.domain.chat.entity
 
+import com.back.nbe12142team06.global.crypto.PiiConverter
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -24,6 +25,7 @@ class ChatMessage(
     var chatPart: ChatPart = chatPart
         protected set
 
+    @Convert(converter = PiiConverter::class)
     @Column(nullable = false, columnDefinition = "TEXT")
     var content: String = content
         protected set

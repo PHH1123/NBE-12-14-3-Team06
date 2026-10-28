@@ -1,6 +1,7 @@
 package com.back.nbe12142team06.domain.chat.entity
 
 import com.back.nbe12142team06.domain.user.entity.User
+import com.back.nbe12142team06.global.crypto.PiiConverter
 import com.back.nbe12142team06.global.entity.BaseTimeEntity
 import jakarta.persistence.*
 import java.time.LocalDateTime
@@ -19,6 +20,7 @@ class ChatRoom(
     var id: Long? = id
         protected set
 
+    @Convert(converter = PiiConverter::class)
     @Column(columnDefinition = "TEXT")
     var lastChatContent: String? = lastChatContent
         protected set
