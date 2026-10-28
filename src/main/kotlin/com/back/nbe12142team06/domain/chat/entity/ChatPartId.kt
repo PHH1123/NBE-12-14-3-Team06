@@ -17,7 +17,7 @@ class ChatPartId(
 
     final override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other == null) return false
+        other ?: return false
         val oEffectiveClass =
             if (other is HibernateProxy) other.hibernateLazyInitializer.persistentClass else other.javaClass
         val thisEffectiveClass =

@@ -9,7 +9,7 @@ enum class ApplicationStatus(val description: String) {
 
     // 지원 상태 전환 가능 여부 확인
     fun canTransitionTo(next: ApplicationStatus?): Boolean {
-        if (next == null) return false
+        next ?: return false
 
         return when (this) {
             PENDING -> next == ACCEPTED || next == REJECTED || next == CANCELED

@@ -89,20 +89,20 @@ class LoadTestInitData(
 
         for (i in 1..userCount) {
             val clientName = "ltclient%03d".format(i)
-            if (userRepository.findByUsername(clientName) == null) {
+            userRepository.findByUsername(clientName) ?: run {
                 val client = save(newUser(clientName, "부하의뢰$i", Role.CLIENT, Gender.FEMALE, 1955, "010-5%03d-0001".format(i), encodedPassword))
                 clientProfileRepository.save(ClientProfile(client, "부하보호$i", "010-9%03d-0001".format(i), null))
                 createdClients++
             }
 
             val escortName = "ltescort%03d".format(i)
-            if (userRepository.findByUsername(escortName) == null) {
+            userRepository.findByUsername(escortName) ?: run {
                 val escort = save(newUser(escortName, "부하동행$i", Role.ESCORT, Gender.MALE, 1990, "010-6%03d-0001".format(i), encodedPassword))
                 val profile = escortProfileRepository.save(
                     EscortProfile(escort, "부하 테스트용 동행 매니저 ${i}입니다.", "국민은행", "부하동행$i", "123-456-789012")
                 )
                 educationService.createProgresses(profile)
-                escortProfileRepository.verify(escort.id!!, LocalDateTime.now())
+                escortProfileRepository.verify(escort.id, LocalDateTime.now())
                 createdEscorts++
             }
         }
@@ -115,7 +115,7 @@ class LoadTestInitData(
         for (i in 1..userCount) {
             val client = userRepository.findByUsername("ltclient%03d".format(i)) ?: continue
             val escort = userRepository.findByUsername("ltescort%03d".format(i)) ?: continue
-            if (postRepository.existsByClientIdAndTitle(client.id!!, pairTitle(i))) continue
+            if (postRepository.existsByClientIdAndTitle(client.id, pairTitle(i))) continue
 
             val post = savePost(client, pairTitle(i), "서울", HOSPITALS[i % HOSPITALS.size], i)
             val application = applicationRepository.save(Application(post, escort))
