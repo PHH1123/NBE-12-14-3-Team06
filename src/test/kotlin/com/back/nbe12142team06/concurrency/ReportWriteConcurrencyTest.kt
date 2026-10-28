@@ -171,7 +171,9 @@ class ReportWriteConcurrencyTest {
         doneLatch.await(10, TimeUnit.SECONDS)
         executorService.shutdown()
 
-        val reportCount: Long = if (reportRepository.findByApplicationId(applicationId) != null) 1 else 0
+        val reportCount: Long = reportRepository.findByApplicationId(applicationId)
+            ?.let { 1 }
+            ?: 0
 
         assertThat(reportCount).isEqualTo(1L)
         assertThat(successCount.get()).isEqualTo(1)

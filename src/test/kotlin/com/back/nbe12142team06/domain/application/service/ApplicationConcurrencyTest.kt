@@ -889,19 +889,18 @@ class ApplicationConcurrencyTest {
             System.out.println("공고 상태 = " + resultPost.postStatus)
 
             // 탈퇴가 정상 완료된 경우에는 활성 매칭이 남아서는 안 된다.
-            if (withdrawError.get() == null) {
-
+            withdrawError.get() ?: run {
                 assertTrue(resultEscort.isDeleted,
-                        "탈퇴가 성공했는데 회원이 삭제 상태가 아닙니다.")
+                    "탈퇴가 성공했는데 회원이 삭제 상태가 아닙니다.")
 
                 assertEquals(ApplicationStatus.CANCELED,
-                        resultApplication.status,
-                        "탈퇴한 동행매니저의 지원이 취소되지 않았습니다.")
+                    resultApplication.status,
+                    "탈퇴한 동행매니저의 지원이 취소되지 않았습니다.")
 
                 assertTrue(
-                        resultPost.postStatus == PostStatus.OPEN
-                                || resultPost.postStatus == PostStatus.CANCELED,
-                        "탈퇴 후 공고가 MATCHED 상태로 남았습니다."
+                    resultPost.postStatus == PostStatus.OPEN
+                            || resultPost.postStatus == PostStatus.CANCELED,
+                    "탈퇴 후 공고가 MATCHED 상태로 남았습니다."
                 )
             }
 
@@ -1253,18 +1252,16 @@ class ApplicationConcurrencyTest {
 
             // 취소 성공이라면 CANCELED여야 하고,
             // 거절된 경우라면 정상적인 상태 전이 오류만 허용
-            if (cancelError.get() == null) {
-                assertEquals(ApplicationStatus.CANCELED,
-                        resultB.status)
-            } else {
+            cancelError.get()?.let {
                 assertTrue(cancelError.get() is InvalidException,
-                        "지원 취소 중 예상하지 못한 예외: "
-                                + cancelError.get())
+                    "지원 취소 중 예상하지 못한 예외: "
+                            + cancelError.get())
 
                 assertEquals(ApplicationStatus.REJECTED,
-                        resultB.status)
+                    resultB.status)
             }
-
+                ?: assertEquals(ApplicationStatus.CANCELED,
+                        resultB.status)
         } finally {
             startLatch.countDown()
             executor.shutdownNow()
