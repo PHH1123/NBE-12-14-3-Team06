@@ -47,7 +47,7 @@ class EducationService(
             escortProfileRepository.verify(userId, now)
 
             // 벌크 UPDATE는 메모리 객체를 갱신하지 않으므로, 응답용으로 최신 상태를 다시 조회
-            val refreshed = escortProfileRepository.findById(userId).orElseThrow()
+            val refreshed = escortProfileRepository.findByIdOrNull(userId)!!
             return educationProgressRepository.findByEscortProfileAndEducationVideo(refreshed, educationVideo)!!
         }
 

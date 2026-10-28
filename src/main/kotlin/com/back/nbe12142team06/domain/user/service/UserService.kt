@@ -368,9 +368,9 @@ class UserService(
 
     // [관리자] 회원 계정에 기간 정지 패널티 부여
     @Transactional
-    fun suspendUser(adminId: Long, userId: Long, reason: String?): UserStatusHistory {
+    fun suspendUser(adminId: Long, userId: Long, reason: String): UserStatusHistory {
         val user = findPenaltyTarget(userId)
-        val history = userStatusHistoryRepository.save(user.suspend(adminId, reason!!))
+        val history = userStatusHistoryRepository.save(user.suspend(adminId, reason))
 
         // 공고 취소, 지원 취소
         cancelAllByUser(user)

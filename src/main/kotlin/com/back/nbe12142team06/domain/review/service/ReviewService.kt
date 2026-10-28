@@ -18,6 +18,7 @@ import com.back.nbe12142team06.global.exception.ForbiddenException
 import com.back.nbe12142team06.global.exception.InvalidException
 import com.back.nbe12142team06.global.exception.NotFoundException
 import org.slf4j.LoggerFactory
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.HashSet
@@ -36,11 +37,11 @@ class ReviewService(
 
     @Transactional // 쓰기 작업을 수행하는 메서드에는 readOnly 해제
     fun write(applicationId: Long, actorId: Long, request: ReviewWriteRequest): Review {
-        val application = applicationRepository.findById(applicationId)
-            .orElseThrow { NotFoundException(24, "지원을 찾을 수 없습니다.") }
+        val application = applicationRepository.findByIdOrNull(applicationId)
+            ?: throw NotFoundException(24, "지원을 찾을 수 없습니다.")
 
         // 리뷰는 해당 공고를 등록한 의뢰인만 작성 가능
-        if (!application.post.client.id.equals(actorId)) {
+        if (application.post.client.id != actorId) {
             throw ForbiddenException(61, "본인이 의뢰한 동행 건에만 리뷰를 작성할 수 있습니다.")
         }
 
