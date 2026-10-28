@@ -7,10 +7,10 @@ import com.back.nbe12142team06.domain.payment.client.TossPaymentClient
 import com.back.nbe12142team06.domain.payment.dto.PaymentCancelRequest
 import com.back.nbe12142team06.domain.payment.dto.PaymentConfirmRequest
 import com.back.nbe12142team06.domain.payment.dto.TossCancelResponse
+import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse
 import com.back.nbe12142team06.domain.payment.entity.Payment
 import com.back.nbe12142team06.domain.payment.entity.PaymentStatus
 import com.back.nbe12142team06.domain.payment.repository.PaymentRepository
-import com.back.nbe12142team06.domain.payment.dto.TossConfirmResponse
 import com.back.nbe12142team06.domain.post.entity.Post
 import com.back.nbe12142team06.domain.post.entity.PostStatus
 import com.back.nbe12142team06.domain.settlement.service.SettlementService
@@ -42,8 +42,7 @@ import org.springframework.http.ResponseEntity
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.Optional
-import java.util.UUID
+import java.util.*
 
 /**
  * PaymentService 의 검증·분기 로직 테스트.
@@ -169,7 +168,7 @@ class PaymentServiceTest {
         val payment = createPayment(post, PaymentStatus.DELETED)
 
         doReturn(listOf(payment)).whenever(paymentPersistenceService).findDeletedAll()
-        doReturn(Optional.of(payment)).whenever(paymentRepository).findById(any())
+        doReturn(payment).whenever(paymentRepository).findPaymentById(any())
 
         val counts = paymentService.cancelPostAndPaymentCallApi()
 

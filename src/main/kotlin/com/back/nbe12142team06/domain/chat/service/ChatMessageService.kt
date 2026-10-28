@@ -26,7 +26,7 @@ class ChatMessageService(
 
     @Transactional
     fun sendMessage(chatRoomId: Long, content: String, chatPart: ChatPart): ChatMessage {
-        val chatRoom = chatRoomRepository.findByIdOrNull(chatRoomId)
+        val chatRoom = chatRoomRepository.findChatRoomById(chatRoomId)
             ?: throw NotFoundException(122, "존재하지 않는 채팅방입니다.")
 
         // 메시지 저장

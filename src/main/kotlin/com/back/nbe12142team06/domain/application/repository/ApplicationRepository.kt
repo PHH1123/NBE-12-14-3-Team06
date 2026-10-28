@@ -257,4 +257,6 @@ interface ApplicationRepository : JpaRepository<Application, Long> {
         escortId: Long?,
         status: ApplicationStatus,
     ): Boolean
+
+    fun findApplicationById(applicationId: Long): Application?
 }

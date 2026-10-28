@@ -5,6 +5,7 @@ import com.back.nbe12142team06.domain.chat.entity.ChatPart
 import com.back.nbe12142team06.domain.chat.entity.ChatRoom
 import com.back.nbe12142team06.domain.chat.repository.ChatPartRepository
 import com.back.nbe12142team06.domain.chat.repository.ChatRoomRepository
+import com.back.nbe12142team06.domain.user.repository.UserRepository
 import com.back.nbe12142team06.domain.user.service.UserService
 import com.back.nbe12142team06.global.exception.ForbiddenException
 import com.back.nbe12142team06.global.exception.InvalidException
@@ -21,7 +22,8 @@ class ChatService(
     private val chatRoomRepository: ChatRoomRepository,
     private val userService: UserService,
     private val chatMessageService: ChatMessageService,
-    private val chatPartRepository: ChatPartRepository
+    private val chatPartRepository: ChatPartRepository,
+    private val userRepository: UserRepository
 ) {
 
     private val CREATE_ROOM_MESSAGE = "님이 채팅방을 개설했습니다."
@@ -30,6 +32,12 @@ class ChatService(
     // 채팅방 생성
     @Transactional
     fun createChatRoom(senderId: Long, receiverId: Long): ChatRoom {
+
+        listOf(senderId, receiverId).sorted().forEach { id ->
+            userRepository.findByIdWithLock(id)
+                ?: throw NotFoundException(1, "회원 정보를 찾을 수 없습니다.")
+        }
+
         val sender = userService.myProfile(senderId)
         val receiver = userService.myProfile(receiverId)
 

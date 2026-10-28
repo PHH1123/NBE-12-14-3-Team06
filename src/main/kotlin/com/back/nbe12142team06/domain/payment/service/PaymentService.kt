@@ -322,7 +322,7 @@ class PaymentService(
         var cancelCount = 0
 
         for (payment in payments) {
-            if (payment.paymentKey == null) {
+            payment.paymentKey ?: run {
                 paymentPersistenceService.paymentCancelDb(payment.requiredId, "미결제 공고 삭제", false)
                 cancelCount++
                 continue

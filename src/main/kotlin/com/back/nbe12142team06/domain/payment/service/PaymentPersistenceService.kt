@@ -66,7 +66,7 @@ class PaymentPersistenceService(
 
     @Transactional
     fun paymentCancelDb(paymentId: Long, cancelReason: String, createNewPayment: Boolean): Payment {
-        val payment: Payment = paymentRepository.findByIdOrNull(paymentId)
+        val payment: Payment = paymentRepository.findPaymentById(paymentId)
             ?: throw NotFoundException(41, "결제 정보를 찾을 수 없습니다.")
         val newPayment = payment.cancelPayment(cancelReason)
         if (createNewPayment) {

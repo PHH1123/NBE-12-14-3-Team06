@@ -534,7 +534,7 @@ class ApplicationConcurrencyTest {
         post.match()
         postRepository.save(post)
 
-        val applicationId = application.id
+        val applicationId = application.requiredId
 
         // 출발(DEPARTED)은 두 사람이 가까울 때만 가능하므로 같은 자리의 최신 위치를 넣어 둔다
         val now = java.time.Instant.now()

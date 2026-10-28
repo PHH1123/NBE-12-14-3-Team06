@@ -139,4 +139,6 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
     )
     fun paymentCanceling(@Param("paymentId") paymentId: Long,
                          @Param("now") now: LocalDateTime): Int
+
+    fun findPaymentById(paymentId: Long): Payment?
 }

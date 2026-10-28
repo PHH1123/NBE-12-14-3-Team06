@@ -46,9 +46,7 @@ class ClaudeReportSummarizer(
      * 그래서 첫 번째 여는 중괄호부터 마지막 닫는 중괄호까지만 직접 잘라 파싱한다.
      */
     private fun parseSummary(text: String?): ReportSummary {
-        if (text == null) {
-            throw IllegalStateException("Claude 응답이 비어 있습니다.")
-        }
+        text ?: throw IllegalStateException("Claude 응답이 비어 있습니다.")
 
         val start = text.indexOf('{')
         val end = text.lastIndexOf('}')
@@ -66,9 +64,7 @@ class ClaudeReportSummarizer(
     }
 
     private fun extractText(response: ChatResponse?): String? {
-        if (response == null) {
-            return null
-        }
+        response ?: return null
 
         return response.results.asSequence()
             .map { it.output }

@@ -31,35 +31,46 @@ import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import java.time.LocalDateTime
-import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
 class ApplicationCancelServiceTest {
 
     @field:Mock
     private lateinit var applicationRepository: ApplicationRepository
+
     @field:Mock
     private lateinit var postRepository: PostRepository
+
     @field:Mock
     private lateinit var userRepository: UserRepository
+
     @field:Mock
     private lateinit var escortProfileRepository: EscortProfileRepository
+
     @field:Mock
     private lateinit var noShowPenaltyService: NoShowPenaltyService
+
     @field:Mock
     private lateinit var paymentService: PaymentService
+
     @field:Mock
     private lateinit var noticeService: NoticeService
+
     @field:Mock
     private lateinit var escortProgressLogRepository: EscortProgressLogRepository
+
     @field:Mock
     private lateinit var clientProfileRepository: ClientProfileRepository
+
     @field:Mock
     private lateinit var paymentRepository: PaymentRepository
+
     @field:Mock
     private lateinit var rideService: RideService
+
     @field:InjectMocks
     private lateinit var applicationService: ApplicationService
+
     @field:Mock
     private lateinit var escortService: EscortService
 
@@ -155,7 +166,7 @@ class ApplicationCancelServiceTest {
         `when`(post.client).thenReturn(client)
 
         `when`(postRepository.findByIdWithLock(postId)).thenReturn(post)
-        `when`(escortProfileRepository.findById(escortId)).thenReturn(Optional.of(escortProfile))
+        `when`(escortProfileRepository.findEscortProfileByUserId(escortId)).thenReturn(escortProfile)
 
         // when
         applicationService.cancel(applicationId, escortId)

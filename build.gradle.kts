@@ -9,7 +9,6 @@ plugins {
     kotlin("jvm") version "2.3.21"
     kotlin("plugin.spring") version "2.3.21"   // @Service, @Transactional 등이 붙은 클래스를 자동으로 open
     kotlin("plugin.jpa") version "2.3.21"      // @Entity 에 기본 생성자를 자동 생성
-    kotlin("plugin.lombok") version "2.3.21"   // Java 쪽 Lombok 이 만든 getter 등을 Kotlin 이 인식
 }
 
 group = "com.back"
@@ -41,6 +40,7 @@ repositories {
 }
 
 extra["springAiVersion"] = "2.0.1"
+extra["testcontainers.version"] = "1.21.4"
 
 dependencyManagement {
     imports {
@@ -79,9 +79,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testRuntimeOnly("com.h2database:h2") // 테스트 전용 인메모리 DB (실제 dev MySQL과 분리, docker 없이도 실행 가능)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0") // 코틀린 편의 모키토 프레임워크
+    testImplementation("org.testcontainers:postgresql")
 
     // 모니터링
     implementation("org.springframework.boot:spring-boot-starter-actuator")

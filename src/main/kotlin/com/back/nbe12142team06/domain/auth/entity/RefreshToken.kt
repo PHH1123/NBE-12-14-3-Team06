@@ -46,9 +46,7 @@ class RefreshToken internal constructor() : BaseTimeEntity() {  // JPA용 기본
 
     // 토큰 폐기 (이미 폐기된 토큰은 최초 폐기 시각 유지)
     fun revoke() {
-        if (revokedAt == null) {
-            revokedAt = LocalDateTime.now()
-        }
+        revokedAt = revokedAt ?: LocalDateTime.now()
     }
 
     companion object {

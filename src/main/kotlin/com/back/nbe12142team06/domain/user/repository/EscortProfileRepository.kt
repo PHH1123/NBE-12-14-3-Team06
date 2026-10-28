@@ -52,4 +52,6 @@ interface EscortProfileRepository : JpaRepository<EscortProfile, Long> {
         """
     )
     fun increaseCompletedCount(@Param("userId") userId: Long): Int
+
+    fun findEscortProfileByUserId(userId: Long) : EscortProfile?
 }

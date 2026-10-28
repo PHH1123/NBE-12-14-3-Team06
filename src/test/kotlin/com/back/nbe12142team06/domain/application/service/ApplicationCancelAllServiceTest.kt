@@ -143,8 +143,8 @@ class ApplicationCancelAllServiceTest {
         applicationService.cancelAllByEscort(escort.id)
 
         // then: 지원은 취소되고 공고는 다시 모집 중
-        val result = applicationRepository.findById(application.id!!).orElseThrow()
-        val resultPost = postRepository.findById(post.id!!).orElseThrow()
+        val result = applicationRepository.findByIdOrNull(application.id!!)!!
+        val resultPost = postRepository.findByIdOrNull(post.id!!)!!
         assertThat(result.status).isEqualTo(ApplicationStatus.CANCELED)
         assertThat(result.acceptedPostId).isNull()
         assertThat(resultPost.postStatus).isEqualTo(PostStatus.OPEN)

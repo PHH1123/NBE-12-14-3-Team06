@@ -76,7 +76,7 @@ class AdminUserController(
         @Valid @RequestBody request: AdminUserStatusRequest,
         @AuthenticationPrincipal admin: SecurityUser,
     ): RsData<AdminUserSuspendResponse> {
-        val userStatusHistory = userService.suspendUser(admin.id, userId, request.reason)
+        val userStatusHistory = userService.suspendUser(admin.id, userId, request.reason!!)
 
         return RsData("200-10", "회원이 기간 정지되었습니다.", AdminUserSuspendResponse(userStatusHistory))
     }

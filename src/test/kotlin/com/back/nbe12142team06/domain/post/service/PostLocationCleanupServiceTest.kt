@@ -65,7 +65,7 @@ class PostLocationCleanupServiceTest {
         val post = mock(Post::class.java)
         val client = mock(User::class.java)
         // Kotlin 에서 when 은 예약어라 Mockito.when 대신 같은 동작을 하는 BDDMockito.given 을 쓴다
-        given(userRepository.findById(clientId)).willReturn(Optional.of(client))
+        given(userRepository.findUserById(clientId)).willReturn(client)
         given(postRepository.findByIdWithLock(postId)).willReturn(post)
         given(client.role).willReturn(Role.CLIENT)
         given(client.id).willReturn(clientId)
