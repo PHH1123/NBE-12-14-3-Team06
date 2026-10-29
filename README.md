@@ -170,93 +170,124 @@
     <summary>구조 보기</summary>
 
     ```
-    ├── domain
-    │   ├── application
-    │   │   ├── controller
-    │   │   ├── dto
-    │   │   ├── entity
-    │   │   ├── enums
-    │   │   ├── repository
-    │   │   └── service
-    │   ├── auth
-    │   │   ├── controller
-    │   │   ├── entity
-    │   │   ├── repository
-    │   │   └── service
-    │   ├── education
-    │   │   ├── controller
-    │   │   ├── dto
-    │   │   ├── entity
-    │   │   ├── repository
-    │   │   └── service
-    │   ├── payment
-    │   │   ├── client
-    │   │   ├── controller
-    │   │   ├── dto
-    │   │   ├── entity
-    │   │   ├── repository
-    │   │   └── service
-    │   ├── penalty
-    │   │   ├── entity
-    │   │   ├── repository
-    │   │   └── service
-    │   ├── post
-    │   │   ├── controller
-    │   │   ├── dto
-    │   │   ├── entity
-    │   │   ├── repository
-    │   │   ├── scheduler
-    │   │   └── service
-    │   ├── report
-    │   │   ├── controller
-    │   │   ├── dto
-    │   │   ├── entity
-    │   │   ├── repository
-    │   │   ├── service
-    │   │   └── summarizer
-    │   ├── review
-    │   │   ├── controller
-    │   │   ├── dto
-    │   │   ├── entity
-    │   │   ├── repository
-    │   │   └── service
-    │   ├── ride
-    │   │   ├── controller
-    │   │   ├── dto
-    │   │   ├── entity
-    │   │   ├── repository
-    │   │   └── service
-    │   ├── settlement
-    │   │   ├── client
-    │   │   ├── controller
-    │   │   ├── dto
-    │   │   ├── entity
-    │   │   ├── repository
-    │   │   ├── scheduler
-    │   │   └── service
-    │   └── user
-    │       ├── controller
-    │       ├── dto
-    │       │   ├── admin
-    │       │   ├── login
-    │       │   ├── profile
-    │       │   ├── signup
-    │       │   │   └── common
-    │       │   └── user
-    │       ├── entity
-    │       ├── enums
-    │       ├── repository
-    │       └── service
-    └── global
-        ├── config
-        ├── entity
-        ├── exception
-        ├── initData
-        ├── response
-        ├── restclient
-        ├── rq
-        ├── scheduler
-        └── security
+    └── src
+        ├── main
+        │   ├── generated
+        │   ├── kotlin
+        │   │   └── com
+        │   │       └── back
+        │   │           └── nbe12142team06
+        │   │               ├── domain
+        │   │               │   ├── application
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── dto
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── enums
+        │   │               │   │   ├── repository
+        │   │               │   │   └── service
+        │   │               │   ├── auth
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── repository
+        │   │               │   │   └── service
+        │   │               │   ├── chat
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── dto
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── event
+        │   │               │   │   ├── repository
+        │   │               │   │   └── service
+        │   │               │   ├── education
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── dto
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── repository
+        │   │               │   │   └── service
+        │   │               │   ├── notification
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── dto
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── event
+        │   │               │   │   ├── repository
+        │   │               │   │   └── service
+        │   │               │   ├── payment
+        │   │               │   │   ├── client
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── dto
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── repository
+        │   │               │   │   │   └── dto
+        │   │               │   │   ├── scheduler
+        │   │               │   │   └── service
+        │   │               │   ├── penalty
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── repository
+        │   │               │   │   └── service
+        │   │               │   ├── post
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── dto
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── repository
+        │   │               │   │   ├── scheduler
+        │   │               │   │   └── service
+        │   │               │   ├── report
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── dto
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── repository
+        │   │               │   │   ├── service
+        │   │               │   │   └── summarizer
+        │   │               │   ├── review
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── dto
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── repository
+        │   │               │   │   └── service
+        │   │               │   ├── ride
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── dto
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── repository
+        │   │               │   │   └── service
+        │   │               │   ├── settlement
+        │   │               │   │   ├── client
+        │   │               │   │   ├── controller
+        │   │               │   │   ├── dto
+        │   │               │   │   ├── entity
+        │   │               │   │   ├── repository
+        │   │               │   │   ├── scheduler
+        │   │               │   │   └── service
+        │   │               │   └── user
+        │   │               │       ├── controller
+        │   │               │       ├── dto
+        │   │               │       │   ├── admin
+        │   │               │       │   ├── login
+        │   │               │       │   ├── profile
+        │   │               │       │   ├── signup
+        │   │               │       │   │   └── common
+        │   │               │       │   └── user
+        │   │               │       ├── entity
+        │   │               │       ├── enums
+        │   │               │       ├── repository
+        │   │               │       ├── scheduler
+        │   │               │       └── service
+        │   │               └── global
+        │   │                   ├── config
+        │   │                   │   ├── cache
+        │   │                   │   └── websocket
+        │   │                   ├── crypto
+        │   │                   ├── entity
+        │   │                   ├── exception
+        │   │                   ├── geo
+        │   │                   ├── initData
+        │   │                   ├── response
+        │   │                   ├── restclient
+        │   │                   ├── rq
+        │   │                   ├── scheduler
+        │   │                   └── security
+        │   └── resources
+        │       └── prompts
+        │           └── report-summary
     ```
 
 </details>
