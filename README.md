@@ -2,6 +2,16 @@
 
 <div align=left>
 
+- 2차 프로젝트 발표 자료
+  - [캔바 링크](https://canva.link/dpjfvzsio95qcxz)
+  - [pdf](/readme-pdf/발표자료_06팀_2차_팀프로젝트.pdf)
+  - [시연 영상 포함 발표 자료 링크](https://canva.link/tusye8ff54nv9om)
+- 3차 프로젝트 발표 자료
+  - [캔바 링크](https://canva.link/069rhrgmzy6p1bv)
+  - [pdf](/readme-pdf/발표자료_06팀_3차_팀프로젝트.pdf)
+  - [시연 영상](https://canva.link/d4vxcnladcd5uxh)
+
+
 # 📌목차
 
 1. [📄프로젝트 설명](#-프로젝트-설명)
