@@ -1,80 +1,101 @@
 'use client';
 
-import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { CheckCircle2, ArrowRight } from 'lucide-react';
 import { AppShell } from '@/components/layout';
-import { Container, SectionHeading } from '@/components/ui';
+import { useCurrentUser } from '@/features/auth/lib/useCurrentUser';
 import { useSignupRole } from '../hooks/useSignupRole';
 import { useSignup } from '../state/SignupContext';
 import SignupStepper from './SignupStepper';
-import StepNavButton from './form/StepNavButton';
+
+type CompletedSignup = { role: 'CLIENT' | 'ESCORT'; name: string; username: string };
 
 const ROLE_LABEL = { CLIENT: '의뢰인', ESCORT: '동행 매니저' } as const;
 
-/**
- * 가입하면 바로 로그인 상태라서, 로그인 대신 역할에 맞는 첫 할 일로 보냅니다.
- * 의뢰인은 동행을 요청하는 공고를 쓰고, 동행 매니저는 지원할 공고를 찾습니다.
- */
 const NEXT_STEP = {
   CLIENT: { href: '/client/posts/new', label: '공고 작성하러 가기' },
   ESCORT: { href: '/escort/posts', label: '공고 찾아보기' },
 } as const;
 
-/** 회원가입 4단계(완료) — Figma 공통_회원가입 완료 페이지 564:17555 */
 export default function SignupCompletePage() {
   const role = useSignupRole();
   const { values } = useSignup();
+  const { user } = useCurrentUser();
+  const [completed, setCompleted] = useState<CompletedSignup | null>(null);
 
-  const rows = [
-    { label: '선택 역할', value: ROLE_LABEL[role] },
-    { label: '가입 아이디', value: values.username || '-' },
-  ];
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('gaji:signup:completed');
+      if (!stored) return;
+      const parsed: unknown = JSON.parse(stored);
+      if (
+        typeof parsed === 'object' && parsed !== null &&
+        'role' in parsed && parsed.role === role &&
+        'name' in parsed && typeof parsed.name === 'string' &&
+        'username' in parsed && typeof parsed.username === 'string'
+      ) {
+        setCompleted(parsed as CompletedSignup);
+      }
+    } catch {
+      // 브라우저 저장소에 접근할 수 없다면 현재 가입 상태로 안내합니다.
+    }
+  }, [role]);
+
+  const signedInUser = user?.role === role ? user : null;
+  const displayName = completed?.name || values.name.trim() || signedInUser?.name || '';
+  const displayUsername = completed?.username || values.username.trim() || signedInUser?.username || '';
 
   return (
     <AppShell>
-      <section className="bg-white py-[50px]">
-        <Container className="flex flex-col items-center">
-          <div className="mb-8 flex w-full justify-center lg:mb-[50px]">
+      <section className="bg-[#F7F8F8] px-5 pb-24 pt-12 sm:px-8 sm:pt-16">
+        <div className="mx-auto flex max-w-3xl flex-col items-center">
+          <div className="mb-10 flex w-full justify-center sm:mb-12">
             <SignupStepper current={4} />
           </div>
 
-          {/* 결제 성공 화면(토스)의 파란 체크와 같은 색(#3182F6) 입니다. */}
-          <Image
-            src="/icons/complete-check-blue.svg"
-            alt=""
-            width={126}
-            height={126}
-            className="mb-8 lg:mb-[42px]"
-          />
+          <div className="w-full max-w-md space-y-6 rounded-2xl border border-[#E1E5E8] bg-white p-6 text-center shadow-[0_3px_12px_rgba(20,36,58,0.035)] sm:p-8">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-[#2F7D5B]/10 text-[#2F7D5B]">
+              <CheckCircle2 className="size-8" strokeWidth={1.8} aria-hidden="true" />
+            </div>
 
-          <SectionHeading
-            title="회원가입이 완료되었습니다."
-            description="가지와 함께 더 안전하고 편리한 병원 동행 서비스를 시작해보세요."
-            className="mb-8 lg:mb-11"
-          />
+            <div className="space-y-2">
+              <h1 className="text-2xl font-semibold tracking-tight text-[#14243A]">
+                회원가입이 완료되었습니다
+              </h1>
+              <p className="text-sm leading-6 text-[#67717C]">
+                {displayName ? `${displayName} 님, ` : ''}GAJI에 오신 것을 진심으로 환영합니다.
+              </p>
+            </div>
 
-          <dl className="mb-8 flex h-[148px] w-full max-w-[600px] flex-col items-center justify-center gap-2.5 rounded-[20px] border border-line-soft bg-white px-4 drop-shadow-soft lg:mb-[50px]">
-            {rows.map((row) => (
-              <div key={row.label} className="flex h-[47px] w-full items-center gap-4 lg:w-auto lg:gap-10">
-                <dt className="w-28 shrink-0 px-2 text-lg leading-5 font-semibold text-brand lg:w-40 lg:px-4">
-                  {row.label}
-                </dt>
-                <dd
-                  title={row.value}
-                  className="min-w-0 flex-1 truncate px-2 text-lg leading-5 font-medium text-brand lg:w-40 lg:flex-none lg:px-4"
-                >
-                  {row.value}
-                </dd>
+            <dl className="space-y-3 rounded-xl border border-[#E1E5E8] bg-[#F7F8F8] p-4 text-left text-sm">
+              <div className="flex items-start gap-4">
+                <dt className="w-20 shrink-0 text-[#67717C]">가입 역할</dt>
+                <dd className="min-w-0 break-words font-semibold text-[#14243A]">{ROLE_LABEL[role]}</dd>
               </div>
-            ))}
-          </dl>
+              <div className="flex items-start gap-4">
+                <dt className="w-20 shrink-0 text-[#67717C]">계정 아이디</dt>
+                <dd className="min-w-0 break-all font-semibold text-[#14243A]">{displayUsername || '-'}</dd>
+              </div>
+            </dl>
 
-          <div className="flex w-full max-w-[600px] gap-2.5">
-            <StepNavButton href={NEXT_STEP[role].href}>{NEXT_STEP[role].label}</StepNavButton>
-            <StepNavButton href="/" variant="solid">
-              메인 페이지로 가기
-            </StepNavButton>
+            <div className="space-y-3">
+              <Link
+                href={NEXT_STEP[role].href}
+                className="group flex h-[52px] w-full items-center justify-center gap-2 rounded-[10px] bg-[#14243A] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#1F3757] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93]"
+              >
+                {NEXT_STEP[role].label}
+                <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true" />
+              </Link>
+              <Link
+                href="/"
+                className="flex h-12 w-full items-center justify-center rounded-[10px] border border-[#E1E5E8] bg-white px-6 text-sm font-semibold text-[#67717C] transition-colors hover:bg-[#F7F8F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93]"
+              >
+                메인 페이지로 가기
+              </Link>
+            </div>
           </div>
-        </Container>
+        </div>
       </section>
     </AppShell>
   );

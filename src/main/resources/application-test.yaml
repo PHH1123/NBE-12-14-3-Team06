@@ -1,12 +1,22 @@
 # application-test.yaml
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=MySQL
-    username: sa
-    password:
+    url: jdbc:tc:postgresql:16-alpine:///testdb?TC_DAEMON=true
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 0
+      idle-timeout: 10000
+      connection-timeout: 20000
+  #    url: jdbc:h2:mem:testdb;MODE=PostgreSQL
+#    username: sa
+#    password:
   jpa:
     hibernate:
       ddl-auto: create-drop
+  ai:
+    anthropic:
+      api-key: test-dummy-key
 
 custom:
   jwt:
@@ -16,3 +26,8 @@ custom:
   cookie:
     secure: false
     same-site: Lax
+  toss:
+    secret-key: ${TOSS_SECRET:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}
+  crypto:
+    encryption-key: 5XWW67fzm7t8wH/4+WYfHb/HUfiWrsQBjuuI2Pu0sys=
+    hmac-key: 2Fh3aY3872U9OTSOn/LDFv4BUomfTAdJzHQHboLE2RE=

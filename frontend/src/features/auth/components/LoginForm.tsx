@@ -1,24 +1,18 @@
 'use client';
 
 import { useState, type ChangeEvent, type FormEvent } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { cn } from '@/lib/cn';
-import { showUnimplemented } from '@/lib/unimplemented';
 import { login } from '../api';
 import { useAuth } from '../lib/AuthProvider';
 import { LOGIN_HOME_BY_ROLE } from '../model';
 import type { LoginFormValues } from '../types';
-import SocialLoginRow from './SocialLoginRow';
+import { UserRound, LockKeyhole, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react';
 
-/** 입력창 (Figma 564:17974 — 라운드 30, 상하 여백 22, 은은한 그림자) */
-const FIELD_CLASS =
-  'w-full rounded-[30px] border border-line-soft bg-white px-5 py-[22px] text-base leading-5 text-brand shadow-card placeholder:text-line';
+const FIELD_CLASS = 'h-[56px] w-full rounded-xl border border-[#DCE2E9] bg-white pl-12 pr-12 text-base text-[#1E2739] outline-none transition-colors placeholder:text-[#9AA3B2] focus:border-[#55749B] focus:ring-[3px] focus:ring-[#55749B]/10';
 
 const ERROR_TEXT = 'px-4 text-sm leading-5 font-medium text-[#b91d1d]';
 
-const INITIAL_VALUES: LoginFormValues = { username: '', password: '', rememberMe: false };
+const INITIAL_VALUES: LoginFormValues = { username: '', password: '' };
 
 /** 로그인 폼 카드 안쪽 (Figma 공통_로그인 564:17969) */
 export default function LoginForm() {
@@ -29,6 +23,7 @@ export default function LoginForm() {
 
   const [values, setValues] = useState<LoginFormValues>(INITIAL_VALUES);
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
   const handleChange =
@@ -58,131 +53,49 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex w-full max-w-[424px] flex-col gap-[30px]">
-      <h1 className="text-[30px] leading-9 font-extrabold text-brand">로그인</h1>
-
-      <hr className="border-line-soft" />
-
-      <div className="flex flex-col gap-2.5">
-        {/* 백엔드가 아이디(username)로만 찾기 때문에 이메일은 받지 않습니다. */}
-        <label htmlFor="login-username" className="sr-only">
-          아이디
-        </label>
-        <input
-          id="login-username"
-          name="username"
-          autoComplete="username"
-          required
-          placeholder="아이디를 입력하세요"
-          value={values.username}
-          onChange={handleChange('username')}
-          className={FIELD_CLASS}
-        />
-
-        <label htmlFor="login-password" className="sr-only">
-          비밀번호
-        </label>
-        <input
-          id="login-password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          placeholder="비밀번호를 입력하세요"
-          value={values.password}
-          onChange={handleChange('password')}
-          className={FIELD_CLASS}
-        />
+    <div className="space-y-6">
+      <div className="text-center space-y-1">
+        <span className="text-xs font-semibold text-[#426B93] uppercase tracking-wider">GAJI</span>
+        <h1 className="text-2xl font-semibold text-[#14243A]">서비스 로그인</h1>
+        <p className="text-xs text-[#67717C]">GAJI와 함께 안심할 수 있는 병원 동행을 시작해 보세요.</p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-[5px] gap-y-3">
-        <label className="flex cursor-pointer items-center gap-[5px]">
-          <input
-            type="checkbox"
-            name="rememberMe"
-            checked={values.rememberMe}
-            onChange={(event) =>
-              setValues((prev) => ({ ...prev, rememberMe: event.target.checked }))
-            }
-            className="peer sr-only"
-          />
-          <span
-            aria-hidden="true"
-            className={cn(
-              'grid size-5 shrink-0 place-items-center rounded-[3px] border-2 border-[#545f71]',
-              'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand',
-              values.rememberMe ? 'bg-[#545f71]' : 'bg-white',
-            )}
-          >
-            {values.rememberMe && (
-              <span className="mb-0.5 h-2.5 w-[5px] rotate-45 border-r-2 border-b-2 border-white" />
-            )}
-          </span>
-          <span className="text-sm leading-5 font-semibold whitespace-nowrap text-brand">
-            로그인 상태 유지
-          </span>
-        </label>
-
-        {/* TODO: 아이디/비밀번호 찾기 화면이 생기면 주소를 연결하세요. */}
-        {showUnimplemented() && (
-        <span className="ml-auto flex items-center gap-1.5 text-sm leading-[22px] font-medium whitespace-nowrap text-brand">
-          <a href="#" className="transition-colors hover:text-brand-hover">
-            아이디 찾기
-          </a>
-          <span aria-hidden="true">|</span>
-          <a href="#" className="transition-colors hover:text-brand-hover">
-            비밀번호 찾기
-          </a>
-        </span>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-2.5">
-        {submitError && (
-          <p role="alert" className={ERROR_TEXT}>
-            {submitError}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="flex h-12 w-full items-center justify-center rounded-[30px] bg-brand px-[18px] text-base leading-5 font-semibold text-white drop-shadow-soft transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      {submitError && (
+        <div role="alert" className="p-3 bg-[#B4413C]/10 border border-[#B4413C]/20 text-[#B4413C] rounded-lg text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" /><span>{submitError}</span>
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="login-username" className="block text-xs font-semibold text-[#67717C] mb-1.5">아이디</label>
+          <div className="relative">
+            <UserRound aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#747E8D] pointer-events-none" />
+            <input id="login-username" name="username" autoComplete="username" required
+              type="text" value={values.username} onChange={handleChange('username')}
+              placeholder="아이디를 입력하세요"
+              className="w-full h-[48px] pl-10 pr-3.5 bg-white border border-[#E1E5E8] rounded-xl text-sm text-[#14243A] placeholder:text-[#9AA3B2] focus:border-[#426B93] focus:outline-2 focus:outline-offset-1 focus:outline-[#426B93]/30" />
+          </div>
+        </div>
+        <div>
+          <label htmlFor="login-password" className="block text-xs font-semibold text-[#67717C] mb-1.5">비밀번호</label>
+          <div className="relative">
+            <LockKeyhole aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#747E8D] pointer-events-none" />
+            <input id="login-password" name="password" type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password" required value={values.password} onChange={handleChange('password')}
+              placeholder="비밀번호를 입력하세요"
+              className="w-full h-[48px] pl-10 pr-11 bg-white border border-[#E1E5E8] rounded-xl text-sm text-[#14243A] placeholder:text-[#9AA3B2] focus:border-[#426B93] focus:outline-2 focus:outline-offset-1 focus:outline-[#426B93]/30" />
+            <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
+              aria-pressed={showPassword} className="absolute right-2 top-1/2 -translate-y-1/2 grid size-9 place-items-center rounded-lg text-[#747E8D] hover:text-[#14243A] focus-visible:outline-2 focus-visible:outline-[#426B93]">
+              {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+            </button>
+          </div>
+        </div>
+        <button type="submit" disabled={submitting}
+          className="group w-full h-[52px] bg-[#14243A] text-white font-semibold text-base rounded-[10px] hover:bg-[#1f3757] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#426B93] shadow-xs mt-2 disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2">
           {submitting ? '로그인 중...' : '로그인하기'}
+          {!submitting && <ArrowRight aria-hidden="true" size={17} className="transition-transform duration-200 group-hover:translate-x-1.5" />}
         </button>
-      </div>
-
-      {/* 구분선 · 간편 로그인 · 회원가입 안내 (Figma 564:17986) */}
-      <div className="flex flex-col">
-        <div className="flex items-center gap-6">
-          <span aria-hidden="true" className="h-px flex-1 bg-[#edf2f7]" />
-          <span className="text-sm leading-[18px] font-medium tracking-[-0.08px] whitespace-nowrap text-brand">
-            또는 간편하게 시작하기
-          </span>
-          <span aria-hidden="true" className="h-px flex-1 bg-[#edf2f7]" />
-        </div>
-
-        {/* 구분선 아래 42px · 아이콘 아래 24px (Figma 564:17987 · 564:17998 의 세로 오프셋) */}
-        <div className="mt-6">
-          <SocialLoginRow />
-        </div>
-
-        <div className="mt-6 flex items-center justify-center">
-          <span className="text-sm leading-5 font-medium text-brand-muted">
-            아직 계정이 없으신가요?
-          </span>
-          <Link
-            href="/signup"
-            className="ml-[5px] flex items-center text-sm leading-[22px] font-medium text-brand transition-colors hover:text-brand-hover"
-          >
-            회원가입
-            <span aria-hidden="true" className="grid size-3 shrink-0 place-items-center">
-              <Image src="/icons/arrow-right-soft.svg" alt="" width={9.68566} height={9.52414} />
-            </span>
-          </Link>
-        </div>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }

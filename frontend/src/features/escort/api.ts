@@ -16,14 +16,18 @@ async function findMyApplication(applicationId: number): Promise<MyApplicationDt
 
 /**
  * 보고서 작성·조회 화면의 기본 정보.
- * 환자 특이사항만 공고(GET /api/v1/posts/{postId})에서 가져옵니다.
+ * 환자 특이사항은 공고(GET /api/v1/posts/{postId})에서,
+ * 의뢰인 userId("메시지 보내기"로 채팅방을 열 때 필요)는 GET .../client-profile 에서 가져옵니다.
  */
 export async function fetchReportTarget(applicationId: number): Promise<ReportTarget | undefined> {
   const application = await findMyApplication(applicationId);
   if (!application) return undefined;
 
-  const post = await fetchPostRaw(application.postId);
-  return toReportTarget(application, post);
+  const [post, clientProfile] = await Promise.all([
+    fetchPostRaw(application.postId),
+    fetchClientProfile(applicationId),
+  ]);
+  return toReportTarget(application, post, clientProfile);
 }
 
 /**

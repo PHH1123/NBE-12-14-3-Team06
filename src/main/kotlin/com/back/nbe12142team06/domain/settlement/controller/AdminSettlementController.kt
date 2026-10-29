@@ -1,0 +1,63 @@
+package com.back.nbe12142team06.domain.settlement.controller
+
+import com.back.nbe12142team06.domain.settlement.dto.SettlementAdminResponse
+import com.back.nbe12142team06.domain.settlement.dto.SettlementAnalyticsResponse
+import com.back.nbe12142team06.domain.settlement.entity.Settlement
+import com.back.nbe12142team06.domain.settlement.service.SettlementService
+import com.back.nbe12142team06.global.response.RsData
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
+import org.springframework.web.bind.annotation.*
+import java.time.LocalDate
+import java.util.function.Function
+
+@Tag(name = "관리자 정산", description = "관리자 정산 조회, 요청 및 정산 통계 조회 관련 API")
+@RestController
+@RequestMapping("/api/v1/admin/settlements")
+class AdminSettlementController(
+    private val settlementService: SettlementService
+) {
+
+    @Operation(summary = "기간별 정산 금액 및 건수 조회", description = "관리자가 기간별 정산 통계를 조회합니다.")
+    @GetMapping("/analytics")
+    fun getAnalytics(
+        @RequestParam(required = false) startDate: LocalDate?,
+        @RequestParam(required = false) endDate: LocalDate?
+    ): RsData<SettlementAnalyticsResponse> = RsData(
+        "200-161",
+        "관리자 정산 통계 조회가 완료되었습니다.",
+        SettlementAnalyticsResponse.from(settlementService.getAnalytics(startDate, endDate))
+    )
+
+    @Operation(summary = "정산 목록 조회", description = "관리자가 정산 목록을 조회합니다.")
+    @GetMapping
+    fun getSettlements(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+        @RequestParam(required = false) startDate: LocalDate?,
+        @RequestParam(required = false) endDate: LocalDate?
+    ): RsData<Page<SettlementAdminResponse>> = RsData(
+        "200-162",
+        "관리자 정산 목록 조회가 완료되었습니다.",
+        settlementService.getSettlementForAdmin(
+            startDate = startDate,
+            endDate = endDate,
+            pageable = PageRequest.of(page, size, Sort.Direction.DESC, "id")
+        ).map { SettlementAdminResponse(it) }
+    )
+
+    @Operation(summary = "정산 요청", description = "관리자가 정산을 요청합니다. 정산 상태가 PROCESSING이어도 정산이 요청됩니다.")
+    @PostMapping("/{settlementId}")
+    fun requestSettlement(@PathVariable settlementId: Long): RsData<Void> {
+        settlementService.requestForAdmin(settlementId)
+
+        return RsData(
+            "200-163",
+            "관리자 정산 요청이 완료되었습니다."
+        )
+    }
+}

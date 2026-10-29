@@ -1,349 +1,386 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import {
+  Car,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  MapPin,
+  MessageSquare,
+  RefreshCw,
+} from 'lucide-react';
 import { AppShell } from '@/components/layout';
-import { Container, InfoRow, SectionHeading } from '@/components/ui';
+import PageFeedback from '@/components/ui/PageFeedback';
+import ManagerGradeCharacter from '@/components/ui/ManagerGradeCharacter';
+import { useActionDialog } from '@/components/ui/useActionDialog';
+import { PROGRESS_ORDER, fetchProgress } from '@/features/application';
 import { useRequireAuth } from '@/features/auth';
-import { MapCard, StageBar, Timeline, type EscortStage } from '@/features/escort';
+import { useChatWidget } from '@/features/chat';
+import { LiveMap, LocationLegend, useLiveLocations, useShareLocation } from '@/features/location';
 import { fetchPendingPayment, type PaymentDto } from '@/features/payment';
-import { StatusLabel } from '@/features/post';
-import { cn } from '@/lib/cn';
 import { buildKakaoTCallUrl } from '@/lib/kakaoT';
-import { showUnimplemented } from '@/lib/unimplemented';
 import { completeEscort, fetchClientEscortCase } from '../api';
-import { STAGE_VIEW } from '../model/escort';
-import type { ClientEscortCase, ClientEscortStage } from '../types';
-import ManagerInfoCard from './ManagerInfoCard';
-import TripSummary from './TripSummary';
+import type { ClientEscortCase } from '../types';
 
-const CARD = 'rounded-[30px] border border-line bg-white shadow-card';
-const BUTTON = 'flex h-11 w-full items-center justify-center rounded-[25px] text-base leading-[18px] font-semibold transition-colors';
-const SOLID = 'bg-brand text-white hover:bg-brand-hover';
-const GHOST = 'border border-line bg-white text-brand hover:bg-line-soft';
+const CARD = 'rounded-2xl border border-[#E1E5E8] bg-white shadow-sm';
+const MAIN_BUTTON = 'flex h-[48px] w-full items-center justify-center gap-2 rounded-[10px] bg-[#14243A] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1F3757] disabled:cursor-not-allowed disabled:bg-[#EDF0F2] disabled:text-[#67717C]';
+const OUTLINE_BUTTON = 'flex h-[45px] w-full items-center justify-center gap-2 rounded-[10px] border border-[#E1E5E8] bg-white px-4 text-sm font-semibold text-[#14243A] transition-colors hover:bg-[#F7F8F8]';
+const GRADE_NAMES = { SEED: '씨앗', SPROUT: '새싹', FLOWER: '꽃', EGGPLANT: '가지' } as const;
+const GRADE_COLORS = { SEED: 'text-[#476A50]', SPROUT: 'text-[#486D51]', FLOWER: 'text-[#5E4E70]', EGGPLANT: 'text-[#3E3452]' } as const;
 
-/** 다섯 단계를 위쪽 3단계 표시(StageBar)와 지도(MapCard)의 3단계로 줄입니다. */
-const BASE_STAGE: Record<ClientEscortStage, EscortStage> = {
-  ready: 'ready',
-  ongoing: 'ongoing',
-  arrived: 'ongoing',
-  finishing: 'ongoing',
-  done: 'done',
-};
+const STAGE_SENTENCES = [
+  '동행 매니저와의 매칭이 완료되었습니다.',
+  '동행 매니저가 출발했습니다.',
+  '동행 매니저가 병원으로 이동 중입니다.',
+  '동행 매니저가 병원에 도착했습니다.',
+  '진료를 마치고 귀가 중입니다.',
+  '동행 매니저가 귀가 완료를 기록했습니다.',
+];
 
-/** 카카오 T 호출 방향: 병원 도착 전에는 집 → 병원, 도착한 뒤부터는 병원 → 집 */
-const GOING_HOME: Record<ClientEscortStage, boolean> = {
-  ready: false,
-  ongoing: false,
-  arrived: true,
-  finishing: true,
-  done: true,
-};
-
-/** 진행 요약 카드의 항목 (단계마다 조금씩 다릅니다) */
-function summaryRows(escort: ClientEscortCase): { label: string; value: string[] }[] {
-  const rows = [
-    { label: '예상 시작 시간', value: [escort.startAt] },
-    { label: '예상 종료 시간', value: [escort.endAt] },
-  ];
-  if (escort.stage === 'finishing' && escort.confirmedEndAt) {
-    rows.push({ label: '종료 확정 시간', value: [escort.confirmedEndAt] });
-  }
-  rows.push({ label: '이동수단', value: [escort.transport] });
-  if (escort.stage === 'ready') {
-    rows.push({ label: '만날 장소', value: [escort.meetingPlace] });
-  }
-  if (escort.postCompleted) {
-    // 리뷰를 이미 썼으면 리뷰 요청 줄은 빼고 완료 안내만 남깁니다.
-    const value = ['동행이 정상적으로 완료되었습니다.'];
-    if (!escort.reviewed) value.push('동행인 리뷰를 해주세요.');
-    rows.push({ label: '안내 사항', value });
-  }
-  return rows;
+function currentProgressIndex(escort: ClientEscortCase) {
+  return escort.timeline.reduce((current, step, index) => (step.done ? index : current), 0);
 }
 
-/**
- * 의뢰인 동행 현황 — Figma 의뢰인_매칭 동행 현황 431:4289(매칭) · 431:4119(동행 중) · 464:3497(병원 도착)
- * · 506:2059(귀가 완료) · 431:3953(완료)
- *
- * postId 쿼리가 있으면 실제 API 로 채웁니다(공고: GET /api/v1/posts/{postId}, 매니저: .../escort-profile,
- * 이동수단: GET /api/v1/rides/posts/{postId}). 다른 화면에서 postId 없이 들어올 수도 있어, 그때는
- * 지금처럼 모의 데이터(model/escort.ts)를 보여줍니다.
- * 진행 단계(5종)는 GET /api/v1/applications/{id}/progress 로 실제 조회합니다(model/escort.ts 의
- * PROGRESS_TO_STAGE 참고). ⚠️ 타임라인 단계별 "시각"과 지도의 실시간 위치는 아직 API 가 없어 모의 값입니다.
- */
+function StageProgress({ escort }: { escort: ClientEscortCase }) {
+  const current = currentProgressIndex(escort);
+  return (
+    <section aria-label="동행 진행 단계" className={`${CARD} overflow-x-auto p-6`}>
+      <div className="relative min-w-[650px]">
+        <div aria-hidden="true" className="absolute inset-x-14 top-4 h-[2px] bg-[#E1E5E8]" />
+        <div aria-hidden="true" className="absolute inset-x-14 top-4 h-[2px] origin-left bg-[#426B93] transition-transform duration-300" style={{ transform: `scaleX(${current / Math.max(escort.timeline.length - 1, 1)})` }} />
+        <ol className="relative flex items-start justify-between">
+          {escort.timeline.map((step, index) => {
+            const past = index < current;
+            const active = index === current;
+            return (
+              <li key={step.label} aria-current={active ? 'step' : undefined} className="relative z-10 flex w-[112px] flex-col items-center text-center">
+                <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${past ? 'bg-[#426B93] text-white' : active ? 'bg-[#1E2739] text-white ring-4 ring-[#C7DAEC]' : 'bg-[#EDF0F2] text-[#67717C]'}`}>
+                  {past ? <Check className="h-4 w-4" aria-hidden="true" /> : index + 1}
+                </span>
+                <span className={`mt-3 whitespace-nowrap text-xs ${active ? 'font-bold text-[#14243A]' : past ? 'font-semibold text-[#202832]' : 'font-medium text-[#67717C]'}`}>
+                  {step.label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+function ProgressTimeline({ escort }: { escort: ClientEscortCase }) {
+  const current = currentProgressIndex(escort);
+  return (
+    <section className={`${CARD} p-6`}>
+      <h2 className="mb-5 text-base font-semibold text-[#14243A]">동행 타임라인</h2>
+      <ol className="ml-2">
+        {escort.timeline.map((step, index) => (
+          <li key={step.label} aria-current={index === current ? 'step' : undefined} className="relative pb-5 pl-8 last:pb-0">
+            {index < escort.timeline.length - 1 && (
+              <span aria-hidden="true" className={`absolute -bottom-[10px] left-[5px] top-[10px] w-[2px] ${escort.timeline[index + 1].done ? 'bg-[#426B93]' : 'bg-[#E1E5E8]'}`} />
+            )}
+            <span aria-hidden="true" className={`absolute left-0 top-1 h-3 w-3 rounded-full border-2 ${index === current ? 'border-[#1E2739] bg-[#1E2739] ring-[3px] ring-[#C7DAEC]' : step.done ? 'border-[#426B93] bg-[#426B93]' : 'border-[#E1E5E8] bg-white'}`} />
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-3">
+              <span className={`min-w-[94px] text-xs font-semibold ${index === current ? 'font-bold text-[#1E2739]' : step.done ? 'text-[#14243A]' : 'text-[#67717C]'}`}>{step.label}</span>
+              <span className={`min-w-0 flex-1 text-xs leading-5 ${step.done ? 'text-[#202832]' : 'text-[#67717C]'}`}>{step.description}</span>
+              {step.time && <time className="shrink-0 text-xs text-[#67717C]">{step.time}</time>}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function LiveLocationCard({ escort, applicationId }: { escort: ClientEscortCase; applicationId: number }) {
+  const ongoing = !escort.postCompleted && (escort.stage === 'ready' || escort.stage === 'ongoing' || escort.stage === 'arrived' || escort.stage === 'finishing');
+  // 내 위치(의뢰인)는 서버로 보내고(share), 동행 매니저의 위치와 두 사람이 가까운지는 서버에서 받아 옵니다(live).
+  // 출발 전부터 귀가 완료 전까지 서로 위치를 보내고 봅니다.
+  const share = useShareLocation(applicationId, ongoing);
+  const live = useLiveLocations(applicationId, ongoing);
+  const { error } = live;
+  const [mapFailed, setMapFailed] = useState(false);
+  // 내 위치는 이 기기에서 방금 잰 값을 우선 씁니다.
+  const myPosition = share.position ?? live.client?.position;
+  const showMap = ongoing && (!!live.escort || !!myPosition) && !mapFailed && !error;
+  const statusText = !ongoing
+    ? escort.stage === 'ready' ? '위치 공유 대기 중' : '위치 공유 종료'
+    : error ? '위치 확인 필요'
+      : live.escort && myPosition ? '서로 위치 공유 중'
+        : live.escort ? '매니저 위치 공유 중' : '위치 확인 중';
+  const sharingProblem = ongoing && (share.status === 'denied' || share.status === 'unsupported') ? share.message : undefined;
+  return (
+    <section className={`${CARD} overflow-hidden`}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E1E5E8] bg-[#F7F8F8] px-6 py-3.5 text-xs">
+        <span className="flex items-center gap-2 font-semibold text-[#202832]">
+          <span aria-hidden="true" className={`h-2 w-2 rounded-full ${showMap ? 'bg-[#2F7D5B]' : 'bg-[#67717C]'}`} />
+          {statusText}
+        </span>
+        {live.escort?.updatedAtLabel && <span className="text-[#67717C]">최근 업데이트 {live.escort.updatedAtLabel}</span>}
+      </div>
+      <div className={`relative flex items-center justify-center overflow-hidden ${showMap ? 'aspect-[16/10] bg-[#F2F5F7]' : 'min-h-[230px] bg-[#F2F5F7] sm:min-h-[260px]'}`}>
+        {showMap ? (
+          <LiveMap me="client" escort={live.escort?.position} client={myPosition} trail={live.trail} onError={() => setMapFailed(true)} />
+        ) : (
+          <div className="flex max-w-sm flex-col items-center gap-3 px-6 py-8 text-center">
+            <MapPin className="h-8 w-8 text-[#8197AC]" aria-hidden="true" />
+            <p className="text-sm font-semibold text-[#14243A]">{ongoing ? error || mapFailed ? '위치 정보를 표시할 수 없습니다.' : '서로의 위치를 기다리고 있습니다.' : statusText}</p>
+            <p className="text-xs leading-5 text-[#67717C]">
+              {ongoing
+                ? error || (mapFailed ? '지도를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.' : '매니저와 내 위치가 전송되면 실제 지도가 표시됩니다.')
+                : escort.stage === 'ready' ? '동행이 시작되면 매니저와 서로의 위치를 이곳에서 확인할 수 있습니다.' : '동행이 종료되어 위치 공유가 중지되었습니다.'}
+            </p>
+          </div>
+        )}
+      </div>
+      {ongoing && (
+        <div className="space-y-1.5 border-t border-[#E1E5E8] px-5 py-3">
+          <LocationLegend me="client" escortKnown={!!live.escort} clientKnown={!!myPosition} />
+          {live.nearby && (
+            <p role="status" className="text-xs font-semibold text-[#2F7D5B]">
+              동행 매니저와 가까워졌습니다{live.distanceMeters !== undefined ? ` (약 ${live.distanceMeters}m)` : ''}.
+            </p>
+          )}
+          {sharingProblem && <p role="alert" className="text-xs text-[#B34035]">{sharingProblem}</p>}
+        </div>
+      )}
+      <div className="flex flex-col gap-1 px-5 py-4 text-xs text-[#67717C] sm:flex-row sm:items-center sm:justify-between">
+        <span>출발지: {escort.meetingPlace}</span>
+        <span className="font-semibold text-[#14243A]">목적지: {escort.hospitalName}</span>
+      </div>
+    </section>
+  );
+}
+
+function SummaryCard({ escort }: { escort: ClientEscortCase }) {
+  const status = escort.postCompleted ? '동행 완료' : escort.stage === 'ready' ? '매칭 완료' : escort.stage === 'done' ? '완료 확인 대기' : '진행 중';
+  const rows = [
+    { label: '예상 시작 시간', value: escort.startAt },
+    { label: '예상 종료 시간', value: escort.endAt },
+    { label: '예상 소요 시간', value: escort.durationLabel },
+    { label: '이동수단', value: escort.transport },
+    ...(escort.stage === 'ready' ? [{ label: '만날 장소', value: escort.meetingPlace }] : []),
+    ...(escort.confirmedEndAt ? [{ label: '종료 확정 시간', value: escort.confirmedEndAt }] : []),
+  ];
+  return (
+    <section className={`${CARD} space-y-4 p-6`}>
+      <div className="flex items-center justify-between gap-3 border-b border-[#E1E5E8] pb-3">
+        <h2 className="text-base font-semibold text-[#14243A]">진행 요약</h2>
+        <span className="rounded-md bg-[#EDF0F2] px-2.5 py-1 text-xs font-semibold text-[#426B93]">{status}</span>
+      </div>
+      <dl className="space-y-3 text-xs">
+        {rows.map((row) => (
+          <div key={row.label} className="flex justify-between gap-4">
+            <dt className="shrink-0 text-[#67717C]">{row.label}</dt>
+            <dd className="text-right font-semibold leading-5 text-[#14243A]">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {escort.postCompleted && (
+        <p className="border-t border-[#E1E5E8] pt-3 text-xs leading-5 text-[#67717C]">동행이 정상적으로 완료되었습니다.{!escort.reviewed && ' 매니저에 대한 리뷰를 작성할 수 있습니다.'}</p>
+      )}
+    </section>
+  );
+}
+
+function MatchedManagerCard({ escort }: { escort: ClientEscortCase }) {
+  const { openChatWith } = useChatWidget();
+  const { manager } = escort;
+  return (
+    <section className={`${CARD} space-y-4 p-6`}>
+      <h2 className="text-xs font-semibold tracking-wide text-[#67717C]">배정된 동행 매니저</h2>
+      <div className="flex items-center gap-3.5">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#14243A] text-base font-bold text-white" aria-hidden="true">{manager.name.slice(0, 1)}</div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold text-[#14243A]">{manager.name} 매니저</h3>
+            {manager.grade && (
+              <span className="inline-flex items-center gap-1">
+                <ManagerGradeCharacter grade={manager.grade} bare className="h-6 w-6 shrink-0" />
+                <span className={`text-xs font-semibold ${GRADE_COLORS[manager.grade]}`}>{GRADE_NAMES[manager.grade]}</span>
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-[#67717C]">완료 동행 {manager.completedCount}건 · {manager.ratingCount ? `평점 ★ ${manager.rating.toFixed(1)} (${manager.ratingCount}건)` : '평가 없음'}</p>
+        </div>
+      </div>
+      {manager.intro.some((item) => item.trim()) && <p className="rounded-lg bg-[#F7F8F8] px-3 py-3 text-xs leading-5 text-[#67717C]">{manager.intro.join(' ')}</p>}
+      <button type="button" onClick={() => openChatWith(manager.userId)} className={OUTLINE_BUTTON}>
+        <MessageSquare className="h-4 w-4 text-[#426B93]" aria-hidden="true" />
+        안심 메시지
+      </button>
+    </section>
+  );
+}
+
 export default function ClientTrackingPage() {
+  const { confirm, dialog } = useActionDialog();
   const { loading: authLoading, user } = useRequireAuth('CLIENT');
   const params = useParams<{ applicationId: string }>();
   const searchParams = useSearchParams();
   const applicationId = Number(params.applicationId);
-  const postIdParam = searchParams.get('postId');
-  const postId = postIdParam ? Number(postIdParam) : undefined;
+  const postIdValue = searchParams.get('postId');
+  const postId = postIdValue && Number.isFinite(Number(postIdValue)) && Number(postIdValue) > 0 ? Number(postIdValue) : undefined;
 
-  const [live, setLive] = useState<{ key?: number; escort?: ClientEscortCase; error?: string }>({});
-  // 동행 완료 처리 뒤 공고 상태·미결제 건을 다시 받아오려고 올립니다.
+  const [result, setResult] = useState<{ key?: string; escort?: ClientEscortCase; error?: string }>({});
   const [reloadKey, setReloadKey] = useState(0);
   const [completing, setCompleting] = useState(false);
   const [completeError, setCompleteError] = useState<string>();
   const [paymentResult, setPaymentResult] = useState<{ key?: number; data: PaymentDto | null }>({ data: null });
 
+  const resultKey = `${postId ?? 'missing'}:${applicationId}`;
   useEffect(() => {
-    if (postId === undefined) return;
-    let ignore = false;
-
+    if (postId === undefined || !Number.isInteger(applicationId) || applicationId < 1 || !user) return;
+    let cancelled = false;
     fetchClientEscortCase(postId, applicationId)
-      .then((escort) => {
-        if (!ignore) setLive({ key: postId, escort });
-      })
-      .catch((error: unknown) => {
-        if (!ignore) setLive({ key: postId, error: error instanceof Error ? error.message : '동행 현황을 불러오지 못했습니다.' });
+      .then((escort) => { if (!cancelled) setResult({ key: resultKey, escort }); })
+      .catch((cause: unknown) => {
+        if (!cancelled) setResult({ key: resultKey, error: cause instanceof Error ? cause.message : '동행 현황을 불러오지 못했습니다.' });
       });
+    return () => { cancelled = true; };
+  }, [postId, applicationId, resultKey, reloadKey, user]);
 
-    return () => {
-      ignore = true;
-    };
-  }, [postId, applicationId, reloadKey]);
-
-  // 동행이 끝나야 "추가 결제"가 생깁니다. 완료 전의 READY 결제는 아직 안 낸 최초 결제라 물어보면 안 됩니다.
-  const completed = live.key === postId && !!live.escort?.postCompleted;
-
+  const escort = result.key === resultKey ? result.escort : undefined;
+  const completed = !!escort?.postCompleted;
   useEffect(() => {
     if (postId === undefined || !completed) return;
-    let ignore = false;
-
+    let cancelled = false;
     fetchPendingPayment(postId)
-      .then((payment) => !ignore && setPaymentResult({ key: postId, data: payment }))
-      // 조회에 실패해도 동행 현황 자체는 보여 줍니다. (추가 결제 버튼만 안 뜹니다)
-      .catch(() => !ignore && setPaymentResult({ key: postId, data: null }));
-
-    return () => {
-      ignore = true;
-    };
+      .then((payment) => { if (!cancelled) setPaymentResult({ key: postId, data: payment }); })
+      .catch(() => { if (!cancelled) setPaymentResult({ key: postId, data: null }); });
+    return () => { cancelled = true; };
   }, [postId, completed, reloadKey]);
 
-  // 다른 공고로 이동한 직후에는 이전 공고의 결제 정보를 쓰지 않습니다.
+  // 진행 단계는 읽기 전용입니다. 매니저가 서버에 기록한 단계가 바뀌면 최신 현황을 다시 불러옵니다.
+  const progressIndex = escort ? currentProgressIndex(escort) : -1;
+  useEffect(() => {
+    if (!escort || escort.postCompleted) return;
+    let cancelled = false;
+    let requesting = false;
+    const poll = async () => {
+      if (cancelled || requesting || document.visibilityState === 'hidden') return;
+      requesting = true;
+      try {
+        const next = await fetchProgress(applicationId);
+        if (!cancelled && PROGRESS_ORDER.indexOf(next.progress) !== progressIndex) {
+          setReloadKey((key) => key + 1);
+        }
+      } catch {
+        // 일시적인 진행 상태 조회 실패 시 현재 정보를 유지합니다. 새로고침으로 재시도할 수 있습니다.
+      } finally { requesting = false; }
+    };
+    const timer = window.setInterval(poll, 15000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [escort, applicationId, progressIndex]);
+
   const pendingPayment = completed && paymentResult.key === postId ? paymentResult.data : null;
-
-  const liveLoading = postId !== undefined && live.key !== postId;
-  // postId 가 없으면 불러올 방법이 없어 아래 "동행 정보를 찾을 수 없습니다" 로 떨어집니다.
-  const liveError = live.key === postId ? live.error : undefined;
-  const escort = live.key === postId ? live.escort : undefined;
-
-  if (authLoading) {
-    return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p className="text-xl font-semibold text-brand">불러오는 중입니다...</p>
-        </section>
-      </AppShell>
-    );
-  }
-  if (!user) return null;
-
-  if (liveLoading) {
-    return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p className="text-xl font-semibold text-brand">동행 현황을 불러오는 중입니다.</p>
-        </section>
-      </AppShell>
-    );
-  }
-
-  if (liveError) {
-    return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p role="alert" className="text-xl font-semibold text-brand">{liveError}</p>
-          <Link href="/client/posts" className={cn(BUTTON, 'mx-auto mt-8 h-14 w-60 border border-line text-brand')}>
-            작성한 공고로
-          </Link>
-        </section>
-      </AppShell>
-    );
-  }
-
-  if (!escort) {
-    return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p className="text-xl font-semibold text-brand">동행 정보를 찾을 수 없습니다.</p>
-          <Link href="/client/posts" className={cn(BUTTON, 'mx-auto mt-8 h-14 max-w-60 border border-line text-brand')}>
-            작성한 공고로
-          </Link>
-        </section>
-      </AppShell>
-    );
-  }
-
-  const view = STAGE_VIEW[escort.stage];
-  const baseStage = BASE_STAGE[escort.stage];
-  const rows = summaryRows(escort);
-  const base = `/client/escort/${escort.applicationId}`;
-
-  const [from, to] = GOING_HOME[escort.stage]
-    ? [escort.hospitalPoint, escort.pickupPoint]
-    : [escort.pickupPoint, escort.hospitalPoint];
-  // 동행이 끝나면 부를 택시가 없으므로 호출 버튼도 숨깁니다.
-  const kakaoT =
-    escort.stage !== 'done' && from && to
-      ? { href: buildKakaoTCallUrl(from, to), label: `${from.name} → ${to.name}` }
-      : undefined;
-  const hasStageButtons = escort.stage !== 'ready';
-
-  /**
-   * 추가 결제도 공고 등록 때와 같은 결제 화면(토스 위젯)을 씁니다.
-   * flow=extra 는 결제 후 공고 등록 완료 화면으로 가지 않기 위한 표시입니다. 본보기: post/components/PostDetailPage.tsx
-   */
-  const extraPaymentHref = pendingPayment
-    ? `/client/posts/new/payment?${new URLSearchParams({
-        postId: String(escort.postId),
-        paymentId: String(pendingPayment.id),
-        amount: String(pendingPayment.amount),
-        pay: String(pendingPayment.hourlyPaySnapshot),
-        flow: 'extra',
-      })}`
-    : '';
-
-  /**
-   * 동행 완료 처리. 동행인이 "귀가 완료"를 찍어야 서버가 받아주므로,
-   * 아직이면 서버 메시지("귀가완료 기록이 없습니다")를 그대로 보여줍니다.
-   */
+  const reload = () => { setCompleteError(undefined); setResult({}); setReloadKey((key) => key + 1); };
   const handleComplete = async () => {
-    if (postId === undefined) return;
-    if (!window.confirm('동행을 완료 처리하시겠습니까? 실제 동행 시간을 기준으로 정산·결제가 진행됩니다.')) return;
+    if (postId === undefined || !escort || escort.stage !== 'done' || escort.postCompleted) return;
+    if (!await confirm({ title: '동행을 완료 처리하시겠습니까?', description: '실제 동행 시간을 기준으로 정산·결제가 진행됩니다.', confirmLabel: '완료 처리하기' })) return;
     setCompleting(true);
     setCompleteError(undefined);
-    try {
-      await completeEscort(postId);
-      setReloadKey((key) => key + 1);
-    } catch (error) {
-      setCompleteError(error instanceof Error ? error.message : '동행 완료 처리에 실패했습니다.');
-    } finally {
-      setCompleting(false);
-    }
+    try { await completeEscort(postId); reload(); }
+    catch (cause: unknown) { setCompleteError(cause instanceof Error ? cause.message : '동행 완료 처리에 실패했습니다.'); }
+    finally { setCompleting(false); }
   };
+
+  let content;
+  if (authLoading) {
+    content = <PageFeedback kind="loading" title="로그인 상태를 확인하는 중입니다." />;
+  } else if (!user) {
+    return null;
+  } else if (result.key !== resultKey && postId !== undefined && Number.isInteger(applicationId) && applicationId > 0) {
+    content = <PageFeedback kind="loading" title="동행 현황을 불러오는 중입니다." />;
+  } else if (result.key === resultKey && result.error) {
+    content = <PageFeedback kind="error" title="동행 현황을 불러오지 못했습니다." description={result.error} onRetry={reload} />;
+  } else if (!escort || !postId) {
+    content = <PageFeedback kind="empty" title="동행 정보를 찾을 수 없습니다." description="내 공고 목록에서 해당 공고를 다시 선택해 주세요." href="/client/posts" action="내 공고 목록으로" />;
+  } else {
+    const extraPaymentHref = pendingPayment ? `/client/posts/new/payment?${new URLSearchParams({ postId: String(escort.postId), paymentId: String(pendingPayment.id), pay: String(pendingPayment.hourlyPaySnapshot), flow: 'extra' })}` : '';
+    const goingHome = escort.stage === 'arrived' || escort.stage === 'finishing';
+    const [from, to] = goingHome ? [escort.hospitalPoint, escort.pickupPoint] : [escort.pickupPoint, escort.hospitalPoint];
+    const rideSelect = escort.rideSelect?.[goingHome ? 'TO_HOME' : 'TO_HOSPITAL'] ?? null;
+    const kakaoT = !escort.postCompleted && escort.stage !== 'done' && from && to
+      ? { href: buildKakaoTCallUrl(from, to), disabled: rideSelect !== null && rideSelect !== 'TAXI' }
+      : undefined;
+    content = (
+      <>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-[#14243A] sm:text-4xl">동행 현황</h1>
+            <p className="mt-2 text-sm font-medium text-[#67717C] sm:text-base">{STAGE_SENTENCES[currentProgressIndex(escort)]}</p>
+          </div>
+          <button type="button" onClick={reload} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold text-[#67717C] transition-colors hover:bg-[#EDF0F2] hover:text-[#14243A]">
+            <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> 새로고침
+          </button>
+        </div>
+
+        <StageProgress escort={escort} />
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-7">
+            <LiveLocationCard escort={escort} applicationId={applicationId} />
+            <ProgressTimeline escort={escort} />
+          </div>
+          <div className="space-y-6 lg:sticky lg:top-28 lg:col-span-5">
+            <SummaryCard escort={escort} />
+            <MatchedManagerCard escort={escort} />
+            <div className="space-y-3">
+              {kakaoT && (kakaoT.disabled ? (
+                <button type="button" disabled className={`${OUTLINE_BUTTON} cursor-not-allowed opacity-60`}><Car className="h-4 w-4" />카카오 T 호출 · 택시 이동이 아닙니다</button>
+              ) : (
+                <a href={kakaoT.href} target="_blank" rel="noreferrer" className={OUTLINE_BUTTON}><Car className="h-4 w-4 text-[#9A6B12]" />카카오 T 호출</a>
+              ))}
+              {!escort.postCompleted && (
+                <>
+                  <button type="button" onClick={handleComplete} disabled={completing || escort.stage !== 'done'} className={MAIN_BUTTON}>
+                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />{completing ? '처리 중...' : '동행 완료 확인'}
+                  </button>
+                  {escort.stage !== 'done' && <p className="text-center text-[11px] text-[#67717C]">매니저가 귀가 완료를 기록한 후 최종 확인할 수 있습니다.</p>}
+                </>
+              )}
+              {completeError && <p role="alert" className="text-sm text-[#99433E]">{completeError}</p>}
+              {pendingPayment && (
+                <Link href={extraPaymentHref} className={MAIN_BUTTON}>{pendingPayment.amount.toLocaleString()}원 추가 결제</Link>
+              )}
+              {escort.postCompleted && (
+                <>
+                  {escort.reviewed ? (
+                    <Link href={`/client/escort/${escort.applicationId}/review?postId=${escort.postId}`} className={OUTLINE_BUTTON}>리뷰 보기</Link>
+                  ) : (
+                    <Link href={`/client/escort/${escort.applicationId}/review?postId=${escort.postId}`} className={MAIN_BUTTON}>리뷰 작성</Link>
+                  )}
+                  <Link href={`/client/escort/${escort.applicationId}/report?postId=${escort.postId}`} className={OUTLINE_BUTTON}>보고서 조회</Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // 실제 동행 내용이 있는 경우에만 상단 뒤로가기를 보여 줍니다.
+  // 오류·정보 없음 상태는 공통 안내 카드 안에 이동 버튼이 있으므로 두 버튼을 중복 노출하지 않습니다.
+  const hasDetail = !authLoading && !!user && !!escort && !!postId && result.key === resultKey && !result.error;
 
   return (
     <AppShell>
-      <section className="bg-white py-[50px]">
-        <Container width="wide">
-          <SectionHeading title="동행 현황" description="매칭된 동행 일정의 진행 상태와 위치를 확인할 수 있습니다." className="mb-6" />
-          <StageBar stage={baseStage} />
-
-          <TripSummary
-            badge={view.badge}
-            title={escort.title}
-            hospitalName={escort.hospitalName}
-            region={escort.region}
-            scheduleLabel={escort.scheduleLabel}
-            durationLabel={escort.durationLabel}
-            payLabel={escort.payLabel}
-            detailHref={`/client/posts/${escort.postId}`}
-          />
-
-          <div className="mt-[22px] grid items-start gap-[22px] lg:grid-cols-[minmax(0,745px)_minmax(0,511px)] lg:justify-center">
-            <div className="flex min-w-0 flex-col gap-[22px]">
-              <ManagerInfoCard manager={escort.manager} size="lg" title="동행 정보" />
-              <MapCard stage={baseStage} updatedAt={escort.updatedAt} />
-
-              <section className={cn(CARD, 'flex items-center gap-4 px-6 py-6 lg:min-h-[114px]')}>
-                <Image src="/icons/escort/notice.svg" alt="" width={48} height={61} className="-my-4 -mx-2.5 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xl leading-6 font-semibold text-brand">{view.notice[0]}</p>
-                  <p className="mt-2 text-xs leading-4 font-medium text-brand">{view.notice[1]}</p>
-                </div>
-              </section>
-            </div>
-
-            <div className="flex min-w-0 flex-col gap-[22px]">
-              <section className={cn(CARD, 'px-[35px] py-8')}>
-                <div className="mb-[15px] flex items-center justify-between gap-3">
-                  <h2 className="text-2xl leading-6 font-semibold text-brand">진행 요약</h2>
-                  <StatusLabel tone={view.badge.tone} size="large">
-                    {view.badge.text}
-                  </StatusLabel>
-                </div>
-                <dl className="flex flex-col gap-[3px]">
-                  {rows.map((row) => (
-                    <InfoRow key={row.label} label={row.label} labelWidth={125} className={row.value.length > 1 ? 'min-h-[60px] items-start' : ''}>
-                      {row.value.map((line) => (
-                        <span key={line} className="block">
-                          {line}
-                        </span>
-                      ))}
-                    </InfoRow>
-                  ))}
-                </dl>
-
-                {completeError && (
-                  <p role="alert" className="mt-3 text-sm leading-5 font-medium text-[#b91d1d]">
-                    {completeError}
-                  </p>
-                )}
-
-                {(hasStageButtons || kakaoT) && (
-                  <div className="mt-5 flex flex-col gap-[5px]">
-                    {/* TODO: 추가 결제 · 정산 API 연결 */}
-                    {/* stage 는 동행 매니저의 실제 진행 단계라 ARRIVED_HOME 에 닿으면 바로 'done' 이 되지만,
-                        Post 는 이 버튼을 눌러야 완료됩니다 — 그래서 stage 가 아니라 postCompleted 로 가립니다. */}
-                    {!escort.postCompleted && escort.stage !== 'ready' && (
-                      <button type="button" onClick={handleComplete} disabled={completing} className={cn(BUTTON, SOLID, 'disabled:cursor-not-allowed disabled:opacity-60')}>
-                        {completing ? '처리 중...' : '동행 완료 처리'}
-                      </button>
-                    )}
-                    {pendingPayment && (
-                      <Link href={extraPaymentHref} className={cn(BUTTON, SOLID)}>
-                        {`${pendingPayment.amount.toLocaleString()}원 추가 결제`}
-                      </Link>
-                    )}
-                    {escort.postCompleted && (
-                      <>
-                        {/* 추가 결제가 남아 있으면 정산부터 할 수 없어서 그때는 숨깁니다. */}
-                        {!pendingPayment && showUnimplemented() && (
-                          <button type="button" className={cn(BUTTON, SOLID)}>
-                            정산하기
-                          </button>
-                        )}
-                        {/* 리뷰는 동행 건당 한 번만 쓸 수 있어, 이미 썼으면 버튼을 잠급니다. */}
-                        {escort.reviewed ? (
-                          <button type="button" disabled className={cn(BUTTON, GHOST, 'cursor-not-allowed opacity-60 hover:bg-white')}>
-                            리뷰 작성 완료
-                          </button>
-                        ) : (
-                          /* 두 화면도 공고 정보가 필요한데 applicationId 만으로는 찾을 수 없어 postId 를 함께 넘깁니다. */
-                          <Link href={`${base}/review?postId=${escort.postId}`} className={cn(BUTTON, GHOST)}>
-                            리뷰 작성
-                          </Link>
-                        )}
-                        <Link href={`${base}/report?postId=${escort.postId}`} className={cn(BUTTON, GHOST)}>
-                          보고서 조회
-                        </Link>
-                      </>
-                    )}
-                    {kakaoT && (
-                      <a
-                        href={kakaoT.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={`카카오 T 호출하기 (${kakaoT.label})`}
-                        className={cn(BUTTON, GHOST)}
-                      >
-                        카카오 T 호출하기
-                        <span className="ml-2 text-sm font-medium text-[#6796db]">{kakaoT.label}</span>
-                      </a>
-                    )}
-                  </div>
-                )}
-              </section>
-
-              <Timeline steps={escort.timeline} compact />
-            </div>
+      {hasDetail ? (
+        <section className="w-full bg-[#F7F8F8] py-12 lg:py-16">
+          <div className="mx-auto max-w-[1240px] space-y-8 px-5 sm:px-8 lg:px-16">
+            <Link href="/client/posts" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] transition-colors hover:text-[#14243A]">
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />내 공고 목록으로 돌아가기
+            </Link>
+            {content}
           </div>
-        </Container>
-      </section>
+        </section>
+      ) : content}
+      {dialog}
     </AppShell>
   );
 }

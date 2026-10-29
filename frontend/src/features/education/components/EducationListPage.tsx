@@ -1,136 +1,313 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout';
-import { SectionHeading } from '@/components/ui';
+import PageFeedback from '@/components/ui/PageFeedback';
 import { useRequireAuth } from '@/features/auth';
-import { MyPageShell } from '@/features/mypage';
-// 배럴(@/features/mypage)이 이 함수를 내보내지 않아서 api 모듈을 직접 가져옵니다.
 import { fetchMyEscortProfile } from '@/features/mypage/api';
-import { CardButton, StatusLabel } from '@/features/post';
-import { fetchEducationVideos } from '../api';
+import { Video, CheckCircle2, ChevronLeft, X, Clock, Info } from 'lucide-react';
+import { fetchEducationVideo, fetchEducationVideos } from '../api';
+import { watchPercent } from '../model/status';
 import { formatDuration } from '../lib/time';
-import { WATCH_STATUS_INFO, watchPercent, watchStatus } from '../model/status';
 import type { EducationVideoDto } from '../types';
-import WatchProgressBar from './WatchProgressBar';
+import EducationPlayer, { RULES } from './EducationPlayer';
 
-const HEADING = {
-  title: '교육 영상',
-  description: '필수 교육 영상을 모두 시청하면 교육 이수가 완료되고 공고에 지원할 수 있습니다.',
-};
+type EducationState = { videos?: EducationVideoDto[]; verified?: boolean; error?: string };
 
-/** 영상 카드 아래 버튼 문구 */
-const ACTION_LABEL = {
-  completed: '다시 보기',
-  watching: '이어 보기',
-  notStarted: '시청하기',
-} as const;
-
-/**
- * 마이페이지 — 교육 영상 목록
- *
- * GET /api/v1/education-videos 로 영상과 내 진행 상황을 함께 받습니다.
- * 교육 이수 여부는 동행 매니저 프로필(GET /users/profile/escort)의 verified 를 그대로 씁니다.
- * (영상별 completed 로 계산하면 시드 데이터처럼 영상을 안 보고 이수 처리된 계정에서 어긋납니다)
- */
 export default function EducationListPage() {
+  const router = useRouter();
   const { loading: authLoading, user } = useRequireAuth('ESCORT');
-  const [state, setState] = useState<{ videos?: EducationVideoDto[]; verified?: boolean; error?: string }>();
+  const [state, setState] = useState<EducationState>();
+  const [activeVideoId, setActiveVideoId] = useState<number | null>(null);
+  const [activeVideo, setActiveVideo] = useState<EducationVideoDto | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [showWatchGuide, setShowWatchGuide] = useState(false);
 
   useEffect(() => {
-    let ignore = false;
+    if (authLoading || user?.role !== 'ESCORT') return;
+    let canceled = false;
     Promise.all([fetchEducationVideos(), fetchMyEscortProfile()])
-      .then(([videos, profile]) => !ignore && setState({ videos, verified: profile.verified }))
-      .catch((error: Error) => !ignore && setState({ error: error.message }));
-    return () => {
-      ignore = true;
-    };
-  }, []);
+      .then(([videos, profile]) => { if (!canceled) setState({ videos, verified: profile.verified }); })
+      .catch((error: unknown) => { if (!canceled) setState({ error: error instanceof Error ? error.message : '교육 정보를 불러오지 못했습니다.' }); });
+    return () => { canceled = true; };
+  }, [authLoading, user?.role, user?.username]);
 
-  if (authLoading) {
-    return (
-      <AppShell>
-        <section className="bg-white py-[100px] text-center">
-          <p className="text-xl font-semibold text-brand">불러오는 중입니다...</p>
-        </section>
-      </AppShell>
-    );
-  }
+  useEffect(() => {
+    if (activeVideoId === null) return;
+    let canceled = false;
+    fetchEducationVideo(activeVideoId)
+      .then((video) => { if (!canceled) setActiveVideo(video); })
+      .catch((error: unknown) => { if (!canceled) setModalError(error instanceof Error ? error.message : '영상을 불러오지 못했습니다.'); });
+    return () => { canceled = true; };
+  }, [activeVideoId]);
+
+  const openVideo = (id: number) => {
+    setActiveVideo(null);
+    setModalError(null);
+    setShowWatchGuide(false);
+    setActiveVideoId(id);
+  };
+
+  const closeVideo = () => {
+    setActiveVideoId(null);
+    setActiveVideo(null);
+    setShowWatchGuide(false);
+    fetchEducationVideos().then((videos) => setState((prev) => ({ ...prev, videos }))).catch(() => {});
+    fetchMyEscortProfile().then((profile) => setState((prev) => ({ ...prev, verified: profile.verified }))).catch(() => {});
+  };
+
+  if (authLoading) return <AppShell><PageFeedback kind="loading" title="교육 정보를 불러오는 중입니다." /></AppShell>;
   if (!user) return null;
+  if (!state?.videos) return <AppShell><PageFeedback kind={state?.error ? "error" : "loading"} title={state?.error ? "교육 정보를 불러오지 못했습니다." : "교육 정보를 불러오는 중입니다."} description={state?.error} /></AppShell>;
 
-  if (!state?.videos) {
-    return (
-      <MyPageShell>
-        <div className="flex max-w-[1000px] flex-col items-center gap-[30px] pt-8 lg:pt-[50px]">
-          <SectionHeading title={HEADING.title} description={HEADING.description} className="mb-0" />
-          <p className="text-base font-semibold text-brand-muted">{state?.error ? `불러오지 못했습니다. (${state.error})` : '불러오는 중입니다.'}</p>
-        </div>
-      </MyPageShell>
-    );
-  }
-
-  const videos = state.videos;
-  const required = videos.filter((video) => video.required);
-  const requiredDone = required.filter((video) => video.completed).length;
-  const educated = state.verified ?? false;
-
+  const required = state.videos.filter((v) => v.required);
+  const requiredDone = required.filter((v) => v.completed).length;
+  const allRequiredCompleted = required.length > 0 && required.every((video) => video.completed);
+  const verified = state.verified ?? false;
+  const videos = state.videos.map((video) => ({
+    id: video.videoId,
+    title: video.title,
+    isRequired: video.required,
+    isCompleted: video.completed,
+    progressPercent: watchPercent(video),
+    duration: formatDuration(video.durationSec),
+  }));
   return (
-    <MyPageShell>
-      <div className="flex max-w-[1000px] flex-col items-center gap-[30px] pt-8 lg:pt-[50px]">
-        <SectionHeading title={HEADING.title} description={HEADING.description} className="mb-0" />
-
-        {/* 이수 현황 */}
-        <section
-          aria-label="교육 이수 현황"
-          className="flex w-full max-w-[910px] flex-col items-center gap-4 rounded-[30px] border border-line-soft bg-white px-8 py-6 text-center shadow-card sm:flex-row sm:justify-between sm:text-left"
+    <AppShell>
+    <div className="w-full bg-[#F7F8F8] py-12 lg:py-16">
+      <div className="max-w-[1240px] mx-auto px-5 sm:px-8 lg:px-16 space-y-8">
+        <button
+          onClick={() => router.push('/mypage')}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#67717C] hover:text-[#14243A] sc-focus"
         >
-          <div className="flex flex-col gap-2 text-brand">
-            <div className="flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
-              <span className="text-base leading-5 font-semibold">교육 이수 상태</span>
-              <StatusLabel tone={educated ? 'green' : 'red'}>{educated ? '이수 완료' : '미이수'}</StatusLabel>
-            </div>
-            <p className="text-xs leading-4 font-medium">
-              {educated ? '교육 이수가 완료되었습니다. 이제 공고에 지원할 수 있습니다.' : '필수 영상을 모두 시청해야 공고에 지원할 수 있습니다.'}
-            </p>
-          </div>
-          <p className="shrink-0 text-2xl leading-6 font-bold text-brand">
-            필수 {requiredDone} / {required.length}
-          </p>
-        </section>
+          <ChevronLeft className="w-4 h-4" />
+          <span>마이페이지로 돌아가기</span>
+        </button>
 
-        {videos.length > 0 ? (
-          <ul className="grid w-full max-w-[910px] gap-4 sm:grid-cols-2">
-            {videos.map((video) => {
-              const status = watchStatus(video);
-              const info = WATCH_STATUS_INFO[status];
+        <div>
+          <span className="text-xs font-semibold text-[#426B93] uppercase tracking-wider block mb-1">
+            Mandatory Manager Training
+          </span>
+          <h1 className="text-3xl font-semibold text-[#14243A] tracking-tight">
+            동행 매니저 교육 영상
+          </h1>
+          <p className="text-sm font-medium text-[#14243A] mt-1">
+            {verified ? '교육 이수 인증이 완료되어 공고에 지원할 수 있습니다.' : '필수 영상을 모두 시청해야 공고에 지원할 수 있습니다.'}
+          </p>
+        </div>
+
+        {/* COMPLETION BANNER */}
+        {verified || allRequiredCompleted ? (
+          <div className="bg-[#2F7D5B]/10 border border-[#2F7D5B]/30 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-[#2F7D5B] text-white flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#2F7D5B]">
+                  {allRequiredCompleted
+                    ? '교육 이수가 완료되었습니다. 이제 공고에 지원할 수 있습니다.'
+                    : '교육 이수 인증이 확인되었습니다. 이제 공고에 지원할 수 있습니다.'}
+                </h3>
+                <p className="text-xs text-[#202832] mt-0.5">
+                  {allRequiredCompleted
+                    ? `현재 등록된 필수 영상 시청 기록: ${requiredDone} / ${required.length}`
+                    : `현재 등록된 필수 영상 시청 기록: ${requiredDone} / ${required.length} (인증 상태와 별도로 표시됩니다.)`}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => router.push('/escort/posts')}
+              className="h-[44px] px-6 rounded-xl bg-[#2F7D5B] text-white text-xs font-semibold hover:bg-[#256348] whitespace-nowrap shadow-xs"
+            >
+              공고 찾아보기
+            </button>
+          </div>
+        ) : (
+          <div className="bg-[#9A6B12]/10 border border-[#9A6B12]/20 rounded-2xl p-5 flex items-center gap-3 text-xs text-[#9A6B12]">
+            <Clock className="w-5 h-5 shrink-0" />
+            <span>
+              필수 교육 영상 미이수 건이 남아있습니다. 영상을 100% 시청 완료 후 공고 지원 자격이 활성화됩니다.
+            </span>
+          </div>
+        )}
+
+        {/* LIST CONTAINER (Batch 1 list pattern: 1 white container with 1px dividers) */}
+        <div className="bg-white rounded-2xl border border-[#E1E5E8] shadow-xs overflow-hidden">
+          {/* Desktop Table Header */}
+          <div className="hidden min-[1100px]:grid grid-cols-12 gap-4 px-6 py-3.5 bg-[#EDF0F2]/60 border-b border-[#E1E5E8] text-xs font-semibold text-[#67717C]">
+            <div className="col-span-1">구분</div>
+            <div className="col-span-5">교육 영상 제목</div>
+            <div className="col-span-2">영상 길이</div>
+            <div className="col-span-2">시청 진행률</div>
+            <div className="col-span-1 text-center">상태</div>
+            <div className="col-span-1 text-center">시청하기</div>
+          </div>
+
+          <div className="divide-y divide-[#E1E5E8]">
+            {videos.map((vid) => {
+              const isFinished = vid.isCompleted;
+              const hasStarted = vid.progressPercent > 0 && vid.progressPercent < 100;
+              const videoStatusLabel = isFinished ? '이수 완료' : verified ? (hasStarted ? '시청 중' : '미시청') : '미이수';
               return (
-                <li key={video.videoId}>
-                  <article className="flex h-full flex-col gap-4 rounded-[30px] border-[0.68px] border-line bg-white px-[22px] py-5 shadow-[0_0.68px_2.7px_rgba(25,33,61,0.08)]">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <StatusLabel tone={video.required ? 'purple' : 'gray'}>{video.required ? '필수' : '선택'}</StatusLabel>
-                      <StatusLabel tone={info.tone}>{info.label}</StatusLabel>
+                <div key={vid.id} className="p-6 hover:bg-[#F7F8F8] transition-colors">
+                  {/* Desktop Layout */}
+                  <div className="hidden min-[1100px]:grid grid-cols-12 gap-4 items-center text-sm">
+                    {/* 필수 / 선택 */}
+                    <div className="col-span-1">
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                          vid.isRequired
+                            ? 'bg-[#B4413C]/10 text-[#B4413C]'
+                            : 'bg-[#EDF0F2] text-[#67717C]'
+                        }`}
+                      >
+                        {vid.isRequired ? '필수' : '선택'}
+                      </span>
                     </div>
-                    <div className="flex flex-col gap-1 text-brand">
-                      <h3 className="text-lg leading-6 font-bold">{video.title}</h3>
-                      <p className="text-xs leading-4 font-medium text-brand-muted">영상 길이 {formatDuration(video.durationSec)}</p>
+
+                    {/* 제목 */}
+                    <div className="col-span-5 pr-2">
+                      <span className="font-semibold text-base text-[#14243A] block">
+                        {vid.title}
+                      </span>
                     </div>
-                    <WatchProgressBar percent={watchPercent(video)} label="시청 진행률" />
-                    <div className="mt-auto flex justify-end">
-                      <CardButton variant={status === 'completed' ? 'ghost' : 'solid'} href={`/mypage/education/${video.videoId}`}>
-                        {ACTION_LABEL[status]}
-                      </CardButton>
+
+                    {/* 영상 길이 */}
+                    <div className="col-span-2 text-xs text-[#202832] tabular-nums font-medium">
+                      {vid.duration}
                     </div>
-                  </article>
-                </li>
+
+                    {/* 시청 진행률 bar */}
+                    <div className="col-span-2 pr-4 space-y-1">
+                      <div className="flex justify-between text-[11px] text-[#67717C]">
+                        <span>진척도</span>
+                        <span className="tabular-nums font-semibold text-[#14243A]">
+                          {vid.progressPercent}%
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-[#EDF0F2] rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            isFinished ? 'bg-[#2F7D5B]' : 'bg-[#426B93]'
+                          }`}
+                          style={{ width: `${vid.progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* 이수 완료 / 미이수 */}
+                    <div className="col-span-1 text-center">
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                          vid.isCompleted
+                            ? 'bg-[#2F7D5B]/10 text-[#2F7D5B]'
+                            : 'bg-[#EDF0F2] text-[#67717C]'
+                        }`}
+                      >
+                        {videoStatusLabel}
+                      </span>
+                    </div>
+
+                    {/* Action button: 시청하기 / 이어 보기 / 다시 보기 */}
+                    <div className="col-span-1 text-center">
+                      <button
+                        onClick={() => openVideo(vid.id)}
+                        className={`inline-flex items-center justify-center h-[36px] px-2.5 whitespace-nowrap rounded-lg text-xs font-semibold transition-colors ${
+                          isFinished
+                            ? 'border border-[#E1E5E8] bg-white text-[#14243A] hover:bg-[#F7F8F8]'
+                            : hasStarted
+                            ? 'bg-[#426B93] text-white hover:bg-[#345778]'
+                            : 'bg-[#14243A] text-white hover:bg-[#1f3757]'
+                        }`}
+                      >
+                        {isFinished ? '다시 보기' : hasStarted ? '이어 보기' : '시청하기'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mobile Layout */}
+                  <div className="min-[1100px]:hidden space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span
+                        className={`px-2 py-0.5 rounded font-semibold ${
+                          vid.isRequired ? 'bg-[#B4413C]/10 text-[#B4413C]' : 'bg-[#EDF0F2] text-[#67717C]'
+                        }`}
+                      >
+                        {vid.isRequired ? '필수' : '선택'}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded font-semibold ${
+                          vid.isCompleted ? 'bg-[#2F7D5B]/10 text-[#2F7D5B]' : 'bg-[#EDF0F2] text-[#67717C]'
+                        }`}
+                      >
+                        {videoStatusLabel}
+                      </span>
+                    </div>
+
+                    <h3 className="font-semibold text-base text-[#14243A]">{vid.title}</h3>
+                    <p className="text-xs text-[#67717C]">길이: {vid.duration} · 진행률 {vid.progressPercent}%</p>
+
+                    <div className="pt-2 border-t border-[#E1E5E8] flex justify-end">
+                      <button
+                        onClick={() => openVideo(vid.id)}
+                        className="h-[38px] px-4 whitespace-nowrap rounded-lg bg-[#14243A] text-white text-xs font-semibold"
+                      >
+                        {isFinished ? '다시 보기' : hasStarted ? '이어 보기' : '시청하기'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               );
             })}
-          </ul>
-        ) : (
-          <div className="flex min-h-[130px] w-full max-w-[910px] flex-col items-center justify-center gap-2 rounded-[30px] border border-line bg-white px-6 py-10 text-center shadow-card">
-            <p className="text-lg leading-6 font-semibold text-brand">등록된 교육 영상이 없습니다.</p>
+          </div>
+        </div>
+
+        {activeVideoId !== null && (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) closeVideo(); }}>
+            <div role="dialog" aria-modal="true" aria-label="온라인 직무 교육" className="bg-[#171C23] text-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <Video className="w-5 h-5 text-[#426B93]" />
+                  <span className="text-xs font-semibold text-white/70">온라인 직무 교육</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowWatchGuide((prev) => !prev)}
+                    aria-label="시청 안내 보기"
+                    title="시청 안내"
+                    aria-controls="education-watch-guide"
+                    aria-expanded={showWatchGuide}
+                    className="rounded-full p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7DAEC]"
+                  >
+                    <Info className="w-5 h-5" aria-hidden="true" />
+                  </button>
+                  <button type="button" onClick={closeVideo} className="p-1 text-white/70 hover:text-white" aria-label="영상 닫기">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              {showWatchGuide && (
+                <section id="education-watch-guide" aria-label="시청 안내" className="rounded-lg border border-white/15 bg-white/[0.06] px-4 py-3 text-xs leading-5 text-white/80">
+                  <p className="mb-2 font-semibold text-white">시청 안내</p>
+                  <ul className="list-disc space-y-1.5 pl-4">
+                    {RULES.map((rule) => <li key={rule}>{rule}</li>)}
+                  </ul>
+                </section>
+              )}
+              {activeVideo ? (
+                <EducationPlayer key={activeVideo.videoId} video={activeVideo} verified={verified} compact />
+              ) : (
+                <p className="text-sm text-white/70">{modalError ?? '영상을 불러오는 중입니다.'}</p>
+              )}
+            </div>
           </div>
         )}
       </div>
-    </MyPageShell>
+    </div>
+    </AppShell>
   );
 }

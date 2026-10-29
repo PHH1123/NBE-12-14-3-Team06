@@ -85,7 +85,6 @@ export function SelectField({ id, name, placeholder, options, value, defaultValu
 /** 돋보기 아이콘이 있는 입력칸 (병원명 · 출발지) */
 export function SearchField({ id, name, placeholder, defaultValue }: { id: string; name: string; placeholder: string; defaultValue?: string }) {
   return (
-    // TODO: 병원 검색 / 주소 검색 연결 (지금은 직접 입력만 됩니다)
     <div className="relative">
       <input id={id} name={name} required defaultValue={defaultValue} placeholder={placeholder} className={cn(FIELD, 'pr-12')} />
       <Image src="/icons/search.svg" alt="" width={14} height={14} className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2" />

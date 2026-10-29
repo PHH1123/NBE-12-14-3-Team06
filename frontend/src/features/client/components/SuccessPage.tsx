@@ -1,22 +1,16 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { Check, LoaderCircle } from 'lucide-react';
+import { AppShell } from '@/components/layout';
 import { ApiError } from '@/lib/api';
 import { fetchConfirmPayment, type PaymentConfirm } from '../api';
-import './PaymentPage.css';
 
-/** 승인 성공 화면을 보여 준 뒤 공고 등록 완료 화면으로 넘어가기까지의 시간 */
 const REDIRECT_DELAY_MS = 3000;
 
-/**
- * 결제 성공 — 토스 successUrl 착지 지점
- *
- * 토스가 붙여 주는 orderId·paymentKey·amount 로 서버에 승인을 요청하고,
- * 성공하면 결제 결과를 잠깐 보여 준 뒤 공고 등록 완료 화면으로 이동합니다.
- * paymentId·postId·pay 는 결제 화면이 successUrl 쿼리에 미리 실어 보낸 값입니다.
- * (paymentId 는 공고 등록 응답 PostWriteResponse 에서 내려옵니다.)
- */
+/** 토스 결제 승인 결과를 확인한 뒤 최초 결제 또는 추가 결제의 다음 화면으로 이동합니다. */
 export default function SuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -24,119 +18,109 @@ export default function SuccessPage() {
 
   const orderId = searchParams.get('orderId') ?? '';
   const paymentKey = searchParams.get('paymentKey') ?? '';
-  const amount = searchParams.get('amount') ?? '0';
-  const paymentId = Number(searchParams.get('paymentId'));
-  const postId = searchParams.get('postId') ?? '1';
-  const pay = searchParams.get('pay') ?? '0';
-  // flow=extra : 동행 완료 후 차액을 낸 추가 결제. 공고 등록 완료 화면이 아니라 공고 상세로 돌아갑니다.
+  const amount = searchParams.get('amount') ?? '';
+  const paymentIdValue = searchParams.get('paymentId') ?? '';
+  const postIdValue = searchParams.get('postId') ?? '';
   const flow = searchParams.get('flow') ?? '';
   const isExtra = flow === 'extra';
+  const paymentId = Number(paymentIdValue);
+  const postId = Number(postIdValue);
+  const validIds = Number.isSafeInteger(paymentId) && paymentId > 0 && Number.isSafeInteger(postId) && postId > 0;
 
   const nextHref = isExtra
-    ? `/client/posts/${postId}`
-    : `/client/posts/complete?${new URLSearchParams({ postId, pay, amount })}`;
-  const nextLabel = isExtra ? '공고 상세로 이동' : '공고 등록 완료로 이동';
+    ? `/client/posts/${postIdValue}`
+    : `/client/posts/complete?${new URLSearchParams({ postId: postIdValue, paymentId: paymentIdValue })}`;
+  const nextLabel = isExtra ? '공고 상세로 이동' : '공고 등록 완료 확인';
 
-  // 개발 모드(StrictMode)에서 effect 가 두 번 돌아 승인 API 가 중복 호출되는 것을 막습니다.
-  const requestedRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 한 번 승인한 결제에 대해 중복 승인 요청이 나가지 않도록 Promise 자체를 보관합니다.
+  // 개발 모드에서 effect 정리/재실행이 발생해도 다음 effect 가 같은 요청의 결과를 이어받습니다.
+  const requestRef = useRef<{ key: string; promise: Promise<PaymentConfirm> } | null>(null);
 
   useEffect(() => {
-    if (!requestedRef.current) {
-      requestedRef.current = true;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-      // paymentId 가 없으면 승인 자체가 불가능하므로 서버를 부르지 않고 바로 실패 처리합니다.
-      const confirm = Number.isInteger(paymentId) && paymentId > 0
+    const requestKey = `${paymentIdValue}:${orderId}:${paymentKey}`;
+    if (requestRef.current?.key !== requestKey) {
+      const promise = validIds && orderId && paymentKey && Number.isFinite(Number(amount)) && Number(amount) > 0
         ? fetchConfirmPayment(paymentId, { orderId, paymentKey, amount })
-        : Promise.reject(new Error('결제 정보(paymentId)가 없어 승인할 수 없습니다.'));
-
-      confirm
-        .then((data) => {
-          setConfirmed(data);
-          timerRef.current = setTimeout(() => router.replace(nextHref), REDIRECT_DELAY_MS);
-        })
-        .catch((error: unknown) => {
-          const code = error instanceof ApiError ? error.statusCode : 'UNKNOWN';
-          const message = error instanceof Error ? error.message : '결제 승인에 실패했습니다.';
-          const query = new URLSearchParams({
-            code,
-            message,
-            postId,
-            paymentId: searchParams.get('paymentId') ?? '',
-            pay,
-            amount,
-            flow,
-          });
-          router.replace(`/client/posts/new/payment/fail?${query}`);
-        });
+        : Promise.reject(new Error('결제 승인에 필요한 정보가 부족합니다.'));
+      requestRef.current = { key: requestKey, promise };
+      setConfirmed(null);
     }
 
+    requestRef.current.promise
+      .then((data) => {
+        if (!active) return;
+        setConfirmed(data);
+        timer = setTimeout(() => router.replace(nextHref), REDIRECT_DELAY_MS);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        const code = error instanceof ApiError ? error.statusCode : 'UNKNOWN';
+        const message = error instanceof Error ? error.message : '결제 승인에 실패했습니다.';
+        const query = new URLSearchParams({
+          code: String(code), message, postId: postIdValue, paymentId: paymentIdValue, flow,
+        });
+        router.replace(`/client/posts/new/payment/fail?${query.toString()}`);
+      });
+
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      active = false;
+      if (timer) clearTimeout(timer);
     };
-  }, [orderId, paymentKey, amount, paymentId, postId, pay, flow, nextHref, searchParams, router]);
+  }, [amount, flow, nextHref, orderId, paymentId, paymentIdValue, paymentKey, postIdValue, router, validIds]);
+
+  const paidAmount = confirmed ? Number(confirmed.amount) : null;
 
   return (
-    <>
-      <div className="box_section" style={{ width: '600px' }}>
-        {/* Tailwind preflight 가 img 를 display:block 으로 만들어서, box_section 의 text-align 으로는
-            가운데로 오지 않습니다. 좌우 여백을 auto 로 두어 직접 가운데 정렬합니다. */}
-        <img
-          width="100px"
-          src="https://static.toss.im/illusts/check-blue-spot-ending-frame.png"
-          alt=""
-          className="mx-auto"
-        />
-        <h2>{confirmed ? (isExtra ? '추가 결제를 완료했어요' : '결제를 완료했어요') : '결제를 확인하고 있어요'}</h2>
+    <AppShell>
+      <section className="min-h-[calc(100vh-90px)] bg-[#F5F6F8] px-5 py-16 text-[#1E2739] sm:py-24">
+        <div className="mx-auto w-full max-w-[640px]">
+          <div className="rounded-[18px] border border-[#E0E4E9] bg-white px-6 py-10 text-center shadow-[0_2px_3px_rgba(30,39,57,0.04)] sm:px-10 sm:py-11">
+            <div className="mx-auto flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[#E8EFF7]">
+              {confirmed ? <Check size={34} strokeWidth={2.6} className="text-[#55749B]" /> : <LoaderCircle size={34} className="animate-spin text-[#55749B]" />}
+            </div>
+            <h1 className="mt-5 text-[26px] font-bold tracking-[-0.035em] sm:text-[28px]">
+              {confirmed ? (isExtra ? '추가 결제가 완료되었습니다' : '결제가 완료되었습니다') : '결제 승인을 확인하고 있습니다'}
+            </h1>
+            <p className="mt-2 text-[14px] text-[#657184]">
+              {confirmed ? '결제 정보가 안전하게 확인되었습니다.' : '승인 결과를 확인하는 동안 잠시만 기다려 주세요.'}
+            </p>
 
-        <div className="p-grid typography--p" style={{ marginTop: '50px' }}>
-          <div className="p-grid-col text--left">
-            <b>결제금액</b>
-          </div>
-          <div className="p-grid-col text--right" id="amount">
-            {`${Number(amount).toLocaleString()}원`}
-          </div>
-        </div>
-        <div className="p-grid typography--p" style={{ marginTop: '10px' }}>
-          <div className="p-grid-col text--left">
-            <b>주문번호</b>
-          </div>
-          <div className="p-grid-col text--right" id="orderId">
-            {orderId}
-          </div>
-        </div>
-        <div className="p-grid typography--p" style={{ marginTop: '10px' }}>
-          <div className="p-grid-col text--left">
-            <b>paymentKey</b>
-          </div>
-          <div className="p-grid-col text--right" id="paymentKey" style={{ whiteSpace: 'initial', width: '250px' }}>
-            {paymentKey}
-          </div>
-        </div>
+            {confirmed && (
+              <div className="mt-7 rounded-[12px] border border-[#E3E7EC] bg-[#FAFBFC] px-5 py-5 text-left sm:px-6">
+                <dl className="space-y-3 text-[14px]">
+                  <div className="flex items-center justify-between gap-4">
+                    <dt className="text-[#657184]">결제 상태</dt>
+                    <dd className="font-semibold text-[#476A50]">결제 완료</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <dt className="text-[#657184]">결제 금액</dt>
+                    <dd className="text-[20px] font-bold tabular-nums text-[#1E2739]">{paidAmount != null && Number.isFinite(paidAmount) ? `${paidAmount.toLocaleString('ko-KR')}원` : '금액 확인 중'}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 border-t border-[#E3E7EC] pt-4">
+                    <dt className="shrink-0 text-[#657184]">주문 번호</dt>
+                    <dd className="break-all text-right font-medium text-[#344055]">{confirmed.orderId}</dd>
+                  </div>
+                </dl>
+              </div>
+            )}
 
-        <div className="p-grid-col">
-          <p className="typography--p" style={{ marginTop: '30px', color: '#4e5968' }}>
-            {confirmed
-              ? `잠시 후 ${isExtra ? '공고 상세' : '공고 등록 완료'} 화면으로 이동합니다.`
-              : '승인 결과를 기다리는 중입니다.'}
-          </p>
-          <button
-            type="button"
-            className="button"
-            disabled={!confirmed}
-            onClick={() => router.replace(nextHref)}
-          >
-            {nextLabel}
-          </button>
+            <p className="mt-6 text-[13px] text-[#738094]">
+              {confirmed ? `잠시 후 ${isExtra ? '공고 상세' : '공고 등록 완료'} 화면으로 이동합니다.` : '결제 확인 중에는 페이지를 닫지 말아 주세요.'}
+            </p>
+            {confirmed && (
+              <button type="button" onClick={() => router.replace(nextHref)} className="mt-5 flex h-[46px] w-full items-center justify-center rounded-[12px] bg-[#1E2739] text-[14px] font-semibold text-white transition-colors hover:bg-[#344055]">
+                {nextLabel}
+              </button>
+            )}
+          </div>
+          <div className="mt-5 text-center text-[13px] text-[#738094]">
+            {confirmed ? <Link href="/client/posts" className="underline underline-offset-4 hover:text-[#1E2739]">내 공고 목록</Link> : 'GAJI · 안전한 병원 동행 서비스'}
+          </div>
         </div>
-      </div>
-
-      <div className="box_section" style={{ width: '600px', textAlign: 'left' }}>
-        <b>Response Data :</b>
-        <div id="response" style={{ whiteSpace: 'initial' }}>
-          {confirmed && <pre>{JSON.stringify(confirmed, null, 4)}</pre>}
-        </div>
-      </div>
-    </>
+      </section>
+    </AppShell>
   );
 }

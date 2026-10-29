@@ -100,6 +100,31 @@ export function ChatIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function BellIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M6 17.5h12l-1.2-1.3a2 2 0 0 1-.5-1.4v-3.1a4.3 4.3 0 0 0-3-4.1V7a1.3 1.3 0 0 0-2.6 0v.6a4.3 4.3 0 0 0-3 4.1v3.1a2 2 0 0 1-.5 1.4L6 17.5Z" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14.1 17.5v.7a2.1 2.1 0 1 1-4.2 0v-.7" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function CloseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M6.5 6.5l11 11m0-11-11 11" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function ChevronLeftIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M14.5 5.5 8 12l6.5 6.5" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function SirenIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>

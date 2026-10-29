@@ -1,17 +1,17 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout';
-import SupportHero from './SupportHero';
-import ContactSection from './ContactSection';
-import InquirySection from './InquirySection';
+import { SupportContent } from './SupportModal';
 
-/** 고객센터 — 대표 전화·대표 이메일 안내와 1:1 문의 접수 */
 export default function SupportPage() {
+  const router = useRouter();
+
   return (
     <AppShell>
-      <SupportHero />
-      <ContactSection />
-      <InquirySection />
+      <section className="flex min-h-[calc(100vh-72px)] justify-center bg-[#F7F8F8] px-4 py-14">
+        <SupportContent onClose={() => router.push('/')} />
+      </section>
     </AppShell>
   );
 }

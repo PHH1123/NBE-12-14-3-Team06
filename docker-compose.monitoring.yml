@@ -1,0 +1,47 @@
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    container_name: gaji-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+    volumes:
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver   # ← 추가
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    container_name: gaji-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+configs:
+  prometheus_config:
+    content: |
+      global:
+        scrape_interval: 15s
+      scrape_configs:
+        - job_name: 'gaji-backend'
+          metrics_path: '/actuator/prometheus'
+          static_configs:
+            - targets: ['host.docker.internal:${BACKEND_PORT:-8080}']
+
+volumes:
+  prometheus-data:
+  grafana-data:

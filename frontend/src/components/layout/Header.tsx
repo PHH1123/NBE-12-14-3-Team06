@@ -1,115 +1,213 @@
 'use client';
 
-import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { PlusCircle, Menu, X } from 'lucide-react';
 import Container from '@/components/ui/Container';
+import { NotificationBell } from '@/features/notification';
 import { cn } from '@/lib/cn';
+import { openGajiSupport } from '@/lib/gajiSupport';
+import { usePostCreationEligibility, postCreationUnavailableReason } from '@/features/payment';
 import UserMenu, { type UserMenuItem } from './UserMenu';
 
-type MenuItem = { label: string; href: string; emphasized?: boolean };
-
+type MenuItem = { label: string; href: string };
 const MENU: MenuItem[] = [
-  { label: '서비스 소개', href: '/#about' },
+  { label: '서비스 소개', href: '/' },
   { label: '공고 찾기', href: '/posts' },
   { label: '이용 방법', href: '/#steps' },
   { label: '고객센터', href: '/support' },
-  { label: '개인정보 처리방침', href: '/privacy' },
 ];
 
-/** 의뢰인·관리자로 로그인했을 때만 "공고 찾기" 옆에 끼워 넣는 메뉴 */
-const POST_REGISTER_ITEM: MenuItem = { label: '공고등록', href: '/client/posts/new', emphasized: true };
-
-const BUTTON_BASE =
-  'inline-flex items-center justify-center rounded-[30px] px-6 py-[18px] text-base leading-[18px] font-semibold whitespace-nowrap transition-colors';
-
 type Props = {
-  /**
-   * 로그인한 사용자. 있으면 "로그인 / 회원가입" 대신 "이름 ⌄ / 로그아웃"을 보여줍니다.
-   * href 는 이름을 눌렀을 때 이동할 마이페이지(기본 /mypage), menu 는 화살표를 눌렀을 때 펼쳐지는 목록입니다.
-   */
   user?: { name: string; href?: string; menu?: UserMenuItem[] };
-  /** 세션을 확인하는 중. 로그인 상태가 정해질 때까지 버튼 자리를 비워 둡니다(깜빡임 방지). */
+  role?: 'CLIENT' | 'ESCORT' | 'ADMIN';
   pending?: boolean;
-  /** 로그아웃 버튼을 눌렀을 때 */
   onLogout?: () => void;
-  /** 의뢰인 또는 관리자로 로그인했는지 — "공고 찾기" 옆에 "공고등록"을 진하게 보여줍니다. */
   canRegisterPost?: boolean;
-  /** 동행 매니저로 로그인했는지 — "공고 찾기"를 지원용 목록(/escort/posts)으로 보냅니다. */
   isEscort?: boolean;
 };
 
-export default function Header({ user, pending, onLogout, canRegisterPost, isEscort }: Props) {
-  const menuItems = canRegisterPost ? [...MENU.slice(0, 2), POST_REGISTER_ITEM, ...MENU.slice(2)] : MENU;
+export default function Header({ user, role, pending, onLogout, canRegisterPost, isEscort }: Props) {
+  const pathname = usePathname();
+  const isHome = pathname === '/';
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 24);
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [pathname]);
+
+  useEffect(() => setMobileOpen(false), [pathname]);
+
+  const creationAvailability = usePostCreationEligibility(role === 'CLIENT' && !!user);
+  const creationBlocked = role === 'CLIENT' && creationAvailability !== 'allowed';
+  const creationReason = postCreationUnavailableReason(creationAvailability);
+
+  const transparent = isHome && !scrolled && !mobileOpen;
+  const resolveHref = (item: MenuItem) =>
+    item.label === '공고 찾기' && isEscort ? '/escort/posts' : item.href;
+  const isActive = (item: MenuItem) => {
+    if (item.label === '서비스 소개') return pathname === '/';
+    if (item.label === '공고 찾기') return pathname === '/posts' || pathname.startsWith('/posts/') || pathname.startsWith('/escort/posts');
+    if (item.label === '고객센터') return pathname === '/support';
+    return false;
+  };
+
+  const menuLinks = (mobile = false) => MENU.map((item) => {
+    const className = cn(
+      'relative whitespace-nowrap py-1 text-[16px] font-medium transition-colors duration-200',
+      mobile
+        ? 'text-[#67717C] hover:text-[#14243A]'
+        : transparent
+          ? 'text-white/80 hover:text-white'
+          : 'text-[#67717C] hover:text-[#14243A]',
+      isActive(item) && (transparent && !mobile ? 'font-semibold text-white' : 'font-semibold text-[#14243A]'),
+    );
+
+    if (item.label === '고객센터') {
+      return (
+        <button
+          key={item.label}
+          type="button"
+          className={className}
+          onClick={() => { setMobileOpen(false); openGajiSupport(); }}
+        >
+          {item.label}
+        </button>
+      );
+    }
+
+    return (
+      <Link
+        key={item.label}
+        href={resolveHref(item)}
+        onClick={() => setMobileOpen(false)}
+        aria-current={isActive(item) ? 'page' : undefined}
+        className={className}
+      >
+        {item.label}
+        {isActive(item) && !mobile && (
+          <span className={cn('absolute inset-x-0 bottom-0 h-[2px] rounded-full', transparent ? 'bg-white' : 'bg-[#426B93]')} />
+        )}
+      </Link>
+    );
+  });
+
+  const accountName = user && (
+    role === 'CLIENT'
+      ? `${user.name.replace(/\s*님$/, '')} 님`
+      : role === 'ESCORT'
+        ? `${user.name.replace(/\s*매니저$/, '')} 매니저`
+        : user.name
+  );
+
+  const accountActions = pending ? (
+    <div aria-hidden="true" className="h-11 w-28" />
+  ) : user ? (
+    <div className="flex items-center gap-2 sm:gap-3">
+      <NotificationBell transparent={transparent} />
+      <UserMenu
+        name={accountName ?? user.name}
+        href={user.href ?? '/mypage'}
+        items={user.menu}
+        role={role}
+        transparent={transparent}
+        onLogout={onLogout}
+      />
+    </div>
+  ) : (
+    <div className="flex items-center gap-2">
+      <Link
+        href="/login"
+        className={cn(
+          'inline-flex h-[44px] items-center rounded-[10px] border px-4 text-[15px] font-semibold transition-colors duration-200',
+          transparent
+            ? 'border-white/40 text-white hover:bg-white/10'
+            : 'border-[#E1E5E8] bg-white text-[#14243A] hover:bg-[#F7F8F8]',
+        )}
+      >
+        로그인
+      </Link>
+      <Link
+        href="/signup"
+        className="inline-flex h-[44px] items-center rounded-[10px] bg-[#14243A] px-4 text-[15px] font-semibold text-white transition-colors duration-200 hover:bg-[#1F3757]"
+      >
+        회원가입
+      </Link>
+    </div>
+  );
+
+  const registerButton = creationBlocked ? (
+    <span aria-disabled="true" title={creationReason} className="inline-flex h-[44px] cursor-not-allowed items-center gap-1.5 rounded-[10px] bg-[#426B93] px-4 text-[15px] font-semibold text-white opacity-50">
+      <PlusCircle className="h-4 w-4" /><span>공고등록</span>
+    </span>
+  ) : (
+    <Link href="/client/posts/new" className="inline-flex h-[44px] items-center gap-1.5 rounded-[10px] bg-[#426B93] px-4 text-[15px] font-semibold text-white transition-colors duration-200 hover:bg-[#345778]">
+      <PlusCircle className="h-4 w-4" /><span>공고등록</span>
+    </Link>
+  );
 
   return (
-    <header className="flex items-center bg-white py-4 lg:h-[118px] lg:py-0">
-      <Container className="flex flex-wrap items-center justify-between gap-6 lg:gap-x-10">
-        <Link href="/" aria-label="가지 홈" className="shrink-0">
-          <Image
-            src="/images/logo/logo.png"
-            alt=""
-            width={528}
-            height={528}
-            priority
-            className="size-[58px] -rotate-90 object-contain lg:size-[72px]"
-          />
+    <header className={cn(
+      'top-0 z-40 w-full transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300',
+      isHome ? 'fixed' : 'sticky',
+      transparent
+        ? 'border-b border-white/15 bg-transparent text-white'
+        : 'border-b border-[#E1E5E8] bg-white/95 text-[#14243A] shadow-xs backdrop-blur-md',
+    )}>
+      <Container className="flex h-[72px] items-center justify-between gap-4">
+        <Link href="/" aria-label="GAJI 홈" className="flex shrink-0 items-center gap-2">
+          <span className={cn('text-2xl font-semibold tracking-tight', transparent ? 'text-white' : 'text-[#14243A]')}>GAJI</span>
+          <span className={cn('text-base font-bold tracking-tight', transparent ? 'text-white/90' : 'text-[#14243A]')}>가지</span>
+          <span className={cn('h-1.5 w-1.5 rounded-full', transparent ? 'bg-white/80' : 'bg-[#14243A]')} />
+          {(role === 'ADMIN' || pathname.startsWith('/admin')) && (
+            <span className="ml-2 rounded border border-[#14243A] bg-[#14243A] px-2.5 py-0.5 text-xs font-bold text-white">관리자</span>
+          )}
         </Link>
 
-        {/* 모바일에서는 메뉴를 아래로 내리고 가로 스크롤 */}
-        <nav
-          aria-label="주요 메뉴"
-          className="order-2 flex w-full items-center gap-5 overflow-x-auto pb-1 lg:order-none lg:mr-auto lg:w-auto lg:gap-[33px] lg:overflow-visible lg:pb-0"
-        >
-          {menuItems.map((item) => {
-            // "공고 찾기"는 동행 매니저에게만 지원용 목록(/escort/posts, 로그인 필요)으로 보내고,
-            // 그 외(의뢰인·관리자·비로그인)는 원래 공개 목록(/posts)으로 보냅니다.
-            // ⚠️ /escort/posts 는 ESCORT 전용 가드가 걸려 있어서, 예전처럼 "로그인만 하면" 보내면
-            //    CLIENT/ADMIN 은 눌러도 그 페이지에서 바로 튕겨나와 안 눌리는 것처럼 보입니다.
-            const href = item.label === '공고 찾기' && isEscort ? '/escort/posts' : item.href;
-
-            return (
-                <Link
-                    key={item.label}
-                    href={href}
-                    className={cn(
-                      'text-base leading-[18px] whitespace-nowrap transition-colors hover:text-brand-hover lg:text-lg',
-                      item.emphasized ? 'font-bold text-brand' : 'text-brand',
-                    )}
-                >
-                  {item.label}
-                </Link>
-            );
-          })}
+        <nav aria-label="주요 메뉴" className="hidden items-center gap-8 lg:flex">
+          {menuLinks()}
         </nav>
 
-        {pending ? (
-          // 로그인 여부가 정해지기 전에는 버튼 자리만 잡아 둡니다 (54px = 버튼 높이).
-          <div aria-hidden="true" className="h-[54px] min-w-[104px]" />
-        ) : user ? (
-          <div className="flex items-center gap-[25px]">
-            <UserMenu name={user.name} href={user.href ?? '/mypage'} items={user.menu} />
-            <button
-              type="button"
-              onClick={onLogout}
-              className={`${BUTTON_BASE} min-w-[104px] border border-line bg-white text-brand hover:bg-line-soft`}
-            >
-              로그아웃
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/login"
-              className={`${BUTTON_BASE} min-w-[104px] border border-line bg-white text-brand hover:bg-line-soft`}
-            >
-              로그인
-            </Link>
-            <Link href="/signup" className={`${BUTTON_BASE} bg-brand text-white hover:bg-brand-hover`}>
-              회원가입
-            </Link>
-          </div>
-        )}
+        <div className="hidden shrink-0 items-center gap-3 lg:flex">
+          {canRegisterPost && registerButton}
+          {accountActions}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMobileOpen((open) => !open)}
+          aria-expanded={mobileOpen}
+          aria-controls="gaji-mobile-menu"
+          aria-label={mobileOpen ? '메뉴 닫기' : '메뉴 열기'}
+          className={cn(
+            'inline-flex h-[44px] w-[44px] items-center justify-center rounded-[10px] border transition-colors lg:hidden',
+            transparent ? 'border-white/40 text-white' : 'border-[#E1E5E8] text-[#14243A]',
+          )}
+        >
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </Container>
+
+      {mobileOpen && (
+        <nav id="gaji-mobile-menu" aria-label="모바일 메뉴" className="border-t border-[#E1E5E8] bg-white px-5 py-5 text-[#14243A] lg:hidden">
+          <div className="mx-auto flex max-w-[1240px] flex-col items-start gap-5">
+            {menuLinks(true)}
+            {canRegisterPost && registerButton}
+            <div className="w-full border-t border-[#E1E5E8] pt-4">
+              {accountActions}
+            </div>
+          </div>
+        </nav>
+      )}
     </header>
   );
 }

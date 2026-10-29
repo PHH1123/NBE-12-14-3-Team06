@@ -1,0 +1,31 @@
+{
+  "label": "idx_warmup",
+  "at": "2026-10-27T05:41:33.036Z",
+  "config": {
+    "vus": 50,
+    "duration": "30s",
+    "locSleep": 1
+  },
+  "apis": {
+    "posts_list": {
+      "avg": 22.601742,
+      "p95": 110.94474999999998,
+      "p99": 303.44575000000003,
+      "max": 306.968,
+      "count": 1500,
+      "rps": 50,
+      "errorRate": 0,
+      "hikariActiveMax": 1,
+      "hikariPendingMax": 0
+    }
+  },
+  "hikari": {
+    "activeMax": 1,
+    "activeAvg": 0.025,
+    "pendingMax": 0
+  },
+  "cpu": {
+    "avg": 0.010359110318704168,
+    "max": 0.11484660461909686
+  }
+}

@@ -1,20 +1,25 @@
 # application-dev.yaml
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3307/${MYSQL_DATABASE}?allowPublicKeyRetrieval=true&useSSL=false
-    username: ${MYSQL_USER}
-    password: ${MYSQL_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: jdbc:postgresql://localhost:5433/${POSTGRES_DB}?allowPublicKeyRetrieval=true&useSSL=false   # MySQL 용 옵션이 남아 있어 주석 처리
+    url: jdbc:postgresql://localhost:5433/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 3000
   jpa:
     hibernate:
       ddl-auto: create
+  ai:
+    anthropic:
+      api-key: ${CLAUDE_API_KEY}
+      timeout: 30s
+      chat:
+        model: claude-sonnet-5
+        max-tokens: 1024
 
-#logback-spring.xml 생성으로 미이용(주석)처리
-#logging:
-    #  level:
-    #org.hibernate.SQL: debug
-    #org.hibernate.orm.jdbc.bind: trace
-    #org.springframework.transaction.interceptor: trace
+
 
 custom:
   jwt:
@@ -24,7 +29,15 @@ custom:
   cookie:
     secure: false
     same-site: Lax
-  claude:
-    api-key: ${CLAUDE_API_KEY}
-    model: claude-sonnet-5
-    max-tokens: 1024
+##  claude:
+##    api-key: ${CLAUDE_API_KEY}
+##    model: claude-sonnet-5
+##    max-tokens: 1024
+  toss:
+    secret-key: ${TOSS_SECRET}
+  ai:
+    report-summary:
+      prompt-version: v2
+  crypto:
+    encryption-key: ${PII_ENCRYPTION_KEY}
+    hmac-key: ${PII_HMAC_KEY}

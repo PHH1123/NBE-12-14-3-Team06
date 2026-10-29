@@ -25,8 +25,12 @@ export type PostSummary = {
   region: string;
   /** 구/군 */
   district: string;
-  /** 작성자(의뢰인) 아이디 */
+  /** 작성자(의뢰인) 마스킹 이름 */
   clientId: string;
+  /** 서버에서 확인한 본인 공고 여부 */
+  isOwner: boolean;
+  /** 작성자(의뢰인) userId — "연락하기"로 채팅방을 열 때 씁니다. */
+  clientUserId: number;
   /** 백엔드 postStatus 원문 ("모집 중" · "매칭 완료" · "동행 진행 중" · "동행 완료" · "취소됨" · "마감 기한 초과") */
   postStatus: string;
   /** "2시간 전" */
@@ -63,6 +67,8 @@ export type PostDetail = PostSummary & {
    * 백엔드가 "모집 시작 전"까지만 공고 수정을 허용해서 수정 버튼 노출에 씁니다.
    */
   recruitStarted: boolean;
+  /** 환자 특이사항·상세 출발지를 볼 권한이 있는지 (서버가 판단) */
+  canViewSensitive: boolean;
 };
 
 export type PostSort = 'deadline' | 'latest' | 'payHigh' | 'payLow';
@@ -80,7 +86,9 @@ export type PostFilters = {
 /** 백엔드 공고 응답 (PostDto) — 목록·상세 API 가 돌려주는 모양 그대로 */
 export type PostDto = {
   id: number;
-  client_id: string;            // 작성자 아이디 (username)
+  client_id: string;            // 작성자 마스킹 이름
+  isOwner: boolean;            // 서버에서 판단한 작성자 본인 여부
+  clientUserId: number;         // 작성자 userId — 채팅방을 열 때 필요합니다
   title: string;
   content: string;
   patientNote: string | null;   // 선택 항목이라 비어 있을 수 있음
@@ -103,6 +111,8 @@ export type PostDto = {
   reportRequired: boolean;
   createdAt: string;
   updatedAt: string;
+  /** 환자 특이사항을 볼 권한 (작성자·승인된 동행인·관리자). false 면 patientNote 는 null 로 옵니다. */
+  canViewSensitive: boolean;
 };
 
 /** 백엔드 공고 등록·수정 요청 (PostWriteRequest) — POST/PUT /api/v1/posts 에 그대로 보냅니다. */

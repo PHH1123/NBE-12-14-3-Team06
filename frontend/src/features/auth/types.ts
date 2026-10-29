@@ -27,8 +27,6 @@ export type LoginFormValues = {
   /** 백엔드는 username 으로만 찾습니다 (이메일 로그인은 아직 없습니다) */
   username: string;
   password: string;
-  /** 로그인 상태 유지 — 백엔드에 해당 항목이 없어서 아직 화면 표시용입니다 */
-  rememberMe: boolean;
 };
 
 /** 간편 로그인 제공자 */

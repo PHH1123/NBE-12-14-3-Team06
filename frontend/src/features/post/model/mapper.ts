@@ -25,6 +25,8 @@ export function toPostSummary(dto: PostDto): PostSummary {
     region: dto.region,
     district: dto.hospitalAddress.split(' ')[1] ?? '',
     clientId: dto.client_id,
+    isOwner: dto.isOwner,
+    clientUserId: dto.clientUserId,
     postStatus: dto.postStatus,
     postedAgo: formatAgo(dto.createdAt),
     startsInDays: daysUntil(dto.escortStartAt),
@@ -48,5 +50,6 @@ export function toPostDetail(dto: PostDto): PostDetail {
     reportRequired: dto.reportRequired,
     recruitPeriod: `${formatMonthDayTime(dto.recruitStartAt)} ~ ${formatMonthDayTime(dto.recruitEndAt)}`,
     recruitStarted: parseDateTime(dto.recruitStartAt).getTime() <= Date.now(),
+    canViewSensitive: dto.canViewSensitive,
   };
 }

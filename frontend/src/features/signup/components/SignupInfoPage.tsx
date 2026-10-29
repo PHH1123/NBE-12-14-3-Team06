@@ -1,10 +1,11 @@
 'use client';
+import { useActionDialog } from '@/components/ui/useActionDialog';
 
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { LockKeyhole, UserRound, Eye, EyeOff, ClipboardList } from 'lucide-react';
 import { AppShell } from '@/components/layout';
-import { Container, SectionHeading } from '@/components/ui';
-import { useAuth } from '@/features/auth';
 import { ApiError } from '@/lib/api';
 import { checkEmailAvailable, checkUsernameAvailable, createClientProfile, createEscortProfile, signUp } from '../api';
 import { useDuplicateCheck, type DuplicateCheckMessage } from '../hooks/useDuplicateCheck';
@@ -14,17 +15,14 @@ import { useSignup } from '../state/SignupContext';
 import type { SignupFormValues, SignupRole } from '../types';
 import SignupStepper from './SignupStepper';
 import CheckButton from './form/CheckButton';
-import FormCard from './form/FormCard';
 import FormField from './form/FormField';
 import GenderRadioGroup from './form/GenderRadioGroup';
 import SelectInput from './form/SelectInput';
-import StepNavButton from './form/StepNavButton';
 import TextArea from './form/TextArea';
 import TextInput from './form/TextInput';
 
 const PHONE_HINT = '‘-’ 없이 숫자만 입력해주세요.';
-/** 계좌 정보 입력칸은 다른 칸보다 낮습니다 (Figma 높이 47) */
-const ACCOUNT_FIELD = 'h-[47px]!';
+const ACCOUNT_FIELD = 'h-12';
 /**
  * 생년월일 달력에서 고를 수 있는 마지막 날 = 어제. (백엔드 @Past 는 오늘을 받지 않습니다)
  * sv-SE 로캘이 달력 입력과 같은 YYYY-MM-DD 형식을 주고, UTC 가 아닌 현지 시간 기준이라 날짜가 밀리지 않습니다.
@@ -34,8 +32,7 @@ const LAST_BIRTH_DATE = (() => {
   date.setDate(date.getDate() - 1);
   return date.toLocaleDateString('sv-SE');
 })();
-const GRID = 'mx-auto grid w-full max-w-[998px] gap-x-8 gap-y-[21px] lg:grid-cols-2';
-const ERROR_TEXT = 'px-4 text-sm leading-5 font-medium text-[#b91d1d]';
+const ERROR_TEXT = 'text-xs leading-5 font-medium text-[#B4413C]';
 
 type FieldKey = keyof SignupFormValues;
 
@@ -112,7 +109,7 @@ function CheckMessage({ message }: { message: DuplicateCheckMessage | null }) {
   return (
     <p
       role={message.ok ? 'status' : 'alert'}
-      className={`px-4 text-sm leading-5 font-medium ${message.ok ? 'text-brand' : 'text-[#b91d1d]'}`}
+      className={`text-xs leading-5 font-medium ${message.ok ? 'text-[#2F7D5B]' : 'text-[#B4413C]'}`}
     >
       {message.text}
     </p>
@@ -120,16 +117,18 @@ function CheckMessage({ message }: { message: DuplicateCheckMessage | null }) {
 }
 
 /**
- * 회원가입 3단계(정보 입력) — Figma 공통_회원가입_의뢰인(정보 입력) 564:17746
- *                              · 공통_회원가입_동행 매니저(정보 입력) 564:17621
+ * 회원가입 정보 입력 화면.
  *
  * 형식 검사는 브라우저 기본 검사(required · pattern · type)를 씁니다.
  * "가입하기"를 누르면 여기서 가입을 요청합니다. 전화번호 중복처럼 서버만 아는 문제로 거절되면
  * 입력값을 그대로 둔 채 문제 칸 아래에 사유를 보여 주고 그 칸으로 포커스를 옮깁니다.
  */
 export default function SignupInfoPage() {
+  const { notice, dialog } = useActionDialog();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+
   const router = useRouter();
-  const { reload } = useAuth();
   const role = useSignupRole();
   // 입력값은 다른 단계와 공유하고, 이전 단계로 돌아와도 유지됩니다.
   const { values, setValues, verified, setVerified, agreements, createdRole, setCreatedRole } = useSignup();
@@ -174,13 +173,20 @@ export default function SignupInfoPage() {
   // 거절된 칸으로 포커스를 옮기고 화면 가운데로 스크롤합니다. (성별 라디오는 첫 번째 버튼)
   useEffect(() => {
     if (!fieldError) return;
-    const input = formRef.current?.querySelector<HTMLElement>(`[name="${fieldError.key}"]`);
+    const input = formRef.current?.querySelector<HTMLElement>(`[data-field-name="${fieldError.key}"]`)
+      ?? formRef.current?.querySelector<HTMLElement>(`[name="${fieldError.key}"]`);
     input?.focus({ preventScroll: true });
     input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [fieldError]);
 
   // 계정만 만들어지고 프로필이 실패한 상태. 기본 정보 칸은 모양 그대로 두고 값만 바뀌지 않게 막습니다.
   const accountCreated = createdRole !== null;
+
+  const handleSelectChange = (key: FieldKey, value: string) => {
+    if (accountCreated && ACCOUNT_FIELDS.has(key)) return;
+    setValues((prev) => ({ ...prev, [key]: value }));
+    if (fieldError?.key === key) setFieldError(null);
+  };
 
   const handleChange =
     (key: keyof SignupFormValues) =>
@@ -204,8 +210,8 @@ export default function SignupInfoPage() {
   /** 중복 확인이 남았으면 팝업으로 알려 주고 true. */
   const alertUnverified = () => {
     if (unverified.length === 0) return false;
-    window.alert(`${unverified.join(', ')} 중복 확인을 해주세요.`);
-    (usernameCheck.verified ? emailRef : usernameRef).current?.focus();
+    void notice({ title: '중복 확인이 필요합니다.', description: `${unverified.join(', ')} 중복 확인을 해주세요.` })
+      .then(() => (usernameCheck.verified ? emailRef : usernameRef).current?.focus());
     return true;
   };
 
@@ -213,6 +219,21 @@ export default function SignupInfoPage() {
   // 브라우저 기본 검사보다 먼저 돌아야 해서 클릭에서 막습니다. (버튼을 거치지 않는 제출은 handleSubmit 에서 한 번 더 막습니다)
   const handleNextClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (alertUnverified()) event.preventDefault();
+  };
+
+  // 여러 칸을 작성하는 회원가입 폼에서는 입력 중 Enter로 자동 제출하지 않습니다.
+  // 아이디·이메일 중복 확인 안내는 '가입 완료하기'를 눌렀을 때만 표시합니다.
+  const handleInputKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (!['text', 'password', 'email', 'tel', 'number'].includes(target.type)) return;
+
+    event.preventDefault();
+    if (target.name === 'password') confirmRef.current?.focus();
+    else if (target.name === 'passwordConfirm') {
+      formRef.current?.querySelector<HTMLInputElement>('input[name="name"]')?.focus();
+    }
   };
 
   /**
@@ -248,12 +269,17 @@ export default function SignupInfoPage() {
         setCreatedRole(role);
       }
       await (profileRole === 'CLIENT' ? createClientProfile(values) : createEscortProfile(values));
-      await reload(); // 가입하면 바로 로그인 상태라서, 헤더가 이름을 보여주도록 세션을 다시 읽습니다.
-      setValues((prev) => ({ ...prev, password: '', passwordConfirm: '' })); // 비밀번호는 더 들고 있지 않습니다.
-      // 가입이 끝났으니 "프로필만 재시도" 상태를 풉니다. 남겨 두면 비밀번호가 빈 채로 잠겨 폼이 막힙니다.
+      setValues((prev) => ({ ...prev, password: '', passwordConfirm: '' }));
       setCreatedRole(null);
-      // 완료 화면에서 뒤로 가기로 이미 제출한 폼에 돌아오지 않도록 기록을 바꿔치기합니다.
-      router.replace(`/signup/complete?role=${profileRole}`);
+      try {
+        sessionStorage.setItem(
+          'gaji:signup:completed',
+          JSON.stringify({ role: profileRole, name: values.name.trim(), username: values.username.trim() }),
+        );
+      } catch {
+        // 브라우저 저장소를 사용할 수 없어도 가입 완료 페이지로 이동합니다.
+      }
+      window.location.replace(`/signup/complete?role=${profileRole}`);
     } catch (error) {
       const next = toFieldError(error, values);
       if (next && (next.key === 'username' || next.key === 'email')) {
@@ -274,25 +300,128 @@ export default function SignupInfoPage() {
 
   return (
     <AppShell>
-      <section className="bg-white py-[50px]">
-        <Container className="flex flex-col items-center">
-          <div className="mb-8 flex w-full justify-center lg:mb-[50px]">
+      <main className="bg-[#F7F8F8] px-5 pb-24 pt-12 sm:px-8 sm:pt-16">
+        <div className="mx-auto flex max-w-3xl flex-col items-center">
+          <div className="mb-10 flex w-full justify-center sm:mb-12">
             <SignupStepper current={3} />
           </div>
 
-          <form
-            ref={formRef}
-            onSubmit={handleSubmit}
-            className="flex w-full max-w-[1066px] flex-col items-center gap-8 lg:gap-[50px]"
-          >
-            <section className="w-full">
-              <SectionHeading
-                title="기본 정보를 입력해주세요"
-                description="정보 입력은 더 나은 매칭과 안전한 서비스 이용을 위해 필요합니다."
-                className="mb-6"
-              />
-              <FormCard className="px-5 py-8 lg:px-[33px] lg:py-[39px]">
-                <div className={GRID}>
+          <header className="mb-9 space-y-2 text-center sm:mb-10">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#426B93]">
+              {role === 'CLIENT' ? '의뢰인' : '동행 매니저'} 회원가입
+            </span>
+            <h1 className="text-2xl font-semibold text-[#14243A] sm:text-3xl">
+              가입 정보를 입력해 주세요
+            </h1>
+            <p className="text-sm text-[#67717C]">
+              서비스 이용에 필요한 정보를 입력해 주세요.
+            </p>
+          </header>
+
+          <form ref={formRef} onSubmit={handleSubmit} onKeyDown={handleInputKeyDown} className="w-full">
+            <div className="w-full rounded-2xl border border-[#E1E5E8] bg-white p-6 shadow-[0_3px_12px_rgba(20,36,58,0.035)] sm:p-8">
+              <section aria-labelledby="signup-account-heading">
+                <div className="mb-6 flex items-start gap-2.5">
+                  <LockKeyhole className="mt-0.5 shrink-0 text-[#426B93]" size={19} strokeWidth={1.8} aria-hidden="true" />
+                  <div>
+                    <h2 id="signup-account-heading" className="text-base font-semibold text-[#14243A]">
+                      01. 계정 기본 정보
+                    </h2>
+                    <p className="mt-1 text-xs leading-5 text-[#67717C]">
+                      로그인 시 사용할 아이디와 안전한 비밀번호를 설정합니다.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid w-full grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
+                  <FormField label="아이디*" htmlFor="signup-username" className="sm:col-span-2">
+                    <div className="flex gap-2.5">
+                      <TextInput
+                        ref={usernameRef}
+                        id="signup-username"
+                        className="min-w-0 flex-1"
+                        name="username"
+                        autoComplete="username"
+                        required
+                        pattern="(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{4,}"
+                        title="영문, 숫자를 포함해 4자 이상 입력해주세요."
+                        placeholder="영문, 숫자 포함 4자 이상"
+                        value={values.username}
+                        onChange={handleChange('username')}
+                      />
+                      <CheckButton onClick={usernameCheck.handleCheck} disabled={usernameCheck.checking} />
+                    </div>
+                    <CheckMessage message={usernameCheck.message} />
+                    <FieldErrorMessage error={fieldError} field="username" />
+                  </FormField>
+
+                  <FormField label="비밀번호*" htmlFor="signup-password">
+                    <div className="relative min-w-0">
+                      <TextInput
+                        id="signup-password"
+                        className="pr-11"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        required
+                        placeholder="비밀번호를 입력해주세요."
+                        value={values.password}
+                        onChange={handleChange('password')}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8793A0] transition-colors hover:text-[#426B93]"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    <FieldErrorMessage error={fieldError} field="password" />
+                  </FormField>
+
+                  <FormField label="비밀번호 확인*" htmlFor="signup-password-confirm">
+                    <div className="relative min-w-0">
+                      <TextInput
+                        ref={confirmRef}
+                        id="signup-password-confirm"
+                        className="pr-11"
+                        name="passwordConfirm"
+                        type={showPasswordConfirm ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        required
+                        placeholder="비밀번호를 다시 입력해주세요."
+                        value={values.passwordConfirm}
+                        onChange={handleChange('passwordConfirm')}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordConfirm((v) => !v)}
+                        aria-label={showPasswordConfirm ? '비밀번호 숨기기' : '비밀번호 표시'}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8793A0] transition-colors hover:text-[#426B93]"
+                      >
+                        {showPasswordConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    <FieldErrorMessage error={fieldError} field="passwordConfirm" />
+                  </FormField>
+                </div>
+              </section>
+
+              <section aria-labelledby="signup-personal-heading" className="mt-8 border-t border-[#E1E5E8] pt-8">
+                <div className="mb-6 flex items-start gap-2.5">
+                  <UserRound className="mt-0.5 shrink-0 text-[#426B93]" size={19} strokeWidth={1.8} aria-hidden="true" />
+                  <div>
+                    <h2 id="signup-personal-heading" className="text-base font-semibold text-[#14243A]">
+                      02. 기본 인적 사항
+                    </h2>
+                    <p className="mt-1 text-xs leading-5 text-[#67717C]">
+                      본인 확인과 안전한 서비스 제공을 위해 필요한 정보입니다.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid w-full grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
                   <FormField label="이름*" htmlFor="signup-name">
                     <TextInput
                       id="signup-name"
@@ -321,61 +450,12 @@ export default function SignupInfoPage() {
                     />
                     <FieldErrorMessage error={fieldError} field="phoneNum" />
                   </FormField>
-
-                  <FormField label="아이디*" htmlFor="signup-username" className="lg:col-span-2">
-                    <div className="flex gap-2.5 lg:max-w-[485px]">
-                      <TextInput
-                        ref={usernameRef}
-                        id="signup-username"
-                        name="username"
-                        autoComplete="username"
-                        required
-                        pattern="(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]{4,}"
-                        title="영문, 숫자를 포함해 4자 이상 입력해주세요."
-                        placeholder="영문, 숫자 포함 4자 이상"
-                        value={values.username}
-                        onChange={handleChange('username')}
-                      />
-                      <CheckButton onClick={usernameCheck.handleCheck} disabled={usernameCheck.checking} />
-                    </div>
-                    <CheckMessage message={usernameCheck.message} />
-                    <FieldErrorMessage error={fieldError} field="username" />
-                  </FormField>
-
-                  <FormField label="비밀번호*" htmlFor="signup-password">
-                    <TextInput
-                      id="signup-password"
-                      name="password"
-                      type="password"
-                      autoComplete="new-password"
-                      required
-                      placeholder="비밀번호를 입력해주세요."
-                      value={values.password}
-                      onChange={handleChange('password')}
-                    />
-                    <FieldErrorMessage error={fieldError} field="password" />
-                  </FormField>
-                  <FormField label="비밀번호 확인*" htmlFor="signup-password-confirm">
-                    <TextInput
-                      ref={confirmRef}
-                      id="signup-password-confirm"
-                      name="passwordConfirm"
-                      type="password"
-                      autoComplete="new-password"
-                      required
-                      placeholder="비밀번호를 다시 입력해주세요."
-                      value={values.passwordConfirm}
-                      onChange={handleChange('passwordConfirm')}
-                    />
-                    <FieldErrorMessage error={fieldError} field="passwordConfirm" />
-                  </FormField>
-
-                  <FormField label="이메일*" htmlFor="signup-email">
-                    {/* 디자인상 이 줄은 485px 로 열(483px)보다 살짝 넓습니다 */}
-                    <div className="flex gap-2.5 lg:w-[485px]">
+                  <FormField label="이메일*" htmlFor="signup-email" className="sm:col-span-2">
+                    <div className="flex gap-2.5">
                       <TextInput
                         ref={emailRef}
                         id="signup-email"
+                        className="min-w-0 flex-1"
                         name="email"
                         type="email"
                         autoComplete="email"
@@ -389,7 +469,7 @@ export default function SignupInfoPage() {
                     <CheckMessage message={emailCheck.message} />
                     <FieldErrorMessage error={fieldError} field="email" />
                   </FormField>
-                  <FormField label="성별*" labelId="signup-gender-label" className="lg:self-center">
+                  <FormField label="성별*" labelId="signup-gender-label">
                     <GenderRadioGroup
                       labelId="signup-gender-label"
                       value={values.gender}
@@ -397,7 +477,6 @@ export default function SignupInfoPage() {
                     />
                     <FieldErrorMessage error={fieldError} field="gender" />
                   </FormField>
-
                   <FormField label="생년월일*" htmlFor="signup-birth-date">
                     <TextInput
                       id="signup-birth-date"
@@ -411,39 +490,38 @@ export default function SignupInfoPage() {
                     />
                     <FieldErrorMessage error={fieldError} field="birthDate" />
                   </FormField>
-                  <FormField label="거주 지역*" htmlFor="signup-region">
+                  <FormField label="거주 지역*" htmlFor="signup-region" className="sm:col-span-2">
                     <SelectInput
                       id="signup-region"
                       name="region"
-                      autoComplete="address-level1"
                       required
                       value={values.region}
-                      onChange={handleChange('region')}
-                    >
-                      <option value="" disabled hidden>
-                        시/도를 선택해주세요.
-                      </option>
-                      {REGIONS.map((region) => (
-                        <option key={region} value={region} className="text-brand">
-                          {region}
-                        </option>
-                      ))}
-                    </SelectInput>
+                      placeholder="시/도를 선택해주세요."
+                      options={REGIONS.map((region) => ({ value: region, label: region }))}
+                      onValueChange={(region) => handleSelectChange('region', region)}
+                    />
                     <FieldErrorMessage error={fieldError} field="region" />
                   </FormField>
                 </div>
-              </FormCard>
-            </section>
+              </section>
 
-            {role === 'CLIENT' && (
-              <section className="w-full">
-                <SectionHeading
-                  title="의뢰인 추가 정보"
-                  description="더 안전하고 정확한 동행 매칭을 위해 추가 정보를 입력해주세요."
-                  className="mb-6"
-                />
-                <FormCard className="px-5 py-8 lg:pt-[28px] lg:pr-[29px] lg:pb-[31px] lg:pl-[31px]">
-                  <div className="grid w-full gap-x-8 gap-y-[21px] lg:grid-cols-2">
+              <section aria-labelledby="signup-extra-heading" className="mt-8 border-t border-[#E1E5E8] pt-8">
+                <div className="mb-6 flex items-start gap-2.5">
+                  <ClipboardList className="mt-0.5 shrink-0 text-[#426B93]" size={19} strokeWidth={1.8} aria-hidden="true" />
+                  <div>
+                    <h2 id="signup-extra-heading" className="text-base font-semibold text-[#14243A]">
+                      03. {role === 'CLIENT' ? '의뢰인' : '동행 매니저'} 추가 정보
+                    </h2>
+                    <p className="mt-1 text-xs leading-5 text-[#67717C]">
+                      {role === 'CLIENT'
+                        ? '보호자 정보와 필요한 도움을 입력해 주세요.'
+                        : '활동 및 정산에 필요한 정보를 입력해 주세요.'}
+                    </p>
+                  </div>
+                </div>
+
+                {role === 'CLIENT' && (
+                  <div className="grid w-full grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
                     <FormField label="보호자 실명*" htmlFor="signup-guardian-name">
                       <TextInput
                         id="signup-guardian-name"
@@ -471,7 +549,7 @@ export default function SignupInfoPage() {
                       />
                       <FieldErrorMessage error={fieldError} field="guardianPhone" />
                     </FormField>
-                    <FormField label="의뢰인 특이사항" htmlFor="signup-care-note" className="lg:col-span-2">
+                    <FormField label="의뢰인 특이사항" htmlFor="signup-care-note" className="sm:col-span-2">
                       <TextArea
                         id="signup-care-note"
                         name="careNote"
@@ -483,41 +561,23 @@ export default function SignupInfoPage() {
                       <FieldErrorMessage error={fieldError} field="careNote" />
                     </FormField>
                   </div>
-                </FormCard>
-              </section>
-            )}
+                )}
 
-            {role === 'ESCORT' && (
-              <section className="w-full">
-                <SectionHeading
-                  title="동행 매니저 추가 정보"
-                  description="신뢰할 수 있는 매칭을 위해 추가 정보를 입력해주세요."
-                  className="mb-6"
-                />
-                <FormCard className="flex flex-col gap-2.5 px-5 py-8 lg:pr-[30px] lg:pl-8">
-                  {/* 정산받을 계좌 — 백엔드 EscortProfileRequest 가 셋 다 필수라 모두 required 입니다. */}
-                  <div className="flex flex-col gap-[21px] py-2.5 lg:flex-row lg:justify-between lg:gap-8">
-                    <FormField label="은행*" htmlFor="signup-bank" className="lg:w-[222px]">
+                {role === 'ESCORT' && (
+                  <div className="grid w-full grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
+                    <FormField label="은행*" htmlFor="signup-bank">
                       <SelectInput
                         id="signup-bank"
                         name="bankName"
                         required
                         value={values.bankName}
-                        onChange={handleChange('bankName')}
-                        className={ACCOUNT_FIELD}
-                      >
-                        <option value="" disabled hidden>
-                          은행을 선택해주세요.
-                        </option>
-                        {BANKS.map((bank) => (
-                          <option key={bank} value={bank} className="text-brand">
-                            {bank}
-                          </option>
-                        ))}
-                      </SelectInput>
+                        placeholder="은행을 선택해주세요."
+                        options={BANKS.map((bank) => ({ value: bank, label: bank }))}
+                        onValueChange={(bank) => handleSelectChange('bankName', bank)}
+                      />
                       <FieldErrorMessage error={fieldError} field="bankName" />
                     </FormField>
-                    <FormField label="예금주*" htmlFor="signup-account-holder" className="lg:w-[222px]">
+                    <FormField label="예금주*" htmlFor="signup-account-holder">
                       <TextInput
                         id="signup-account-holder"
                         name="accountHolder"
@@ -530,7 +590,7 @@ export default function SignupInfoPage() {
                       />
                       <FieldErrorMessage error={fieldError} field="accountHolder" />
                     </FormField>
-                    <FormField label="계좌번호*" htmlFor="signup-account-number" className="lg:w-[222px]">
+                    <FormField label="계좌번호*" htmlFor="signup-account-number" className="sm:col-span-2">
                       <TextInput
                         id="signup-account-number"
                         name="accountNumber"
@@ -546,49 +606,56 @@ export default function SignupInfoPage() {
                       />
                       <FieldErrorMessage error={fieldError} field="accountNumber" />
                     </FormField>
+                    <FormField label="자기소개*" htmlFor="signup-intro" className="sm:col-span-2">
+                      <TextArea
+                        id="signup-intro"
+                        name="intro"
+                        required
+                        maxLength={500}
+                        placeholder={'간단한 자기소개를 입력해주세요.\n예) 경력, 보유 자격증, 성격 등'}
+                        value={values.intro}
+                        onChange={handleChange('intro')}
+                      />
+                      <FieldErrorMessage error={fieldError} field="intro" />
+                    </FormField>
                   </div>
-
-                  <FormField label="자기소개*" htmlFor="signup-intro">
-                    <TextArea
-                      id="signup-intro"
-                      name="intro"
-                      required
-                      maxLength={500}
-                      placeholder={'간단한 자기소개를 입력해주세요.\n예) 경력, 보유 자격증, 성격 등'}
-                      value={values.intro}
-                      onChange={handleChange('intro')}
-                    />
-                    <FieldErrorMessage error={fieldError} field="intro" />
-                  </FormField>
-                </FormCard>
+                )}
               </section>
-            )}
 
-            {accountCreated && (
-              <p role="status" className={`w-full ${ERROR_TEXT}`}>
-                계정은 만들어졌어요. 추가 정보만 고친 뒤 다시 가입하기를 눌러 주세요.
-              </p>
-            )}
-            {submitError && (
-              <p role="alert" className={`w-full ${ERROR_TEXT}`}>
-                {submitError}
-              </p>
-            )}
+              {accountCreated && (
+                <p role="status" className={`w-full ${ERROR_TEXT}`}>
+                  계정은 만들어졌어요. 추가 정보만 고친 뒤 다시 가입하기를 눌러 주세요.
+                </p>
+              )}
+              {submitError && (
+                <p role="alert" className={`w-full ${ERROR_TEXT}`}>
+                  {submitError}
+                </p>
+              )}
 
-            <div className="flex w-full gap-2.5">
-              <StepNavButton href={`/signup/terms?role=${role}`}>이전</StepNavButton>
-              <StepNavButton
-                variant="solid"
-                disabled={submitting}
-                inactive={unverified.length > 0}
-                onClick={handleNextClick}
-              >
-                {submitting ? '가입 중...' : '가입하기'}
-              </StepNavButton>
+              <div className="mt-8 flex w-full flex-col-reverse gap-3 border-t border-[#E1E5E8] pt-6 sm:flex-row sm:justify-between">
+                <Link
+                  href={`/signup/terms?role=${role}`}
+                  className="inline-flex h-12 items-center justify-center rounded-[10px] border border-[#E1E5E8] bg-white px-6 text-sm font-semibold text-[#67717C] transition-colors hover:bg-[#F7F8F8]"
+                >
+                  이전 단계
+                </Link>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  aria-disabled={unverified.length > 0 || undefined}
+                  onClick={handleNextClick}
+                  className="group inline-flex h-12 items-center justify-center gap-2 rounded-[10px] bg-[#14243A] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#1F3757] disabled:opacity-60"
+                >
+                  {submitting ? '가입 중...' : '가입 완료하기'}
+                  <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">→</span>
+                </button>
+              </div>
             </div>
           </form>
-        </Container>
-      </section>
+        </div>
+      </main>
+      {dialog}
     </AppShell>
   );
 }

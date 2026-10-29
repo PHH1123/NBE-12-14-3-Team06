@@ -12,9 +12,9 @@ spring:
     open-in-view: false
     properties:
       hibernate:
-        format_sql: true
-        highlight_sql: true
-        use_sql_comments: true
+#        format_sql: true
+#        highlight_sql: true
+#        use_sql_comments: true
         default_batch_fetch_size: 100
 
 springdoc:
@@ -25,7 +25,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health      # health 만 공개. 나머지는 노출하지 않음
+        include: health, prometheus
   endpoint:
     health:
       show-details: never    # DB 주소 같은 내부 정보는 숨김
+
+# 동행 중 의뢰인-동행인 근접 판단 기준 (출발 버튼 활성화)
+escort:
+  proximity:
+    radius-meters: 100     # 이 거리 안이면 가깝다고 본다
+    stale-seconds: 30      # 이보다 오래된 위치는 믿지 않고 가깝지 않은 것으로 본다
